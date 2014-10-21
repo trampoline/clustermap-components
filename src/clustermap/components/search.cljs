@@ -2,7 +2,6 @@
   (:require [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
             [sablono.core :as html :refer-macros [html]]
-            [clustermap.om :as omu]
             [clustermap.routes :as routes]
             [clustermap.model :as model]
             [jayq.core :as jayq :refer [$]]

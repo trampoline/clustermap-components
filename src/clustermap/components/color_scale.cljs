@@ -1,15 +1,8 @@
 (ns clustermap.components.color-scale
   (:require [om.core :as om :include-macros true]
-            [om.dom :as dom :include-macros true]
             [sablono.core :as html :refer-macros [html]]
-            [clustermap.om :as omu]
-            [clustermap.routes :as routes]
-            [clustermap.model :as model]
-            [clustermap.formats.number :as number]
             [clustermap.formats.money :as money]
-            [clustermap.formats.color :as color]
-            [jayq.core :as jayq :refer [$]]
-            [cljs.core.async :refer [put!]]))
+            [clustermap.formats.color :as color]))
 
 (defn color-scale-component
   [threshold-colors owner]

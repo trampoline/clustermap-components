@@ -1,15 +1,11 @@
 (ns clustermap.components.map-report
-  (:require [cljs.core.async :refer [put!]]
-            [domina.events :as events]
-            [om.core :as om :include-macros true]
-            [om.dom :as dom :include-macros true]
+  (:require [om.core :as om :include-macros true]
             [sablono.core :as html :refer-macros [html]]
             [clustermap.api :as api]
             [clustermap.ordered-resource :as ordered-resource]
             [clustermap.formats.number :as nf :refer [fnum]]
             [clustermap.formats.money :as mf :refer [fmoney]]
-            [clustermap.formats.string :as sf :refer [pluralize]]
-            [clustermap.components.reset-selection-button :as rsb]))
+            [clustermap.formats.string :as sf :refer [pluralize]]))
 
 (defn full-report-button
   [comm view-path-fn]

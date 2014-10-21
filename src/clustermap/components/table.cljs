@@ -1,6 +1,5 @@
 (ns clustermap.components.table
   (:require
-   [cljs.core.async :refer [put!]]
    [om.core :as om :include-macros true]
    [sablono.core :as html :refer-macros [html]]
    [clustermap.api :as api]

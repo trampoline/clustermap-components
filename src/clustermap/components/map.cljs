@@ -5,7 +5,6 @@
    [clojure.set :as set]
    [cljs.core.async :refer [put! <!]]
    [om.core :as om :include-macros true]
-   [om.dom :as dom :include-macros true]
    [jayq.core :refer [$]]
    [sablono.core :as html :refer-macros [html]]
    [hiccups.runtime :as hiccupsrt]

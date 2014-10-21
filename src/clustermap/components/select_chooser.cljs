@@ -1,12 +1,6 @@
 (ns clustermap.components.select-chooser
   (:require [om.core :as om :include-macros true]
-            [om.dom :as dom :include-macros true]
-            [sablono.core :as html :refer-macros [html]]
-            [clustermap.om :as omu]
-            [clustermap.routes :as routes]
-            [clustermap.model :as model]
-            [jayq.core :as jayq :refer [$]]
-            [cljs.core.async :refer [put!]]))
+            [sablono.core :as html :refer-macros [html]]))
 
 (defn select-chooser-component
   [title key value-descriptions {:as cursor} owner]
