@@ -28,7 +28,8 @@
           [:li (fnum count :default "-") [:small "Companies"]]
           [:li (fmoney sum-turnover :sf 2 :default "-") [:small "Total revenue"]]
           [:li (fnum sum-employee-count :dec 0 :default "-") [:small "Total employees"]]]
-         (full-report-button comm view-path-fn)]))
+         ;;(full-report-button comm view-path-fn)
+         ]))
 
 (defn request-summary-stats
   [resource index index-type attrs filter bounds]
