@@ -163,3 +163,7 @@
        :before before
        :interval interval
        :metric-variables metric-variables}))
+
+(defn geo-sponsors
+  [bounds]
+  (GET (str "/api/" api-prefix "/geo-sponsors?" (map-json-params {:bounds bounds}))))
