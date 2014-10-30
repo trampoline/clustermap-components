@@ -3,7 +3,7 @@
             [om.dom :as dom :include-macros true]
             [sablono.core :as html :refer-macros [html]]
             [clustermap.routes :as routes]
-            [clustermap.model :as model]
+            ;; [clustermap.model :as model]
             [jayq.core :as jayq :refer [$]]
             [cljs.core.async :refer [put!]]))
 
@@ -49,7 +49,8 @@
     ESCAPE_KEY (some-> (om/get-node owner "search-component") $ .toggle)
     ENTER_KEY (let [[type res] (nth-search-result @search-results (or (om/get-state owner :selected-idx) 0))]
                 (some-> (om/get-node owner "search-component") $ .toggle)
-                (put! comm [:select [type (model/extract-id type res)]]))
+                ;;(put! comm [:select [type (model/extract-id type res)]])
+                )
     UP_ARROW (om/set-state! owner :selected-idx (dec (or (om/get-state owner :selected-idx) 0)))
     DOWN_ARROW (om/set-state! owner :selected-idx (inc (or (om/get-state owner :selected-idx) 0)))
     nil))
