@@ -55,6 +55,14 @@
         (when collection-cache-path
           (swap! app-state update-in collection-cache-path (fn [old] bl)))))))
 
+(defn get-cached-boundaryline
+  [app-state boundarylines-path boundaryline-id]
+  (let [cache-path (concat (make-sequential boundarylines-path) [:boundarylines boundaryline-id])
+        cached (get-in @app-state cache-path)
+        tolerance (->> cached keys sort last)]
+    (when tolerance
+     (get cached tolerance))))
+
 (defn fetch-boundarylines
   "fetch a set of boundarylines for a given tolerance in one API call, add the results to the collection-specific and
    general caches. returns a single value true on the go-block channel when complete"
