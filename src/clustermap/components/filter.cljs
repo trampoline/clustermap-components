@@ -5,7 +5,9 @@
 (defn render
   [{bounds :bounds
     filter-spec :filter-spec}
-   owner state]
+   owner
+   state
+   & [{:keys [get-cached-boundaryline-fn]}]]
   (html
    [:div.filter-component
 
@@ -59,6 +61,18 @@
                       [:option {:value ""} "any"]
                       [:option {:value "low"} "< £1 million"]
                       [:option {:value "high"} ">= £1 million"]]]]
+
+     [:div.tbl-row
+      [:div.tbl-cell "Boundary"]
+      [:div.tbl-cell
+       [:span {:onClick (fn [e] (om/update! filter-spec [:components :boundaryline] nil))} "X "]
+       (let [bl-id (get-in filter-spec [:components :boundaryline :nested :filter :term "boundaryline_id"])
+             bl (get-cached-boundaryline-fn bl-id)
+             compact-name (some-> bl (aget "compact_name"))
+             ]
+         (.log js/console (clj->js ["BL" bl]))
+         compact-name)
+       ]]
 
      [:div.tbl-row
       [:div.tbl-cell "SIC section"]
@@ -131,7 +145,8 @@
 
     om/IRenderState
     (render-state [_ state]
-      (render props owner state))
+      (let [{:keys [get-cached-boundaryline-fn]} (om/get-shared owner)]
+        (render props owner state {:get-cached-boundaryline-fn get-cached-boundaryline-fn})))
 
     om/IWillUpdate
     (will-update [_
@@ -141,13 +156,14 @@
                     next-bounds :bounds}
                   next-state]
       (when (or (not= next-components components)
-                (not= next-filter-by-view filter-by-view)
-                (and next-filter-by-view (not= next-bounds bounds)))
+                  (not= next-filter-by-view filter-by-view)
+                  (and next-filter-by-view (not= next-bounds bounds)))
 
-        (om/update! filter-spec [:compiled] (->> next-components
-                                                 vals
-                                                 (map om/-value)
-                                                 (filter identity)
-                                                 (into [])))
-        ))
+          (om/update! filter-spec [:compiled] (->> next-components
+                                                   vals
+                                                   (map om/-value)
+                                                   (filter identity)
+                                                   (into [])))
+          )
+)
     ))
