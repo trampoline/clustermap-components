@@ -146,13 +146,18 @@
         true                       (.setStyle leaflet-path (clj->js {:color "#8c2d04" :fillColor fill-color :weight 1 :opacity 0 :fill false :fillOpacity 0}))))
 
 (defn create-path
-  [comm leaflet-map boundaryline-id js-boundaryline {:keys [selected] :as path-attrs}]
+  [comm leaflet-map boundaryline-id js-boundaryline {:keys [selected] :as path-attrs} & [{:keys [filter-spec] :as opts}]]
   (let [tolerance (aget js-boundaryline "tolerance")
         bounds (postgis-envelope->latlngbounds (aget js-boundaryline "envelope"))
         leaflet-path (js/L.geoJson (aget js-boundaryline "geojson"))]
     (style-leaflet-path leaflet-path path-attrs)
     (.addTo leaflet-path leaflet-map)
     (.on leaflet-path "click" (fn [e]
+                                (when filter-spec
+                                  (om/update! filter-spec [:components :boundaryline]
+                                              {:nested {:path "?boundarylines"
+                                                        :filter {:term {"boundaryline_id" boundaryline-id}}}}))
+
                                 (put! comm [:select [:constituency boundaryline-id]])))
     {:id boundaryline-id
      :tolerance tolerance
@@ -162,22 +167,23 @@
 
 (defn fetch-create-path
   "create leaflet paths for every boundaryline in boundaryline-index"
-  [comm leaflet-map boundaryline-id tolerance js-boundaryline path-attrs]
+  [comm leaflet-map boundaryline-id tolerance js-boundaryline path-attrs & [{:keys [filter-spec] :as opts}]]
+
   ;;  (.log js/console (clj->js ["fetch-create" boundaryline-id]))
-  (create-path comm leaflet-map boundaryline-id js-boundaryline path-attrs))
+  (create-path comm leaflet-map boundaryline-id js-boundaryline path-attrs opts))
 
 (defn replace-path
-  [comm leaflet-map boundaryline-id old-path js-boundaryline path-attrs]
+  [comm leaflet-map boundaryline-id old-path js-boundaryline path-attrs & [{:keys [filter-spec] :as opts}]]
   ;; (.log js/console (clj->js ["replace-path" boundaryline-id old-path js-boundaryline path-attrs]))
   (.removeLayer leaflet-map (:leaflet-path old-path))
-  (create-path comm leaflet-map (:id old-path) js-boundaryline path-attrs))
+  (create-path comm leaflet-map (:id old-path) js-boundaryline path-attrs opts))
 
 (defn update-path
   "update a Leaflet path for a boundaryline"
-  [comm leaflet-map {boundaryline-id :id :as path} tolerance js-boundaryline path-attrs]
+  [comm leaflet-map {boundaryline-id :id :as path} tolerance js-boundaryline path-attrs & [{:keys [filter-spec] :as opts}]]
   ;; (.log js/console (clj->js ["update-path" boundaryline-id path tolerance js-boundaryline path-attrs]))
   (if (not= tolerance (:tolerance path))
-    (replace-path comm leaflet-map boundaryline-id path js-boundaryline path-attrs)
+    (replace-path comm leaflet-map boundaryline-id path js-boundaryline path-attrs opts)
     (do (style-leaflet-path (:leaflet-path path) path-attrs)
         path)))
 
@@ -187,7 +193,7 @@
   (.removeLayer leaflet-map (:leaflet-path path)))
 
 (defn update-paths
-  [comm fetch-boundarylines-fn leaflet-map paths-atom path-selections-atom new-path-highlights new-selection-paths]
+  [comm fetch-boundarylines-fn leaflet-map paths-atom path-selections-atom new-path-highlights new-selection-paths & [{:keys [filter-spec] :as opts}]]
   (let [paths @paths-atom
         path-keys (-> paths keys set)
 
@@ -219,7 +225,8 @@
                                                                                        js-boundaryline
                                                                                        {:selected (contains? new-selection-path-keys k)
                                                                                         :fill-color (new-selection-paths k)
-                                                                                        :highlighted (contains? new-path-highlights k)}))))
+                                                                                        :highlighted (contains? new-path-highlights k)}
+                                                                                       opts))))
 
         updated-paths (->> update-path-keys
                            (map (fn [k] (let [[tolerance js-boundaryline] (get tolerance-paths k)]
@@ -233,7 +240,8 @@
                                                                                  js-boundaryline
                                                                                  {:selected (contains? new-selection-path-keys k)
                                                                                   :fill-color (new-selection-paths k)
-                                                                                  :highlighted (contains? new-path-highlights k)})))
+                                                                                  :highlighted (contains? new-path-highlights k)}
+                                                                                 opts)))
                            )
 
         _ (doseq [k delete-path-keys] (if-let [path (get paths k)] (delete-path leaflet-map path)))
@@ -320,6 +328,7 @@
      point-data :point-data
      boundaryline-collections :boundaryline-collections
      {:keys [initial-bounds bounds zoom boundaryline-collection colorchooser boundaryline-agg threshold-colors]} :controls :as cursor} :map-state
+     filter-spec :filter-spec
      filter :filter
      :as cursor-data}
    owner]
@@ -394,6 +403,11 @@
                                    (let [hits (point-in-boundarylines-fn (-> e .-latlng .-lng) (-> e .-latlng .-lat))
                                          boundaryline-id (some-> hits first :id)]
                                      (when boundaryline-id
+
+                                       (om/update! filter-spec [:components :boundaryline]
+                                                   {:nested {:path "?boundarylines"
+                                                             :filter {:term {"boundaryline_id" boundaryline-id}}}})
+
                                        (put! comm [:select [:constituency boundaryline-id]])))))
 
         (let [adr (ordered-resource/make-discard-stale-resource "aggregation-data-resource")]
@@ -418,7 +432,8 @@
                      next-threshold-colors :threshold-colors} :controls
                     :as next-cursor
                     } :map-state
-                     next-filter :filter
+                      next-filter :filter
+                      next-filter-spec :filter-spec
                      :as next-cursor-data}
                   {{next-markers :markers
                     next-paths :paths
@@ -492,7 +507,8 @@
                                                              next-paths
                                                              next-path-selections
                                                              next-path-highlights
-                                                             selection-path-colours))]
+                                                             selection-path-colours
+                                                             {:filter-spec next-filter-spec}))]
 
             (when (not= new-threshold-colors next-threshold-colors)
               (om/update! cursor [:controls :threshold-colors] new-threshold-colors))
