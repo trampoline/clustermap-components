@@ -7,6 +7,7 @@
 (defn render*
   [filter-spec tag-filter-spec]
   (let [tag-type (:type tag-filter-spec)
+        filter-component-id (str "tag-filter-" (name tag-type))
         label (:label tag-filter-spec)
         tag-filter-spec (dissoc tag-filter-spec :type :label)]
     (html
@@ -18,7 +19,7 @@
                                  :onChange (fn [e]
                                              (let [val (-> e .-target .-value)]
                                                (.log js/console val)
-                                               (om/update! filter-spec [:components :tag-filter]
+                                               (om/update! filter-spec [:components filter-component-id]
                                                            (when (not-empty val)
                                                              {:nested {:path "?tags"
                                                                        :filter {:bool {:must [{:term {"type" tag-type}}
