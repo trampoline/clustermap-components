@@ -68,7 +68,6 @@
       :as controls} :controls
      :as table-state} :table-state
      filter-spec :filter-spec
-    bounds :bounds
     :as props}
    owner]
 
@@ -101,16 +100,13 @@
                      :as next-controls} :controls
                     :as next-table-state} :table-state
                     next-filter-spec :filter-spec
-                    next-bounds :bounds
                    :as next-props}
                   {table-data-resource :table-data-resource
                    :as next-state}]
 
       (when (or (not next-table-data)
                 (not= next-controls controls)
-                (not= next-filter-spec filter-spec)
-                (not= next-filter-by-view filter-by-view)
-                (and next-filter-by-view (not= next-bounds bounds)))
+                (not= next-filter-spec filter-spec))
 
         (ordered-resource/api-call table-data-resource
                                    api/rankings
