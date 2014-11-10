@@ -38,4 +38,4 @@
         quarter-end-month (- max-end-month quarter-offset)
         quarter-end (tc/date-midnight (tc/year max-end) quarter-end-month)
         quarter-start (tc/minus quarter-end (tc/months 12))]
-    [quarter-start quarter-end]))d
+    [quarter-start quarter-end]))
