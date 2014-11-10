@@ -49,20 +49,20 @@
   (let [[current-sort-key current-sort-dir] (some-> current-sort-spec parse-sort-spec first)]
     [:a
      {:href "#"
-       ;; :onClick (fn [e]
-       ;;            (.preventDefault e)
-       ;;            (cond
+       :onClick (fn [e]
+                  (.preventDefault e)
+                  (cond
 
-       ;;             (and (= col-key current-sort-key)
-       ;;                  (= :asc current-sort-dir))
-       ;;             (om/update! controls :sort-spec {col-key {:order :desc}})
+                   (and (= col-key current-sort-key)
+                        (= :asc current-sort-dir))
+                   (om/update! controls :sort-spec {col-key {:order :desc}})
 
-       ;;             (and (= col-key current-sort-key)
-       ;;                  (= :desc current-sort-dir))
-       ;;             (om/update! controls :sort-spec {col-key {:order :asc}})
+                   (and (= col-key current-sort-key)
+                        (= :desc current-sort-dir))
+                   (om/update! controls :sort-spec {col-key {:order :asc}})
 
-       ;;             true
-       ;;             (om/update! controls :sort-spec {col-key {:order :desc}})))
+                   true
+                   (om/update! controls :sort-spec {col-key {:order :asc}})))
       }
       col-name
       (if (= current-sort-key col-key)
