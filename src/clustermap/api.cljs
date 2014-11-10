@@ -181,3 +181,16 @@
        :merge-key merge-key
        :fields fields
        :size size}))
+
+(defn ranges
+  [index index-type filter-spec row-variable row-ranges col-variable col-ranges metric-variable metric]
+  (POST (str "/api/" api-prefix "/ranges")
+      {:index-name index
+       :index-type index-type
+       :filter filter-spec
+       :row-variable row-variable
+       :row-ranges row-ranges
+       :col-variable col-variable
+       :col-ranges col-ranges
+       :metric-variable metric-variable
+       :metric metric}))
