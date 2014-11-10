@@ -67,8 +67,7 @@
       columns :columns
       :as controls} :controls
      :as table-state} :table-state
-     {filter-by-view :filter-by-view
-      filter-spec :compiled} :filter-spec
+     filter-spec :filter-spec
     bounds :bounds
     :as props}
    owner]
@@ -101,8 +100,7 @@
                      next-columns :columns
                      :as next-controls} :controls
                     :as next-table-state} :table-state
-                    {next-filter-by-view :filter-by-view
-                     next-filter-spec :compiled} :filter-spec
+                    next-filter-spec :filter-spec
                     next-bounds :bounds
                    :as next-props}
                   {table-data-resource :table-data-resource
