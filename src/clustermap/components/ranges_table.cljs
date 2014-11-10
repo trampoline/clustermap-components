@@ -20,9 +20,35 @@
       :as controls} :controls}
    owner
    opts]
-  (html
+  (let [rowcol (->> results
+                    (map (fn [r] [[(:row r) (:col r)] r]))
+                    (into {}))]
+    (.log js/console (clj->js ["ROWCOL" rowcol]))
+    (html
 
-    [:div "BOO"]))
+     [:div
+      (when title [:h2 title])
+      [:div.table-responsive
+       [:table.table-stats
+        [:thead
+         [:tr
+          [:th]
+          (for [col-range col-ranges]
+            [:th (:label col-range)])]]
+        [:tbody
+         (for [row-range row-ranges]
+           [:tr
+            [:td (:label row-range)]
+            (for [col-range col-ranges]
+              (do
+                (.log js/console (clj->js (get rowcol [(:key row-range) (:key col-range)])))
+                [:td (some->> [(:key row-range) (:key col-range)]
+                              (get rowcol)
+                              :metric)])
+              )])]
+        ]]])
+
+    ))
 
 (defn ranges-table-component
   [{{table-data :table-data
