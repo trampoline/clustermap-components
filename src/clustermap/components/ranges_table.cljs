@@ -23,7 +23,7 @@
   (let [rowcol (->> results
                     (map (fn [r] [[(:row r) (:col r)] r]))
                     (into {}))]
-    (.log js/console (clj->js ["ROWCOL" rowcol]))
+    ;; (.log js/console (clj->js ["ROWCOL" rowcol]))
     (html
 
      [:div
@@ -41,7 +41,7 @@
             [:td (:label row-range)]
             (for [col-range col-ranges]
               (do
-                (.log js/console (clj->js (get rowcol [(:key row-range) (:key col-range)])))
+                ;; (.log js/console (clj->js (get rowcol [(:key row-range) (:key col-range)])))
                 [:td (some->> [(:key row-range) (:key col-range)]
                               (get rowcol)
                               :metric)])
