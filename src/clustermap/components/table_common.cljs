@@ -87,12 +87,14 @@
   [columns controls & [{:keys [current-sort-spec]}]]
   (let [group-row (some sequential? columns)]
     (->> columns
-         (map (fn [col]
+         (map vector (iterate inc 1))
+         (map (fn [[ci col]]
                    (if (sequential? col)
-                     [:th {:colSpan (count (column-value-descriptors (rest col)))} (first col) ]
+                     [:th {:class (str "th-col-" ci)
+                           :colSpan (count (column-value-descriptors (rest col)))} (first col) ]
                      (if group-row
-                       [:th]
-                       [:th (order-col controls current-sort-spec (:key col) (:name col))])))))))
+                       [:th {:class (str "th-col-" ci)}]
+                       [:th {:class (str "th-col-" ci)} (order-col controls current-sort-spec (:key col) (:name col))])))))))
 
 (defn- extract-sub-columns*
   "extract the next row of column descriptions, if there are any"
@@ -124,4 +126,5 @@
    - current-sort-spec : the current sort spec"
   [columns controls & [{:keys [current-sort-spec]}]]
   (->> (column-header-row-seq* columns controls {:current-sort-spec current-sort-spec})
-       (map (fn [r] (into [:tr] r)))))
+       (map vector (iterate inc 1))
+       (map (fn [[ri r]] (into [:tr {:class (str "th-row-" ri)}] r)))))
