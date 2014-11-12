@@ -40,35 +40,36 @@
    - controls : cursor with :sort-spec member containing sort-spec
    - current-sort-spec : the current sort-spec
    - col-key : the column key
-   - col-name : the column name"
+   - col-label : the column name"
   [controls
    current-sort-spec
    col-key
-   col-name]
+   col-label]
 
-  (let [[current-sort-key current-sort-dir] (some-> current-sort-spec parse-sort-spec first)]
-    [:a
-     {:href "#"
-       :onClick (fn [e]
-                  (.preventDefault e)
-                  (cond
+  (let [[current-sort-key current-sort-dir] (some-> current-sort-spec parse-sort-spec first)
+        content [col-label (when (and col-key (= current-sort-key col-key))
+                            (condp = current-sort-dir
+                              :asc [:i.icon-asc]
+                              [:i.icon-desc]))]]
+    (if controls
+      (into  [:a
+              {:href "#"
+               :onClick (fn [e]
+                            (.preventDefault e)
+                            (cond
 
-                   (and (= col-key current-sort-key)
-                        (= :asc current-sort-dir))
-                   (om/update! controls :sort-spec {col-key {:order :desc}})
+                             (and (= col-key current-sort-key)
+                                  (= :asc current-sort-dir))
+                             (om/update! controls :sort-spec {col-key {:order :desc}})
 
-                   (and (= col-key current-sort-key)
-                        (= :desc current-sort-dir))
-                   (om/update! controls :sort-spec {col-key {:order :asc}})
+                             (and (= col-key current-sort-key)
+                                  (= :desc current-sort-dir))
+                             (om/update! controls :sort-spec {col-key {:order :asc}})
 
-                   true
-                   (om/update! controls :sort-spec {col-key {:order :asc}})))
-      }
-      col-name
-      (if (= current-sort-key col-key)
-        (condp = current-sort-dir
-          :asc [:i.icon-asc]
-          [:i.icon-desc]))]))
+                             true
+                             (om/update! controls :sort-spec {col-key {:order :asc}})))}]
+             content)
+      (into [:span] content))))
 
 (defn column-value-descriptors
   "given a possibly nested seq of column descriptions,
@@ -84,17 +85,17 @@
 
 (defn- extract-column-headers*
   "extract one row of column headers"
-  [columns controls & [{:keys [current-sort-spec]}]]
+  [columns & [{:keys [controls current-sort-spec insert-blank-col]}]]
   (let [group-row (some sequential? columns)]
     (->> columns
-         (map vector (iterate inc 1))
+         (map vector (iterate inc (if insert-blank-col 2 1)))
          (map (fn [[ci col]]
                    (if (sequential? col)
-                     [:th {:class (str "th-col-" ci)
+                     [:th {:class (str "col-" ci)
                            :colSpan (count (column-value-descriptors (rest col)))} (first col) ]
                      (if group-row
-                       [:th {:class (str "th-col-" ci)}]
-                       [:th {:class (str "th-col-" ci)} (order-col controls current-sort-spec (:key col) (:name col))])))))))
+                       [:th {:class (str "col-" ci)}]
+                       [:th {:class (str "col-" ci)} (order-col controls current-sort-spec (:key col) (:label col))])))))))
 
 (defn- extract-sub-columns*
   "extract the next row of column descriptions, if there are any"
@@ -108,15 +109,14 @@
 
 (defn- column-header-row-seq*
   "lazy seq of column header rows"
-  [columns controls & [{:keys [current-sort-spec]}]]
+  [columns & [opts]]
   (when (not-empty columns)
     (lazy-seq
      (cons
-      (extract-column-headers* columns controls {:current-sort-spec current-sort-spec})
+      (extract-column-headers* columns opts)
       (column-header-row-seq*
        (extract-sub-columns* columns)
-       controls
-       {:current-sort-spec current-sort-spec})))))
+       opts)))))
 
 (defn column-header-rows
   "given a possibly nested seq of column descriptions extract table header rows suitable
@@ -124,7 +124,7 @@
    - columns : the column descriptions
    - controls : the table controls cursor
    - current-sort-spec : the current sort spec"
-  [columns controls & [{:keys [current-sort-spec]}]]
-  (->> (column-header-row-seq* columns controls {:current-sort-spec current-sort-spec})
+  [columns & [{:keys [controls current-sort-spec insert-blank-col] :as opts}]]
+  (->> (column-header-row-seq* columns opts)
        (map vector (iterate inc 1))
-       (map (fn [[ri r]] (into [:tr {:class (str "th-row-" ri)}] r)))))
+       (map (fn [[ri r]] (into [:tr {:class (str "row-" ri)} (when insert-blank-col [:th {:class "col-1"}])] r)))))

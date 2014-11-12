@@ -31,20 +31,18 @@
       [:div.table-responsive
        [:table.table-stats
         [:thead
-         [:tr
-          [:th]
-          (for [col-range col-ranges]
-            [:th (:label col-range)])]]
+         (->> (tc/column-header-rows col-ranges {:insert-blank-col true}))]
         [:tbody
-         (for [row-range row-ranges]
-           [:tr
-            [:td (:label row-range)]
-            (for [col-range col-ranges]
+         (for [[rowi row-range] (map vector (iterate inc 1) row-ranges)]
+           [:tr {:class (str "row-" rowi)}
+            [:td {:class "col-1"} (:label row-range)]
+            (for [[coli col-range] (map vector (iterate inc 1) col-ranges)]
               (do
                 ;; (.log js/console (clj->js (get rowcol [(:key row-range) (:key col-range)])))
-                [:td (some->> [(:key row-range) (:key col-range)]
-                              (get rowcol)
-                              :metric)])
+                [:td {:class (str "col-" coli)}
+                 (some->> [(:key row-range) (:key col-range)]
+                          (get rowcol)
+                          :metric)])
               )])]
         ]]])
 
@@ -112,7 +110,7 @@
                                    next-row-variable
                                    next-row-ranges
                                    next-col-variable
-                                   next-col-ranges
+                                   (filter :key (tc/column-value-descriptors next-col-ranges))
                                    next-metric-variable
                                    next-metric))
       )))

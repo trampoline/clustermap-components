@@ -8,17 +8,17 @@
 
 
 (defn- render-table-row
-  [{:keys [columns record]}]
+  [{:keys [columns record row-i]}]
   (om/component
    (html
     (let [row
-          (into [:tr]
-                (for [col columns]
+          (into [:tr {:class (str "row-" row-i)}]
+                (for [[col-i col] (map vector (iterate inc 1) columns)]
                   (let [{:keys [key name render-fn]} col
                         render-fn (or render-fn identity)]
                     ;; (.log js/console (clj->js [col-key col-name]))
                     ;; (.log js/console (clj->js ["KEYS" col-key (type col-key) col-name (type col-name) (get record col-key)]))
-                    [:td (render-fn (get record key) record)])))
+                    [:td {:class (str "col-" col-i)} (render-fn (get record key) record)])))
           ;; _ (.log js/console (clj->js ["ROW" columns record row]))
           ]
       row))))
@@ -42,13 +42,17 @@
        [:table.table
 
         [:thead
-         (tc/column-header-rows columns controls {:current-sort-spec (:sort query)})]
+         (tc/column-header-rows columns {:controls controls :current-sort-spec (:sort query)})]
 
         [:tbody
-         (om/build-all render-table-row results {:key :key :fn (fn [r] {:columns col-value-descriptors
-                                                                        :merge-key merge-key
-                                                                        :record r
-                                                                        :key (:?natural_id r )})})
+         (om/build-all render-table-row
+                       (map vector (iterate inc 1) results)
+                       {:key :key
+                        :fn (fn [[row-i r]] {:row-i row-i
+                                             :columns col-value-descriptors
+                                             :merge-key merge-key
+                                             :record r
+                                             :key (:?natural_id r )})})
          ]]]
       ]))
   )
