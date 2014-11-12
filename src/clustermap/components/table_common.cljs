@@ -1,6 +1,8 @@
 (ns clustermap.components.table-common
   (:require
-   [om.core :as om :include-macros true]))
+   [clojure.string :as str]
+   [om.core :as om :include-macros true]
+   [clustermap.formats.html :as html]))
 
 (defn make-sequential
   "return v if it's already sequential, otherwise wrap it in a vector"
@@ -91,11 +93,11 @@
          (map vector (iterate inc (if insert-blank-col 2 1)))
          (map (fn [[ci col]]
                    (if (sequential? col)
-                     [:th {:class (str "col-" ci)
+                     [:th {:class (html/combine-classes (str "col-" ci) (:class col))
                            :colSpan (count (column-value-descriptors (rest col)))} (first col) ]
                      (if group-row
-                       [:th {:class (str "col-" ci)}]
-                       [:th {:class (str "col-" ci)} (order-col controls current-sort-spec (:key col) (:label col))])))))))
+                       [:th {:class (html/combine-classes (str "col-" ci) (:class col))}]
+                       [:th {:class (html/combine-classes (str "col-" ci) (:class col))} (order-col controls current-sort-spec (:key col) (:label col))])))))))
 
 (defn- extract-sub-columns*
   "extract the next row of column descriptions, if there are any"

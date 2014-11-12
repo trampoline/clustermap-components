@@ -4,6 +4,7 @@
    [sablono.core :as html :refer-macros [html]]
    [clustermap.api :as api]
    [clustermap.ordered-resource :as ordered-resource]
+   [clustermap.formats.html :as htmlf]
    [clustermap.components.table-common :as tc]))
 
 
@@ -18,7 +19,7 @@
                         render-fn (or render-fn identity)]
                     ;; (.log js/console (clj->js [col-key col-name]))
                     ;; (.log js/console (clj->js ["KEYS" col-key (type col-key) col-name (type col-name) (get record col-key)]))
-                    [:td {:class (str "col-" col-i)} (render-fn (get record key) record)])))
+                    [:td {:class (htmlf/combine-classes (str "col-" col-i) (:class col))} (render-fn (get record key) record)])))
           ;; _ (.log js/console (clj->js ["ROW" columns record row]))
           ]
       row))))

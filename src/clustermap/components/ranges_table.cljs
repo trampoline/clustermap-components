@@ -4,6 +4,7 @@
    [sablono.core :as html :refer-macros [html]]
    [clustermap.api :as api]
    [clustermap.ordered-resource :as ordered-resource]
+   [clustermap.formats.html :as htmlf]
    [clustermap.components.table-common :as tc]))
 
 (defn- render-table
@@ -39,7 +40,7 @@
             (for [[coli col-range] (map vector (iterate inc 1) col-ranges)]
               (do
                 ;; (.log js/console (clj->js (get rowcol [(:key row-range) (:key col-range)])))
-                [:td {:class (str "col-" coli)}
+                [:td {:class (htmlf/combine-classes (str "col-" coli) (:class col-range))}
                  (some->> [(:key row-range) (:key col-range)]
                           (get rowcol)
                           :metric)])
@@ -108,9 +109,15 @@
                                    next-index-type
                                    next-filter-spec
                                    next-row-variable
-                                   next-row-ranges
+                                   (->> next-row-ranges
+                                        tc/column-value-descriptors
+                                        (map #(select-keys % [:key :from :to]))
+                                        (filter :key))
                                    next-col-variable
-                                   (filter :key (tc/column-value-descriptors next-col-ranges))
+                                   (->> next-col-ranges
+                                        tc/column-value-descriptors
+                                        (map #(select-keys % [:key :from :to]))
+                                        (filter :key))
                                    next-metric-variable
                                    next-metric))
       )))
