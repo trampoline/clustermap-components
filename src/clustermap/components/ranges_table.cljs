@@ -37,13 +37,14 @@
          (for [[rowi row-range] (map vector (iterate inc 1) row-ranges)]
            [:tr {:class (str "row-" rowi)}
             [:td {:class "col-1"} (:label row-range)]
-            (for [[coli col-range] (map vector (iterate inc 1) col-ranges)]
+            (for [[coli col-range] (map vector (iterate inc 2) col-ranges)]
               (do
                 ;; (.log js/console (clj->js (get rowcol [(:key row-range) (:key col-range)])))
                 [:td {:class (htmlf/combine-classes (str "col-" coli) (:class col-range))}
-                 (some->> [(:key row-range) (:key col-range)]
-                          (get rowcol)
-                          :metric)])
+                 (when (and (:key row-range) (:key col-range))
+                   (some->> [(:key row-range) (:key col-range)]
+                            (get rowcol)
+                            :metric))])
               )])]
         ]]])
 
