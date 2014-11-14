@@ -32,24 +32,22 @@
          ]))
 
 (defn request-summary-stats
-  [resource index index-type attrs filter bounds]
+  [resource index index-type attrs filt bounds]
   (ordered-resource/api-call resource
                              api/summary-stats
                              index
                              index-type
                              attrs
-                             filter
+                             filt
                              bounds))
 
 (defn map-report-component
-  [{{filter-by-view :filter-by-view
-     filt :compiled} :filter-spec
+  [{filt :filter
     {{{:keys [index index-type variables]
        :as summary-stats} :summary-stats
        :as controls} :controls
        summary-stats-data :summary-stats-data
        :as map-report} :map-report
-    {:keys [bounds]} :map-controls
     :as data}
    owner]
 
@@ -68,8 +66,7 @@
 
     om/IWillUpdate
     (will-update [_
-                  {{next-filter-by-view :filter-by-view
-                    next-filt :compiled} :filter-spec
+                  {next-filt :filter
                    {{{next-index :index
                       next-index-type :index-type
                       next-variables :variables
@@ -77,22 +74,19 @@
                       :as next-controls} :controls
                       next-summary-stats-data :summary-stats-data
                       :as next-map-report} :map-report
-                   {next-bounds :bounds :as map-controls} :map-controls
                    :as next-data}
                   {:keys [summary-stats-resource]
                    :as next-state}]
 
       (when (or (not next-summary-stats-data)
-                (not= next-filt filt)
-                (not= next-filter-by-view filter-by-view)
-                (and next-filter-by-view (not= next-bounds bounds)))
-
+                (not= next-filt filt))
+        (.log js/console (clj->js ["MAP-REPORT-FILTER" next-filt]))
         (request-summary-stats summary-stats-resource
                                next-index
                                next-index-type
                                next-variables
                                next-filt
-                               (when next-filter-by-view (om/-value next-bounds)))))
+                               nil)))
 
     )
   )
