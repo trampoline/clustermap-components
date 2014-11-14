@@ -3,9 +3,9 @@
 (defn rgb
   [col]
     (let [[_ r1 r2 g1 g2 b1 b2] col
-        r (js/Number.parseInt (str r1 r2), 16)
-        g (js/Number.parseInt (str g1 g2), 16)
-        b (js/Number.parseInt (str b1 b2), 16)]
+        r (js/parseInt (str r1 r2), 16)
+        g (js/parseInt (str g1 g2), 16)
+        b (js/parseInt (str b1 b2), 16)]
       [r g b]))
 
 (defn is-light-color?
