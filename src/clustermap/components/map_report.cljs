@@ -14,30 +14,27 @@
          "Full report"]))
 
 (defn summary-stats-report
-  [map-report-data comm view-path-fn
-   {{{sum-employee-count :sum count :viewfilter_doc_count} :!latest_employee_count
-     {sum-turnover :sum} :!latest_turnover
-     :as data} :data
-    :as summary-stats-data}]
+  [{{{variables :variables
+       :as summary-stats} :summary-stats
+      :as controls} :controls}
+   comm
+   view-path-fn
+   {data :data}]
+  (.log js/console (clj->js ["SUMMARY-STATS-VARIABLES" variables]))
+  (.log js/console (clj->js ["SUMMARY-STATS-DATA" data]))
   (html [:div
-           [:div.header.secondary
-            [:h2 "Summary stats"]
-            ;; [:h3 "UK wide"]
-            ]
          [:ul
-          [:li (fnum count :default "-") [:small "Companies"]]
-          [:li (fmoney sum-turnover :sf 2 :default "-") [:small "Total revenue"]]
-          [:li (fnum sum-employee-count :dec 0 :default "-") [:small "Total employees"]]]
-         ;;(full-report-button comm view-path-fn)
-         ]))
+          (for [{:keys [key metric label render-fn] :or {render-fn identity}} variables]
+            [:li (render-fn (get-in data [key metric]))
+             [:small label]])]]))
 
 (defn request-summary-stats
-  [resource index index-type attrs filt bounds]
+  [resource index index-type variables filt bounds]
   (ordered-resource/api-call resource
                              api/summary-stats
                              index
                              index-type
-                             attrs
+                             (map :key variables)
                              filt
                              bounds))
 
@@ -79,6 +76,7 @@
                    :as next-state}]
 
       (when (or (not next-summary-stats-data)
+                (not= next-controls controls)
                 (not= next-filt filt))
         (.log js/console (clj->js ["MAP-REPORT-FILTER" next-filt]))
         (request-summary-stats summary-stats-resource
