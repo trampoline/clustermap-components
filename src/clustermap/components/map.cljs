@@ -76,11 +76,8 @@
   [path-fn location-sites]
   (hiccups/html
    [:ul.map-marker-popup-location-list
-    (->> location-sites
-         (map (fn [site]
-                ;; (.log js/console (clj->js site))
-                (hiccups/html
-                 [:li [:a {:href (path-fn :map :portfolio-company site)} (:name site)]]))))]))
+    (for [site location-sites]
+      [:li (path-fn site)])]))
 
 (defn create-marker
   [path-fn leaflet-map location-sites]
@@ -317,7 +314,7 @@
                              index
                              index-type
                              "!postcode"
-                             ["!name" "!location" "!latest_employee_count" "!latest_turnover"]
+                             ["?natural_id" "!name" "!location" "!latest_employee_count" "!latest_turnover"]
                              1000
                              filter
                              bounds))
@@ -327,7 +324,7 @@
   [{{data :data
      point-data :point-data
      boundaryline-collections :boundaryline-collections
-     {:keys [initial-bounds bounds zoom boundaryline-collection colorchooser boundaryline-agg threshold-colors]} :controls :as cursor} :map-state
+     {:keys [initial-bounds link-render-fn bounds zoom boundaryline-collection colorchooser boundaryline-agg threshold-colors]} :controls :as cursor} :map-state
      filter-spec :filter-spec
      filter :filter
      :as cursor-data}
@@ -426,6 +423,7 @@
                     next-boundaryline-collections :boundaryline-collections
                     {next-zoom :zoom
                      next-bounds :bounds
+                     next-link-render-fn :link-render-fn
                      next-boundaryline-collection :boundaryline-collection
                      next-colorchooser :colorchooser
                      next-boundaryline-agg :boundaryline-agg
@@ -522,7 +520,7 @@
 
         (when (not= next-point-data point-data)
 
-          (update-markers path-fn leaflet-map next-markers (:records next-point-data))
+          (update-markers link-render-fn leaflet-map next-markers (:records next-point-data))
           )))
 
     om/IWillUnmount
