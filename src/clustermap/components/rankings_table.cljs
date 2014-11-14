@@ -63,7 +63,6 @@
      {index :index
       index-type :index-type
       sort-spec :sort-spec
-      time-variable :time-variable
       periods :periods
       metric-variables :metric-variables
       merge-key :merge-key
@@ -95,7 +94,6 @@
                     {next-index :index
                      next-index-type :index-type
                      next-sort-spec :sort-spec
-                     next-time-variable :time-variable
                      next-periods :periods
                      next-metric-variables :metric-variables
                      next-merge-key :merge-key
@@ -119,7 +117,6 @@
                                    next-index-type
                                    next-filter-spec
                                    next-sort-spec
-                                   next-time-variable
                                    next-periods
                                    next-metric-variables
                                    next-merge-key

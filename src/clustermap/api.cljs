@@ -169,13 +169,12 @@
   (GET (str "/api/" api-prefix "/geo-sponsors?" (map-json-params {:bounds bounds}))))
 
 (defn rankings
-  [index index-type filter-spec sort-spec time-variable periods metric-variables merge-key fields size]
+  [index index-type filter-spec sort-spec periods metric-variables merge-key fields size]
   (POST (str "/api/" api-prefix "/rankings")
       {:index-name index
        :index-type index-type
        :filter filter-spec
        :sort sort-spec
-       :time-variable time-variable
        :periods periods
        :metric-variables metric-variables
        :merge-key merge-key
