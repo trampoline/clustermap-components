@@ -18,7 +18,7 @@
    opts]
   (let [render-fn (or render-fn identity)]
     (html
-     [:span cnt])))
+     [:span (render-fn cnt)])))
 
 
 (defn count-matching-component
