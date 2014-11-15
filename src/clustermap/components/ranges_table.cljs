@@ -12,18 +12,16 @@
      results :results
      :as table-data} :table-data
      {title :title
-      row-variable :row-variable
-      row-ranges :row-ranges
-      col-variable :col-variable
-      col-ranges :col-ranges
-      metric-variable :metric-variable
-      metric :metric
+      rows :rows
+      cols :cols
+      render-fn :render-fn
       :as controls} :controls}
    owner
    opts]
   (let [rowcol (->> results
                     (map (fn [r] [[(:row r) (:col r)] r]))
-                    (into {}))]
+                    (into {}))
+        render-fn (or render-fn identity)]
     ;; (.log js/console (clj->js ["ROWCOL" rowcol]))
     (html
 
@@ -32,19 +30,20 @@
       [:div.table-responsive
        [:table.table-stats
         [:thead
-         (->> (tc/column-header-rows col-ranges {:insert-blank-col true}))]
+         (->> (tc/column-header-rows cols {:insert-blank-col true}))]
         [:tbody
-         (for [[rowi row-range] (map vector (iterate inc 1) row-ranges)]
-           [:tr {:class (str "row-" rowi)}
-            [:td {:class "col-1"} (:label row-range)]
-            (for [[coli col-range] (map vector (iterate inc 2) col-ranges)]
+         (for [[row-i row] (map vector (iterate inc 1) rows)]
+           [:tr {:class (str "row-" row-i)}
+            [:td {:class "col-1"} (:label row)]
+            (for [[col-i col] (map vector (iterate inc 2) cols)]
               (do
                 ;; (.log js/console (clj->js (get rowcol [(:key row-range) (:key col-range)])))
-                [:td {:class (htmlf/combine-classes (str "col-" coli) (:class col-range))}
-                 (when (and (:key row-range) (:key col-range))
-                   (some->> [(:key row-range) (:key col-range)]
+                [:td {:class (htmlf/combine-classes (str "col-" col-i) (:class col))}
+                 (when (and (:key row) (:key col))
+                   (some->> [(:key row) (:key col)]
                             (get rowcol)
-                            :metric))])
+                            :metric
+                            render-fn))])
               )])]
         ]]])
 
@@ -55,12 +54,14 @@
      {index :index
       index-type :index-type
       title :title
-      row-variable :row-variable
-      row-ranges :row-ranges
-      col-variable :col-variable
-      col-ranges :col-ranges
-      metric-variable :metric-variable
-      metric :metric
+      rows :rows
+      row-path :row-path
+      row-aggs :row-aggs
+      cols :cols
+      col-path :col-path
+      col-aggs :col-aggs
+      metric-path :metric-path
+      metric-aggs :metric-aggs
       :as controls} :controls
      :as table-state} :table-state
      filter-spec :filter-spec
@@ -87,12 +88,14 @@
                     {next-index :index
                      next-index-type :index-type
                      next-title :title
-                     next-row-variable :row-variable
-                     next-row-ranges :row-ranges
-                     next-col-variable :col-variable
-                     next-col-ranges :col-ranges
-                     next-metric-variable :metric-variable
-                     next-metric :metric
+                     next-rows :rows
+                     next-row-path :row-path
+                     next-row-aggs :row-aggs
+                     next-cols :cols
+                     next-col-path :col-path
+                     next-col-aggs :col-aggs
+                     next-metric-path :metric-path
+                     next-metric-aggs :metric-aggs
                      :as next-controls} :controls
                     :as next-table-state} :table-state
                     next-filter-spec :filter-spec
@@ -109,16 +112,9 @@
                                    next-index
                                    next-index-type
                                    next-filter-spec
-                                   next-row-variable
-                                   (->> next-row-ranges
-                                        tc/column-value-descriptors
-                                        (map #(select-keys % [:key :from :to]))
-                                        (filter :key))
-                                   next-col-variable
-                                   (->> next-col-ranges
-                                        tc/column-value-descriptors
-                                        (map #(select-keys % [:key :from :to]))
-                                        (filter :key))
-                                   next-metric-variable
-                                   next-metric))
-      )))
+                                   next-row-path
+                                   next-row-aggs
+                                   next-col-path
+                                   next-col-aggs
+                                   next-metric-path
+                                   next-metric-aggs)))))

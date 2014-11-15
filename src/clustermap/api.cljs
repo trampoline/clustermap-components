@@ -182,14 +182,21 @@
        :size size}))
 
 (defn ranges
-  [index index-type filter-spec row-variable row-ranges col-variable col-ranges metric-variable metric]
+  [index index-type filter-spec row-path row-aggs col-path col-aggs metric-path metric-aggs]
   (POST (str "/api/" api-prefix "/ranges")
       {:index-name index
        :index-type index-type
        :filter filter-spec
-       :row-variable row-variable
-       :row-ranges row-ranges
-       :col-variable col-variable
-       :col-ranges col-ranges
-       :metric-variable metric-variable
-       :metric metric}))
+       :row-path row-path
+       :row-aggs row-aggs
+       :col-path col-path
+       :col-aggs col-aggs
+       :metric-path metric-path
+       :metric-aggs metric-aggs}))
+
+(defn count-matching
+  [index index-type filter-spec]
+  (POST (str "/api/" api-prefix "/count-matching")
+      {:index-name index
+       :index-type index-type
+       :filter filter-spec}))
