@@ -39,3 +39,9 @@
         quarter-end (tc/date-midnight (tc/year max-end) quarter-end-month)
         quarter-start (tc/minus quarter-end (tc/months 12))]
     [quarter-start quarter-end]))
+
+(defn months-ago
+  [n]
+  (-> (now)
+      (tc/minus (tc/years (quot n 12)))
+      (tc/minus (tc/months (mod n 12)))))
