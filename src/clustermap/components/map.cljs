@@ -4,6 +4,7 @@
   (:require
    [clojure.set :as set]
    [cljs.core.async :refer [put! <!]]
+   [domina :as domina]
    [om.core :as om :include-macros true]
    [jayq.core :refer [$]]
    [sablono.core :as html :refer-macros [html]]
@@ -135,6 +136,16 @@
 
 ;; manage paths
 
+(defn boundary-marker-popup-content
+  [path-fn js-boundaryline]
+  ;; (.log js/console js-boundaryline)
+  (let [bl-id (aget js-boundaryline "id")
+        bl-name (aget js-boundaryline "compact_name") ]
+    (hiccups/html
+     [:a.boundaryline-popup-link {:href (if path-fn (path-fn :map :js-boundaryline js-boundaryline) "#")
+                                  :data-boundaryline-id bl-id}
+      [:span.map-marker-js-boundaryline-name {:data-boundaryline-id bl-id} bl-name]])))
+
 (defn style-leaflet-path
   [leaflet-path {:keys [selected highlighted fill-color]}]
   (cond (and selected highlighted) (.setStyle leaflet-path (clj->js {:color "#000000" :fillColor fill-color :weight 2 :opacity 1 :fill true :fillOpacity 0.6}))
@@ -146,9 +157,11 @@
   [comm leaflet-map boundaryline-id js-boundaryline {:keys [selected] :as path-attrs} & [{:keys [filter-spec] :as opts}]]
   (let [tolerance (aget js-boundaryline "tolerance")
         bounds (postgis-envelope->latlngbounds (aget js-boundaryline "envelope"))
-        leaflet-path (js/L.geoJson (aget js-boundaryline "geojson"))]
+        leaflet-path (js/L.geoJson (aget js-boundaryline "geojson"))
+        popup-content (boundary-marker-popup-content nil js-boundaryline)]
     (style-leaflet-path leaflet-path path-attrs)
     (.addTo leaflet-path leaflet-map)
+    (.bindPopup leaflet-path popup-content)
     (.on leaflet-path "click" (fn [e]
                                 (when filter-spec
                                   (om/update! filter-spec [:components :boundaryline]
@@ -280,14 +293,6 @@
 ;;             (pan-to-show initial-bounds)))
 ;;         ))))
 
-(defn constituency-marker-popup-content
-  [path-fn constituency]
-  (let [bl-id (:id constituency)
-        bl-name (:compact_name constituency) ]
-    (hiccups/html
-     [:a {:href (path-fn :map :constituency {:boundaryline_id bl-id :compact_name bl-name})}
-      [:span.map-marker-constituency-name bl-name]])))
-
 (defn choose-boundaryline-collection
   [threshold-collections zoom]
   (->> threshold-collections
@@ -324,7 +329,14 @@
   [{{data :data
      point-data :point-data
      boundaryline-collections :boundaryline-collections
-     {:keys [initial-bounds link-render-fn bounds zoom boundaryline-collection colorchooser boundaryline-agg threshold-colors]} :controls :as cursor} :map-state
+     {:keys [initial-bounds
+             link-render-fn
+             bounds zoom
+             boundaryline-collection
+             colorchooser
+             boundaryline-agg
+             threshold-colors
+             path-click-fn]} :controls :as cursor} :map-state
      filter-spec :filter-spec
      filter :filter
      :as cursor-data}
@@ -366,46 +378,55 @@
         (.on leaflet-map "popupclose" (fn [e] (om/set-state! owner :popup-selected nil)))
 
 
+        (when path-click-fn
+          (-> js/document $ (.on "click" "a.boundaryline-popup-link"
+                                 (fn [e]
+                                   (some-> e
+                                           .-target
+                                           (domina/attr "data-boundaryline-id")
+                                           path-click-fn)))))
 
+        ;; if there is a window size change when the map isn't visible, invalidate the map size
+        (let [last-dims (atom [js/window.innerWidth js/window.innerHeight])]
+          (-> js/document $ (.on "clustermap-change-view"(fn [e]
+                                                           (let [current-dims [js/window.innerWidth js/window.innerHeight]]
+                                                             (when (not= @last-dims current-dims)
+                                                               (.log js/console "window size changed !")
+                                                               (.invalidateSize leaflet-map))
+                                                             (reset! last-dims current-dims))))))
 
-        ;; (-> js/document $ (.on "clustermap-change-view"(fn [e]
-        ;;                                                  ;; (.log js/console "change-view")
-        ;;                                                  (let [{{:keys [paths path-selections]} :map} (om/get-state owner)]
-        ;;                                                    (.invalidateSize leaflet-map)
-        ;;                                                    (pan-to-selection owner leaflet-map paths path-selections)))))
+        ;; (.on leaflet-map "mousemove" (fn [e]
+        ;;                                (let [lat (-> e .-latlng .-lat)
+        ;;                                      lng (-> e .-latlng .-lng)
 
-        (.on leaflet-map "mousemove" (fn [e]
-                                       (let [lat (-> e .-latlng .-lat)
-                                             lng (-> e .-latlng .-lng)
+        ;;                                      hits (point-in-boundarylines-fn lng lat)
+        ;;                                      highlight-hit (first hits)
+        ;;                                      highlight-path-id (:id highlight-hit)
+        ;;                                      highlight-path-ids (when highlight-path-id (set [highlight-path-id]))
+        ;;                                      ;; _ (when highlight-path-id (.log js/console highlight-path-id))
 
-                                             hits (point-in-boundarylines-fn lng lat)
-                                             highlight-hit (first hits)
-                                             highlight-path-id (:id highlight-hit)
-                                             highlight-path-ids (when highlight-path-id (set [highlight-path-id]))
-                                             ;; _ (when highlight-path-id (.log js/console highlight-path-id))
+        ;;                                      old-path-highlights (om/get-state owner :path-highlights)]
 
-                                             old-path-highlights (om/get-state owner :path-highlights)]
+        ;;                                  (when (and highlight-hit
+        ;;                                             (not= old-path-highlights highlight-path-ids)
+        ;;                                             (not (om/get-state owner :popup-selected)))
+        ;;                                    (doto (js/L.popup)
+        ;;                                      (.setLatLng (clj->js [lat lng]))
+        ;;                                      (.setContent (constituency-marker-popup-content path-fn highlight-hit))
+        ;;                                      (.openOn leaflet-map)))
 
-                                         (when (and highlight-hit
-                                                    (not= old-path-highlights highlight-path-ids)
-                                                    (not (om/get-state owner :popup-selected)))
-                                           (doto (js/L.popup)
-                                             (.setLatLng (clj->js [lat lng]))
-                                             (.setContent (constituency-marker-popup-content path-fn highlight-hit))
-                                             (.openOn leaflet-map)))
+        ;;                                  (om/set-state! owner :path-highlights highlight-path-ids))))
 
-                                         (om/set-state! owner :path-highlights highlight-path-ids))))
+        ;; (.on leaflet-map "click" (fn [e]
+        ;;                            (let [hits (point-in-boundarylines-fn (-> e .-latlng .-lng) (-> e .-latlng .-lat))
+        ;;                                  boundaryline-id (some-> hits first :id)]
+        ;;                              (when boundaryline-id
 
-        (.on leaflet-map "click" (fn [e]
-                                   (let [hits (point-in-boundarylines-fn (-> e .-latlng .-lng) (-> e .-latlng .-lat))
-                                         boundaryline-id (some-> hits first :id)]
-                                     (when boundaryline-id
+        ;;                                (om/update! filter-spec [:components :boundaryline]
+        ;;                                            {:nested {:path "?boundarylines"
+        ;;                                                      :filter {:term {"boundaryline_id" boundaryline-id}}}})
 
-                                       (om/update! filter-spec [:components :boundaryline]
-                                                   {:nested {:path "?boundarylines"
-                                                             :filter {:term {"boundaryline_id" boundaryline-id}}}})
-
-                                       (put! comm [:select [:constituency boundaryline-id]])))))
+        ;;                                (put! comm [:select [:constituency boundaryline-id]])))))
 
         (let [adr (ordered-resource/make-discard-stale-resource "aggregation-data-resource")]
           (om/set-state! owner :aggregation-data-resource adr)
@@ -432,7 +453,7 @@
                     } :map-state
                       next-filter :filter
                       next-filter-spec :filter-spec
-                     :as next-cursor-data}
+                      :as next-cursor-data}
                   {{next-markers :markers
                     next-paths :paths
                     next-path-selections :path-selections} :map
@@ -525,6 +546,9 @@
 
     om/IWillUnmount
     (will-unmount [this]
+      (-> js/document $ (.off "click" "a.boundaryline-popup-link"))
+      (-> js/document $ (.off "clustermap-change-view"))
+
       (let [{:keys [aggregation-data-resource point-data-resource]} (om/get-state owner)]
         (ordered-resource/close aggregation-data-resource)
         (ordered-resource/close point-data-resource)))
