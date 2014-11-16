@@ -335,8 +335,7 @@
              boundaryline-collection
              colorchooser
              boundaryline-agg
-             threshold-colors
-             path-click-fn]} :controls :as cursor} :map-state
+             threshold-colors]} :controls :as cursor} :map-state
      filter-spec :filter-spec
      filter :filter
      :as cursor-data}
@@ -351,7 +350,8 @@
     (did-mount [this]
       (let [node (om/get-node owner)
             {:keys [leaflet-map markers path] :as map} (create-map node initial-bounds)
-            {:keys [comm fetch-boundarylines-fn point-in-boundarylines-fn link-fn path-fn]} (om/get-shared owner)]
+            {:keys [comm fetch-boundarylines-fn point-in-boundarylines-fn link-fn path-fn
+                    path-marker-click-fn]} (om/get-shared owner)]
 
         ;; reflect bounds and zoom in controls immediately
         (om/update! cursor [:controls :zoom] (.getZoom leaflet-map))
@@ -378,13 +378,13 @@
         (.on leaflet-map "popupclose" (fn [e] (om/set-state! owner :popup-selected nil)))
 
 
-        (when path-click-fn
+        (when path-marker-click-fn
           (-> js/document $ (.on "click" "a.boundaryline-popup-link"
                                  (fn [e]
                                    (some-> e
                                            .-target
                                            (domina/attr "data-boundaryline-id")
-                                           path-click-fn)))))
+                                           path-marker-click-fn)))))
 
         ;; if there is a window size change when the map isn't visible, invalidate the map size
         (let [last-dims (atom [js/window.innerWidth js/window.innerHeight])]
