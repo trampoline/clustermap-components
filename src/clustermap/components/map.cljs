@@ -379,8 +379,11 @@
 
 
         (when path-marker-click-fn
+          ;; click off of a path resets boundary selection
+          (.on leaflet-map "click" (fn [e] (path-marker-click-fn nil)))
           (-> js/document $ (.on "click" "a.boundaryline-popup-link"
                                  (fn [e]
+                                   (.preventDefault e)
                                    (some-> e
                                            .-target
                                            (domina/attr "data-boundaryline-id")
