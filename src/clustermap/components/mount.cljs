@@ -54,11 +54,16 @@
                     (dissoc :path :paths)
                     (assoc :target target)
                     (assoc :fn cursor-fn))]
-    (om/root f value options)))
+    (if target
+      (om/root f value options)
+
+      (.log js/console (str "component: <" cname "> can't mount : can't find target: <" target ">")))))
 
 (defn unmount
   [& {:keys [target]}]
   (let [target (if (or (string? target) (keyword? target))
                  (.getElementById js/document (name target))
                  target)]
-    (om/detach-root target)))
+    (if target
+      (om/detach-root target)
+      (.log js/console (str "component: <" cname "> can't unmount : can't find target: <" target ">")))))
