@@ -78,7 +78,8 @@
   (hiccups/html
    [:ul.map-marker-popup-location-list
     (for [site location-sites]
-      [:li (path-fn site)])]))
+      [:li (when path-fn
+             (path-fn site))])]))
 
 (defn create-marker
   [path-fn leaflet-map location-sites]
