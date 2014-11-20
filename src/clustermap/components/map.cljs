@@ -5,6 +5,7 @@
    [clojure.set :as set]
    [cljs.core.async :refer [put! <!]]
    [domina :as domina]
+   [domina.events :as events]
    [om.core :as om :include-macros true]
    [jayq.core :refer [$]]
    [sablono.core :as html :refer-macros [html]]
@@ -391,17 +392,17 @@
                                            path-marker-click-fn)))))
 
         ;; if there is a window size change when the map isn't visible, invalidate the map size
-        (let [last-dims (atom [(.-offsetWidth node)  (.-offsetHeight node)])]
-          (-> js/document $ (.on "clustermap-change-view"(fn [e]
-                                                           (let [w (.-offsetWidth node)
-                                                                 h (.-offsetHeight node)
-                                                                 current-dims [w h]]
-                                                             (when (and (> 0 w)
-                                                                        (> 0 h)
-                                                                        (not= @last-dims current-dims))
-                                                               (.log js/console "window size changed !")
-                                                               (.invalidateSize leaflet-map))
-                                                             (reset! last-dims current-dims))))))
+        (let [last-dims (atom nil)]
+          (events/listen! "clustermap-change-view" (fn [e]
+                                                     (let [w (.-offsetWidth node)
+                                                           h (.-offsetHeight node)
+                                                           current-dims [w h]]
+                                                       (when (and (> w 0)
+                                                                  (> h 0)
+                                                                  (not= @last-dims current-dims))
+                                                         (.log js/console "window size changed !")
+                                                         (.invalidateSize leaflet-map)
+                                                         (reset! last-dims current-dims))))))
 
         ;; (.on leaflet-map "mousemove" (fn [e]
         ;;                                (let [lat (-> e .-latlng .-lat)
@@ -555,10 +556,13 @@
     om/IWillUnmount
     (will-unmount [this]
       (-> js/document $ (.off "click" "a.boundaryline-popup-link"))
-      (-> js/document $ (.off "clustermap-change-view"))
+      (events/unlisten! "clustermap-change-view")
 
-      (let [{:keys [aggregation-data-resource point-data-resource]} (om/get-state owner)]
+      (let [{{:keys [leaflet-map markers paths path-selections]} :map
+             :keys [aggregation-data-resource point-data-resource]} (om/get-state owner)]
         (ordered-resource/close aggregation-data-resource)
-        (ordered-resource/close point-data-resource)))
+        (ordered-resource/close point-data-resource)
+
+        (.remove leaflet-map)))
 
     ))

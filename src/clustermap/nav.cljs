@@ -58,7 +58,7 @@
     (dom/add-class! target "active")
     (dom/set-classes! body new-body-classes)
 
-    (-> js/document $ (.trigger "clustermap-change-view"))))
+    (events/dispatch! "clustermap-change-view" {})))
 
 (defn- handle-view-switches
   "sends [:change-view <view>] messages to the command channel"
