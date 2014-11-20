@@ -1,6 +1,7 @@
 (ns clustermap.components.filter
   (:require [om.core :as om :include-macros true]
-            [sablono.core :as html :refer-macros [html]]))
+            [sablono.core :as html :refer-macros [html]]
+            [clustermap.filters :as filters]))
 
 (defn render
   [{bounds :bounds
@@ -12,14 +13,11 @@
    [:div.filter-component
 
     [:div.tbl
-     [:div.tbl-row
-      [:div.tbl-cell
-       [:h3 "Filter"]]]
-     [:div.tbl-row
-      [:div.tbl-cell "filter by view"]
-      [:div.tbl-cell [:input {:type "checkbox" :name "filter-by-view" :value "true"
-                              :onChange (fn [e] (let [val (-> e .-target .-checked)]
-                                                  (om/update! filter-spec [:filter-by-view] val)))}]]]
+     ;; [:div.tbl-row
+     ;;  [:div.tbl-cell "filter by view"]
+     ;;  [:div.tbl-cell [:input {:type "checkbox" :name "filter-by-view" :value "true"
+     ;;                          :onChange (fn [e] (let [val (-> e .-target .-checked)]
+     ;;                                              (om/update! filter-spec [:filter-by-view] val)))}]]]
      [:div.tbl-row
       [:div.tbl-cell "age"]
       [:div.tbl-cell [:select {:onChange (fn [e]
@@ -34,19 +32,19 @@
                       [:option {:value "new"} "< 5 years old"]
                       [:option {:value "old"} ">= 5 years old"]]]]
 
-     [:div.tbl-row
-      [:div.tbl-cell "group ?"]
-      [:div.tbl-cell [:select {:onChange (fn [e]
-                                           (let [val (-> e .-target .-value)]
-                                             (.log js/console val)
-                                             (om/update! filter-spec [:components :group]
-                                                         (condp = val
-                                                           "group" {:term {"!is_group" true}}
-                                                           "notgroup" {:term {"!is_group" false}}
-                                                           nil))))}
-                      [:option {:value ""} "any"]
-                      [:option {:value "group"} "group"]
-                      [:option {:value "notgroup"} "not group"]]]]
+     ;; [:div.tbl-row
+     ;;  [:div.tbl-cell "group ?"]
+     ;;  [:div.tbl-cell [:select {:onChange (fn [e]
+     ;;                                       (let [val (-> e .-target .-value)]
+     ;;                                         (.log js/console val)
+     ;;                                         (om/update! filter-spec [:components :group]
+     ;;                                                     (condp = val
+     ;;                                                       "group" {:term {"!is_group" true}}
+     ;;                                                       "notgroup" {:term {"!is_group" false}}
+     ;;                                                       nil))))}
+     ;;                  [:option {:value ""} "any"]
+     ;;                  [:option {:value "group"} "group"]
+     ;;                  [:option {:value "notgroup"} "not group"]]]]
 
      [:div.tbl-row
       [:div.tbl-cell "turnover"]
@@ -63,19 +61,7 @@
                       [:option {:value "high"} ">= £1 million"]]]]
 
      [:div.tbl-row
-      [:div.tbl-cell "Boundary"]
-      [:div.tbl-cell
-       [:span {:onClick (fn [e] (om/update! filter-spec [:components :boundaryline] nil))} "X "]
-       (let [bl-id (get-in filter-spec [:components :boundaryline :nested :filter :term "boundaryline_id"])
-             bl (get-cached-boundaryline-fn bl-id)
-             compact-name (some-> bl (aget "compact_name"))
-             ]
-         (.log js/console (clj->js ["BL" bl]))
-         compact-name)
-       ]]
-
-     [:div.tbl-row
-      [:div.tbl-cell "SIC section"]
+      [:div.tbl-cell "Sector"]
       [:div.tbl-cell
        [:select {:style {:width "100%"}
                  :onChange (fn [e]
@@ -106,27 +92,27 @@
                                              "U" {:range {"!sic07" {:gte "99000" :lte "99999"}}}
                                              nil))))}
         [:option {:value ""} "all"]
-        [:option {:value "A"} "A : Agriculture, Forestry and Fishing"]
-        [:option {:value "B"} "B : Mining and Quarrying"]
-        [:option {:value "C"} "C : Manufacturing"]
-        [:option {:value "D"} "D : Electricity, gas, steam and air conditioning supply"]
-        [:option {:value "E"} "E : Water supply, sewerage, waste management and remediation activities"]
-        [:option {:value "F"} "F : Construction"]
-        [:option {:value "G"} "G : Wholesale and retail trade; repair of motor vehicles and motorcycles"]
-        [:option {:value "H"} "H : Transportation and storage"]
-        [:option {:value "I"} "I : Accommodation and food service activities"]
-        [:option {:value "J"} "J : Information and communication"]
-        [:option {:value "K"} "K : Financial and insurance activities"]
-        [:option {:value "L"} "L : Real estate activities"]
-        [:option {:value "M"} "M : Professional, scientific and technical activities"]
-        [:option {:value "N"} "N : Administrative and support service activities"]
-        [:option {:value "O"} "O : Public administration and defence; compulsory social security"]
-        [:option {:value "P"} "P : Education"]
-        [:option {:value "Q"} "Q : Human health and social work activities"]
-        [:option {:value "R"} "R : Arts, entertainment and recreation"]
-        [:option {:value "S"} "S : Other service activities"]
-        [:option {:value "T"} "T : Activities of households as employers"]
-        [:option {:value "U"} "U : Activities of extraterritorial organisations and bodies"]
+        [:option {:value "A"} "Agriculture, Forestry and Fishing"]
+        [:option {:value "B"} "Mining and Quarrying"]
+        [:option {:value "C"} "Manufacturing"]
+        [:option {:value "D"} "Electricity, gas, steam and air conditioning supply"]
+        [:option {:value "E"} "Water supply, sewerage, waste management and remediation activities"]
+        [:option {:value "F"} "Construction"]
+        [:option {:value "G"} "Wholesale and retail trade; repair of motor vehicles and motorcycles"]
+        [:option {:value "H"} "Transportation and storage"]
+        [:option {:value "I"} "Accommodation and food service activities"]
+        [:option {:value "J"} "Information and communication"]
+        [:option {:value "K"} "Financial and insurance activities"]
+        [:option {:value "L"} "Real estate activities"]
+        [:option {:value "M"} "Professional, scientific and technical activities"]
+        [:option {:value "N"} "Administrative and support service activities"]
+        [:option {:value "O"} "Public administration and defence; compulsory social security"]
+        [:option {:value "P"} "Education"]
+        [:option {:value "Q"} "Human health and social work activities"]
+        [:option {:value "R"} "Arts, entertainment and recreation"]
+        [:option {:value "S"} "Other service activities"]
+        [:option {:value "T"} "Activities of households as employers"]
+        [:option {:value "U"} "Activities of extraterritorial organisations and bodies"]
         ]]]
      ]]))
 
@@ -134,10 +120,8 @@
 
 (defn filter-component
   [{{components :components
-     filter-by-view :filter-by-view
-     compiled :compiled
+     base-filters :base-filters
      :as filter-spec} :filter-spec
-    bounds :bounds
     :as props}
    owner]
 
@@ -151,19 +135,8 @@
     om/IWillUpdate
     (will-update [_
                   {{next-components :components
-                    next-filter-by-view :filter-by-view
-                    next-compiled :compiled} :filter-spec
-                    next-bounds :bounds}
+                    next-base-filters :base-filters} :filter-spec}
                   next-state]
-      (when (or (not= next-components components)
-                  (not= next-filter-by-view filter-by-view)
-                  (and next-filter-by-view (not= next-bounds bounds)))
+      (when (or (not= next-components components))
 
-          (om/update! filter-spec [:compiled] (->> next-components
-                                                   vals
-                                                   (map om/-value)
-                                                   (filter identity)
-                                                   (into [])))
-          )
-)
-    ))
+        (om/update! filter-spec [:composed] (filters/compose-filters next-components next-base-filters))))))
