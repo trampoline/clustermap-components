@@ -60,10 +60,10 @@
       (.log js/console (str "component: <" cname "> can't mount : can't find target: <" target ">")))))
 
 (defn unmount
-  [& {:keys [target]}]
+  [& {:keys [name target]}]
   (let [target (if (or (string? target) (keyword? target))
                  (.getElementById js/document (name target))
                  target)]
     (if target
       (om/detach-root target)
-      (.log js/console (str "component: <" cname "> can't unmount : can't find target: <" target ">")))))
+      (.log js/console (str "component: <" name "> can't unmount : can't find target: <" target ">")))))

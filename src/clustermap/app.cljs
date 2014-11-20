@@ -72,8 +72,8 @@
                 (handle-event app-service this type val))))
           ))
 
-      (stop [_]
-        (destroy app-service)
+      (stop [this]
+        (destroy app-service this)
 
         (.removeAllListeners history*)
         (secretary/reset-routes!)
