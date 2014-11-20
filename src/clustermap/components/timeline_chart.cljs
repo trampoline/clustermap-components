@@ -11,17 +11,20 @@
    [clustermap.formats.money :as money]))
 
 (defn create-chart
-  [data node {:keys [y0-title y1-title] :as opts}]
+  [data node measure-variables {:keys [y0-title y1-title] :as opts}]
   (.log js/console (clj->js ["TIMELINE: " data]))
   (let [x-labels (->> data (map :timeline) (map #(js/Date. %)) (map #(.getYear %)) (map #(+ 1900 %)))
         stats (map :stats data)
         y-median (map (comp #(num/round-decimal % 0) #(get-in % [:stats :median])) data)
         y-mean (map (comp #(num/round-decimal % 0) #(get-in % [:stats :mean])) data)
         ;; y-total (map (comp #(num/round-decimal % 0) #(get-in % [:stats :total])) data)
-        y-total (map :!turnover data)
+        measure-variable (some-> measure-variables keyword)
+        y-total (map measure-variable data)
 
         ;; y-total (into [] (concat (butlast yt) [(merge (last yt) {:color "#FF9900" :name "Not all data received for year"})]))
         ]
+
+    (.log js/console (clj->js ["TIMELINE-VARS" measure-variable]))
 
     (-> node
         $
@@ -151,4 +154,4 @@
         :as prev-props}
     _]
    (when (not= prev-timeline-data timeline-data)
-     (create-chart timeline-data (om/get-node owner "chart") opts))))
+     (create-chart timeline-data (om/get-node owner "chart") measure-variables opts))))
