@@ -55,13 +55,13 @@
                     ]})))))
 
 (defn- request-timeline-data
-  [resource index index-type filter-spec bounds time-variable interval metric-variables]
+  [resource index index-type filter-spec _ time-variable interval metric-variables]
   (ordered-resource/api-call resource
                              api/timeline
                              index
                              index-type
                              filter-spec
-                             bounds
+                             nil
                              time-variable
                              nil
                              nil
@@ -78,10 +78,7 @@
       :as controls} :controls
       timeline-data :timeline-data
      :as timeline-chart} :timeline-chart
-    {filter-by-view :filter-by-view
-     compiled-filter :compiled
-     :as filter-spec} :filter-spec
-     bounds :bounds
+     filter-spec :filter-spec
     :as props}
    owner
    {:keys [id] :as opts}]
@@ -119,24 +116,20 @@
        :as next-controls} :controls
        next-timeline-data :timeline-data
        :as next-timeline-chart} :timeline-chart
-       {next-filter-by-view :filter-by-view
-        next-compiled-filter :compiled
-        :as next-filter-spec} :filter-spec
-        next-bounds :bounds
+       next-filter-spec :filter-spec
         :as next-props}
     {next-timeline-data-resource :timeline-data-resource}]
 
    (.log js/console (clj->js ["FILTER_SPEC: " next-filter-spec]))
    (when (or (not next-timeline-data)
              (not= next-controls controls)
-             (not= next-filter-spec filter-spec)
-             (and next-filter-by-view (not= next-bounds bounds)))
+             (not= next-filter-spec filter-spec))
 
      (request-timeline-data next-timeline-data-resource
                             next-index
                             next-index-type
-                            next-compiled-filter
-                            (when next-filter-by-view next-bounds)
+                            next-filter-spec
+                            nil
                             next-time-variable
                             next-interval
                             next-measure-variables)))
