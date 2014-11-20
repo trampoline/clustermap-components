@@ -391,10 +391,14 @@
                                            path-marker-click-fn)))))
 
         ;; if there is a window size change when the map isn't visible, invalidate the map size
-        (let [last-dims (atom [js/window.innerWidth js/window.innerHeight])]
+        (let [last-dims (atom [(.-offsetWidth node)  (.-offsetHeight node)])]
           (-> js/document $ (.on "clustermap-change-view"(fn [e]
-                                                           (let [current-dims [js/window.innerWidth js/window.innerHeight]]
-                                                             (when (not= @last-dims current-dims)
+                                                           (let [w (.-offsetWidth node)
+                                                                 h (.-offsetHeight node)
+                                                                 current-dims [w h]]
+                                                             (when (and (> 0 w)
+                                                                        (> 0 h)
+                                                                        (not= @last-dims current-dims))
                                                                (.log js/console "window size changed !")
                                                                (.invalidateSize leaflet-map))
                                                              (reset! last-dims current-dims))))))
