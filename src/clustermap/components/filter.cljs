@@ -60,60 +60,60 @@
                       [:option {:value "low"} "< £1 million"]
                       [:option {:value "high"} ">= £1 million"]]]]
 
-     [:div.tbl-row
-      [:div.tbl-cell "Sector"]
-      [:div.tbl-cell
-       [:select {:style {:width "100%"}
-                 :onChange (fn [e]
-                             (let [val (-> e .-target .-value)]
-                               (.log js/console (-> e .-target .-value))
-                               (om/update! filter-spec [:components :sic]
-                                           (condp = val
-                                             "A" {:range {"!sic07" {:gte "01110" :lte "03220"}}}
-                                             "B" {:range {"!sic07" {:gte "05101" :lte "09900"}}}
-                                             "C" {:range {"!sic07" {:gte "10110" :lte "33200"}}}
-                                             "D" {:range {"!sic07" {:gte "35110" :lte "35300"}}}
-                                             "E" {:range {"!sic07" {:gte "36000" :lte "39000"}}}
-                                             "F" {:range {"!sic07" {:gte "41100" :lte "43999"}}}
-                                             "G" {:range {"!sic07" {:gte "45111" :lte "47990"}}}
-                                             "H" {:range {"!sic07" {:gte "49100" :lte "53202"}}}
-                                             "I" {:range {"!sic07" {:gte "55100" :lte "56302"}}}
-                                             "J" {:range {"!sic07" {:gte "58110" :lte "63990"}}}
-                                             "K" {:range {"!sic07" {:gte "64110" :lte "66300"}}}
-                                             "L" {:range {"!sic07" {:gte "68100" :lte "68320"}}}
-                                             "M" {:range {"!sic07" {:gte "69101" :lte "75000"}}}
-                                             "N" {:range {"!sic07" {:gte "77110" :lte "82990"}}}
-                                             "O" {:range {"!sic07" {:gte "84110" :lte "84300"}}}
-                                             "P" {:range {"!sic07" {:gte "85100" :lte "85600"}}}
-                                             "Q" {:range {"!sic07" {:gte "86101" :lte "88990"}}}
-                                             "R" {:range {"!sic07" {:gte "90010" :lte "93290"}}}
-                                             "S" {:range {"!sic07" {:gte "94110" :lte "96090"}}}
-                                             "T" {:range {"!sic07" {:gte "97000" :lte "98200"}}}
-                                             "U" {:range {"!sic07" {:gte "99000" :lte "99999"}}}
-                                             nil))))}
-        [:option {:value ""} "all"]
-        [:option {:value "A"} "Agriculture, Forestry and Fishing"]
-        [:option {:value "B"} "Mining and Quarrying"]
-        [:option {:value "C"} "Manufacturing"]
-        [:option {:value "D"} "Electricity, gas, steam and air conditioning supply"]
-        [:option {:value "E"} "Water supply, sewerage, waste management and remediation activities"]
-        [:option {:value "F"} "Construction"]
-        [:option {:value "G"} "Wholesale and retail trade; repair of motor vehicles and motorcycles"]
-        [:option {:value "H"} "Transportation and storage"]
-        [:option {:value "I"} "Accommodation and food service activities"]
-        [:option {:value "J"} "Information and communication"]
-        [:option {:value "K"} "Financial and insurance activities"]
-        [:option {:value "L"} "Real estate activities"]
-        [:option {:value "M"} "Professional, scientific and technical activities"]
-        [:option {:value "N"} "Administrative and support service activities"]
-        [:option {:value "O"} "Public administration and defence; compulsory social security"]
-        [:option {:value "P"} "Education"]
-        [:option {:value "Q"} "Human health and social work activities"]
-        [:option {:value "R"} "Arts, entertainment and recreation"]
-        [:option {:value "S"} "Other service activities"]
-        [:option {:value "T"} "Activities of households as employers"]
-        [:option {:value "U"} "Activities of extraterritorial organisations and bodies"]
-        ]]]
+     ;; [:div.tbl-row
+     ;;  [:div.tbl-cell "Sector"]
+     ;;  [:div.tbl-cell
+     ;;   [:select {:style {:width "100%"}
+     ;;             :onChange (fn [e]
+     ;;                         (let [val (-> e .-target .-value)]
+     ;;                           (.log js/console (-> e .-target .-value))
+     ;;                           (om/update! filter-spec [:components :sic]
+     ;;                                       (condp = val
+     ;;                                         "A" {:range {"!sic07" {:gte "01110" :lte "03220"}}}
+     ;;                                         "B" {:range {"!sic07" {:gte "05101" :lte "09900"}}}
+     ;;                                         "C" {:range {"!sic07" {:gte "10110" :lte "33200"}}}
+     ;;                                         "D" {:range {"!sic07" {:gte "35110" :lte "35300"}}}
+     ;;                                         "E" {:range {"!sic07" {:gte "36000" :lte "39000"}}}
+     ;;                                         "F" {:range {"!sic07" {:gte "41100" :lte "43999"}}}
+     ;;                                         "G" {:range {"!sic07" {:gte "45111" :lte "47990"}}}
+     ;;                                         "H" {:range {"!sic07" {:gte "49100" :lte "53202"}}}
+     ;;                                         "I" {:range {"!sic07" {:gte "55100" :lte "56302"}}}
+     ;;                                         "J" {:range {"!sic07" {:gte "58110" :lte "63990"}}}
+     ;;                                         "K" {:range {"!sic07" {:gte "64110" :lte "66300"}}}
+     ;;                                         "L" {:range {"!sic07" {:gte "68100" :lte "68320"}}}
+     ;;                                         "M" {:range {"!sic07" {:gte "69101" :lte "75000"}}}
+     ;;                                         "N" {:range {"!sic07" {:gte "77110" :lte "82990"}}}
+     ;;                                         "O" {:range {"!sic07" {:gte "84110" :lte "84300"}}}
+     ;;                                         "P" {:range {"!sic07" {:gte "85100" :lte "85600"}}}
+     ;;                                         "Q" {:range {"!sic07" {:gte "86101" :lte "88990"}}}
+     ;;                                         "R" {:range {"!sic07" {:gte "90010" :lte "93290"}}}
+     ;;                                         "S" {:range {"!sic07" {:gte "94110" :lte "96090"}}}
+     ;;                                         "T" {:range {"!sic07" {:gte "97000" :lte "98200"}}}
+     ;;                                         "U" {:range {"!sic07" {:gte "99000" :lte "99999"}}}
+     ;;                                         nil))))}
+     ;;    [:option {:value ""} "all"]
+     ;;    [:option {:value "A"} "Agriculture, Forestry and Fishing"]
+     ;;    [:option {:value "B"} "Mining and Quarrying"]
+     ;;    [:option {:value "C"} "Manufacturing"]
+     ;;    [:option {:value "D"} "Electricity, gas, steam and air conditioning supply"]
+     ;;    [:option {:value "E"} "Water supply, sewerage, waste management and remediation activities"]
+     ;;    [:option {:value "F"} "Construction"]
+     ;;    [:option {:value "G"} "Wholesale and retail trade; repair of motor vehicles and motorcycles"]
+     ;;    [:option {:value "H"} "Transportation and storage"]
+     ;;    [:option {:value "I"} "Accommodation and food service activities"]
+     ;;    [:option {:value "J"} "Information and communication"]
+     ;;    [:option {:value "K"} "Financial and insurance activities"]
+     ;;    [:option {:value "L"} "Real estate activities"]
+     ;;    [:option {:value "M"} "Professional, scientific and technical activities"]
+     ;;    [:option {:value "N"} "Administrative and support service activities"]
+     ;;    [:option {:value "O"} "Public administration and defence; compulsory social security"]
+     ;;    [:option {:value "P"} "Education"]
+     ;;    [:option {:value "Q"} "Human health and social work activities"]
+     ;;    [:option {:value "R"} "Arts, entertainment and recreation"]
+     ;;    [:option {:value "S"} "Other service activities"]
+     ;;    [:option {:value "T"} "Activities of households as employers"]
+     ;;    [:option {:value "U"} "Activities of extraterritorial organisations and bodies"]
+     ;;    ]]]
      ]]))
 
 
