@@ -107,13 +107,13 @@
   )
 
 (defn- request-table-data
-  [resource index index-type filter-spec bounds sort-spec from size]
+  [resource index index-type filter-spec _ sort-spec from size]
   (ordered-resource/api-call resource
                              api/simple-table
                              index
                              index-type
                              filter-spec
-                             bounds
+                             nil
                              sort-spec
                              from
                              size))
@@ -127,9 +127,7 @@
       columns :columns
       :as controls} :controls
      :as table-state} :table-state
-     {filter-by-view :filter-by-view
-      filter-spec :compiled} :filter-spec
-    bounds :bounds
+     filter-spec :filter-spec
     :as props}
    owner]
 
@@ -153,27 +151,22 @@
                      next-sort-spec :sort-spec
                      next-from :from
                      next-size :size
-                          :as next-controls} :controls
+                     :as next-controls} :controls
                     :as next-table-state} :table-state
-                    {next-filter-by-view :filter-by-view
-                     next-filter-spec :compiled} :filter-spec
-                    next-bounds :bounds
+                    next-filter-spec :filter-spec
                    :as next-props}
                   {table-data-resource :table-data-resource
                    :as next-state}]
 
       (when (or (not next-table-data)
                 (not= next-controls controls)
-                (not= next-sort-spec sort-spec)
-                (not= next-filter-spec filter-spec)
-                (not= next-filter-by-view filter-by-view)
-                (and next-filter-by-view (not= next-bounds bounds)))
+                (not= next-filter-spec filter-spec))
 
         (request-table-data table-data-resource
                             next-index
                             next-index-type
                             next-filter-spec
-                            (when next-filter-by-view next-bounds)
+                            nil
                             next-sort-spec
                             next-from
                             next-size))
