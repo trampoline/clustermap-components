@@ -73,6 +73,8 @@
           ))
 
       (stop [_]
+        (destroy app-service)
+
         (.removeAllListeners history*)
         (secretary/reset-routes!)
 
