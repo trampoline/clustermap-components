@@ -3,6 +3,7 @@
             [domina.css :as css]
             [domina.xpath :as xpath]
             [domina.events :as events]
+            [secretary.core :as secretary :include-macros true :refer [defroute]]
             [jayq.core :as jayq :refer [$]]
             [cljs.core.async :refer [put! chan <!]]))
 
@@ -62,7 +63,7 @@
 
 (defn- handle-view-switches
   "sends [:change-view <view>] messages to the command channel"
-  [comm]
+  [nav-fn]
   (events/listen! (css/sel ".nav-links a")
                   :click
                   (fn [e]
@@ -72,18 +73,60 @@
                           v (when (not-empty view-class) (some->> view-class (re-find view-class-pattern) last))]
                       (events/prevent-default e)
                       (when v
-                        (.log js/console (clj->js ["change-view" v]))
-                        (change-view v)
-                        ;;(put! comm [:change-view v])
-                        )))))
+                        (nav-fn v))))))
+
+(defn set-route
+  [history view]
+  (cond
+   view
+   (.setToken history (str "/" (name view)))
+
+   true
+   (.setToken history (str ""))))
+
+(defn set-view
+  [app-state path view]
+  (.log js/console (clj->js ["change-view" view]))
+  (swap! app-state assoc-in path view)
+  (change-view view))
+
+(defn init-routes
+  [app-state path default-view]
+
+  (defroute "" []
+    ;; (set-view app-state path default-view)
+    )
+
+  (defroute "/" []
+    ;; (set-view app-state path default-view)
+    )
+
+  (defroute "/:view" [view]
+    (set-view app-state path view)))
 
 (defn init
-  [comm]
-  (init-bootstrap-tooltips)
-  (handle-hide-show-map-report)
-  (handle-view-switches comm))
+  "initialise navigation and routing
+
+   history : the History object
+   app-state : the app state atom
+   path : the path to update with the current view
+   default-view : default-view to be applied
+
+   returns a function of a single param, thew view, which
+   can be used to navigate to that view"
+  [history app-state path default-view]
+  (let [navigator-fn (partial set-route history)]
+
+    (init-bootstrap-tooltips)
+    (handle-hide-show-map-report)
+    (handle-view-switches navigator-fn)
+
+    (init-routes app-state path default-view)
+
+    navigator-fn))
 
 (defn destroy
   []
+  (secretary/reset-routes!)
   (events/unlisten! (css/sel "#map-report > a"))
   (events/unlisten! (css/sel ".nav-links a")))

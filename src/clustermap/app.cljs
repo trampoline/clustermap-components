@@ -36,12 +36,14 @@
 (defprotocol IApp
   (get-state [this])
   (get-comm [this])
-  (get-history [this]))
+  (get-history [this])
+  (get-navigator-fn [this]))
 
 (defn create-app-instance
   [initial-state-value component-defs app-service]
   (let [comm (chan)
-        state (atom initial-state-value)]
+        state (atom initial-state-value)
+        nav-fn (nav/init history* state [:view] "map")]
 
     (reify
       IAppControl
@@ -73,13 +75,14 @@
           ))
 
       (stop [this]
+        (doseq [{:keys [target]} component-defs]
+          (mount/unmount target))
+
         (destroy app-service this)
 
-        (.removeAllListeners history*)
-        (secretary/reset-routes!)
+        (nav/destroy)
 
-        (doseq [{:keys [target]} component-defs]
-          (mount/unmount target)))
+        (.removeAllListeners history*))
 
       IApp
       (get-state [_]
@@ -90,7 +93,9 @@
 
       (get-history [_]
         history*)
-      )))
+
+      (get-navigator-fn [_]
+        nav-fn))))
 
 (defn start-or-restart-app
   [app-instance-atom initial-state components app-service]
