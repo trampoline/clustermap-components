@@ -10,27 +10,26 @@
 
 (defn- extract-paths*
   [path paths cursor]
-  (om/allow-reads
-   (cond
+  (cond
 
-    (and path paths) (throw (ex-info (print-str "can't give both :path and :paths : "
-                                                {:path path :paths paths})
-                                     {:path path :paths paths}))
+   (and path paths) (throw (ex-info (print-str "can't give both :path and :paths : "
+                                               {:path path :paths paths})
+                                    {:path path :paths paths}))
 
-    path (when-let [sp (not-empty (make-sequential path))]
-           (get-in cursor sp))
+   path (when-let [sp (not-empty (make-sequential path))]
+          (get-in cursor sp))
 
-    (nil? paths) cursor
+   (nil? paths) cursor
 
-    (sequential? paths) (for [path paths]
-                          (when-let [sp (not-empty (make-sequential path))]
-                            (get-in cursor (make-sequential path))))
+   (sequential? paths) (for [path paths]
+                         (when-let [sp (not-empty (make-sequential path))]
+                           (get-in cursor (make-sequential path))))
 
-    (map? paths) (into {} (for [[key path] paths]
-                            (when-let [sp (not-empty (make-sequential path))]
-                              [key (get-in cursor sp)])))
+   (map? paths) (into {} (for [[key path] paths]
+                           (when-let [sp (not-empty (make-sequential path))]
+                             [key (get-in cursor sp)])))
 
-    true (throw (ex-info (print-str "what are those paths ? :" paths) {:paths paths})))))
+   true (throw (ex-info (print-str "what are those paths ? :" paths) {:paths paths}))))
 
 (defn- extract-paths
   [cname path paths cursor]
