@@ -170,7 +170,9 @@
                                               {:nested {:path "?boundarylines"
                                                         :filter {:term {"boundaryline_id" boundaryline-id}}}}))
 
-                                (put! comm [:select [:constituency boundaryline-id]])))
+                                (put! comm {:type :clustermap.components.map/path-click
+                                            :id boundaryline-id})))
+
     {:id boundaryline-id
      :tolerance tolerance
      :selected selected

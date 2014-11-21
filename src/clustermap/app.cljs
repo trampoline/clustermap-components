@@ -68,8 +68,8 @@
 
           (go
             (while true
-              (let [[type val] (<! comm)]
-                (handle-event app-service this type val))))
+              (let [{type :type :as e} (<! comm)]
+                (handle-event app-service this type e))))
           ))
 
       (stop [this]
