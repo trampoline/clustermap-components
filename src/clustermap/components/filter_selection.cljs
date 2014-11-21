@@ -17,6 +17,7 @@
       (if (not-empty selection)
         [:span [:a {:href "#"
                     :onClick (fn [e]
+                               (.preventDefault e)
                                (.log js/console "clear selection")
                                (when clear-fn (clear-fn)))}
                 "\u00D7"]
