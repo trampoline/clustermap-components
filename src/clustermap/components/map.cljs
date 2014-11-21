@@ -355,7 +355,15 @@
       (let [node (om/get-node owner)
             {:keys [leaflet-map markers path] :as map} (create-map node initial-bounds)
             {:keys [comm fetch-boundarylines-fn point-in-boundarylines-fn link-fn path-fn
-                    path-marker-click-fn]} (om/get-shared owner)]
+                    path-marker-click-fn]} (om/get-shared owner)
+            last-dims (atom nil)
+            w (.-offsetWidth node)
+            h (.-offsetHeight node)]
+
+        ;; only set last-dims if we are initialised on-screen... later
+        ;; when map shows, if last-dims is nil, we locate-map again
+        (when (and (> w 0) (> h 0))
+          (reset! last-dims [w h]))
 
         ;; reflect bounds and zoom in controls immediately
         (om/update! cursor [:controls :zoom] (.getZoom leaflet-map))
@@ -394,17 +402,20 @@
                                            path-marker-click-fn)))))
 
         ;; if there is a window size change when the map isn't visible, invalidate the map size
-        (let [last-dims (atom nil)]
-          (events/listen! "clustermap-change-view" (fn [e]
-                                                     (let [w (.-offsetWidth node)
-                                                           h (.-offsetHeight node)
-                                                           current-dims [w h]]
-                                                       (when (and (> w 0)
-                                                                  (> h 0)
-                                                                  (not= @last-dims current-dims))
-                                                         (.log js/console "window size changed !")
-                                                         (.invalidateSize leaflet-map)
-                                                         (reset! last-dims current-dims))))))
+        (events/listen! "clustermap-change-view" (fn [e]
+                                                   (let [w (.-offsetWidth node)
+                                                         h (.-offsetHeight node)
+                                                         current-dims [w h]]
+                                                     (when (and (> w 0)
+                                                                (> h 0)
+                                                                (not= @last-dims current-dims))
+                                                       (.log js/console "window size changed !")
+                                                       (.invalidateSize leaflet-map)
+                                                       (when-not @last-dims
+                                                         (.log js/console "first map show !")
+                                                         (locate-map leaflet-map initial-bounds))
+                                                       (reset! last-dims current-dims)))))
+
 
         ;; (.on leaflet-map "mousemove" (fn [e]
         ;;                                (let [lat (-> e .-latlng .-lat)
@@ -445,8 +456,7 @@
 
         (let [pdr (ordered-resource/make-discard-stale-resource "point-data-resource")]
           (om/set-state! owner :point-data-resource pdr)
-          (ordered-resource/retrieve-responses pdr (fn [point-data] (om/update! cursor [:point-data] point-data))))
-        ))
+          (ordered-resource/retrieve-responses pdr (fn [point-data] (om/update! cursor [:point-data] point-data))))))
 
     om/IWillUpdate
     (will-update [this
