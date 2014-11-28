@@ -121,10 +121,12 @@
 ;; aggregation over boundarylines
 
 (defn boundaryline-aggregation
-  [index type blcoll attr filter bounds & [type-ids]]
+  [index type blcoll attr filter bounds scale-attr post-scale-factor & [type-ids]]
   (POST (str "/api/" api-prefix "/boundaryline-agg/" index "/" type "/" blcoll "/" attr "?" (map-json-params type-ids))
       {:filter filter
-       :bounds bounds}))
+       :bounds bounds
+       :scale-attr scale-attr
+       :post-scale-factor post-scale-factor}))
 
 ;; summary stats
 (defn summary-stats

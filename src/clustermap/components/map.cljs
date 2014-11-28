@@ -306,7 +306,7 @@
        last))
 
 (defn request-aggregation-data
-  [resource index index-type blcoll variable filter bounds]
+  [resource index index-type blcoll variable filter bounds scale-attr post-scale-factor]
   (ordered-resource/api-call resource
                              api/boundaryline-aggregation
                              index
@@ -314,7 +314,9 @@
                              blcoll
                              variable
                              filter
-                             bounds))
+                             bounds
+                             scale-attr
+                             post-scale-factor))
 
 (defn request-point-data
   [resource index index-type filter bounds]
@@ -517,7 +519,9 @@
                                       (choose-boundaryline-collection next-boundaryline-collections (.getZoom leaflet-map))
                                       (:variable next-boundaryline-agg)
                                       (om/-value next-filter)
-                                      (bounds-array (.getBounds leaflet-map)))
+                                      (bounds-array (.getBounds leaflet-map))
+                                      (:scale-attr next-boundaryline-agg)
+                                      (:post-scale-factor next-boundaryline-agg))
 
             (request-point-data next-point-data-resource
                                 (:index next-boundaryline-agg)
