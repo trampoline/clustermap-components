@@ -11,21 +11,27 @@
    [clustermap.formats.number :as num]
    [clustermap.formats.money :as money]))
 
+(defn make-sequential
+  [x]
+  (cond (nil? x) nil
+        (sequential? x) x
+        :else [x]))
+
 (defn create-chart
-  [data node measure-variables {:keys [y0-title y1-title] :as opts}]
-  (.log js/console (clj->js ["TIMELINE: " data]))
-  (let [x-labels (->> data (map :timeline) (map #(js/Date. %)) (map #(.getYear %)) (map #(+ 1900 %)))
-        stats (map :stats data)
-        y-median (map (comp #(num/round-decimal % 0) #(get-in % [:stats :median])) data)
-        y-mean (map (comp #(num/round-decimal % 0) #(get-in % [:stats :mean])) data)
-        ;; y-total (map (comp #(num/round-decimal % 0) #(get-in % [:stats :total])) data)
-        measure-variable (some-> measure-variables keyword)
-        y-total (map measure-variable data)
+  [node {:keys [metrics]} records {:keys [y0-title y1-title] :as opts}]
+  (.log js/console (clj->js ["TIMELINE: " records]))
+  (let [x-labels (->> records (map :timeline) (map #(js/Date. %)) (map #(.getYear %)) (map #(+ 1900 %)))
 
-        ;; y-total (into [] (concat (butlast yt) [(merge (last yt) {:color "#FF9900" :name "Not all data received for year"})]))
-        ]
+        metrics (make-sequential metrics)
 
-    (.log js/console (clj->js ["TIMELINE-VARS" measure-variable]))
+        ys (for [{:keys [variable metric title] :as metric-spec} metrics]
+             (assoc metric-spec :records
+                    (for [record records]
+                      (get-in record [(keyword variable) (keyword metric) ]))))]
+
+    (.log js/console (clj->js ["CHART" {:metrics metrics
+                                        :x-labels x-labels
+                                        :ys ys}]))
 
     (-> node
         $
@@ -34,56 +40,33 @@
           {:chart {:width nil
                    :height 300}
            :title {:text nil}
+
            :xAxis {:categories x-labels
                    :labels {:rotation 270}}
+
            :yAxis [{:title {:text y0-title}
                     :min 0
                     :labels {:formatter (fn [] (this-as this (money/readable (.-value this) :sf 3 :curr "")))}
-                    ;; :type "logarithmic"
-                    }
-                   ;; {:title {:text y1-title} :opposite true}
-                   ]
-           :series [
-                    ;; {:name (str "Median " y0-title)
-                    ;;  :type "line"
-                    ;;  :yAxis 0
-                    ;;  :data y-median}
-                    {:name (str "Total " y0-title)
-                     :type "line"
-                     :yAxis 0
-                     :data y-total}
-                    ;; {:name y1-title
-                    ;;  :type "line"
-                    ;;  :yAxis 1
-                    ;;  :data y-count}
-                    ]})))))
+                    }]
+
+           :series (for [y ys]
+                     {:name (:title y)
+                      :type (or (:type y) "line")
+                      :yAxis 0
+                      :data (:records y)})})))))
 
 (defn- request-timeline-data
-  [resource index index-type filter-spec _ time-variable interval metric-variables]
+  [resource query filter-spec]
   (ordered-resource/api-call resource
                              api/timeline
-                             index
-                             index-type
-                             filter-spec
-                             nil
-                             time-variable
-                             nil
-                             nil
-                             interval
-                             metric-variables)
-  )
+                             query
+                             filter-spec))
 
 (defcomponent timeline-chart
-  [{{{index :index
-      index-type :index-type
-      time-variable :time-variable
-      measure-variables :measure-variables
-      interval :interval
-      :as controls} :controls
-      timeline-data :timeline-data
+  [{{query :query
+     timeline-data :timeline-data
      :as timeline-chart} :timeline-chart
-     filter-spec :filter-spec
-    :as props}
+     filter-spec :filter-spec}
    owner
    {:keys [id] :as opts}]
 
@@ -105,9 +88,9 @@
        (reset! last-dims [w h]))
 
      (om/set-state! owner :timeline-data-resource tdr)
-     (ordered-resource/retrieve-responses tdr (fn [{data :data :as response}]
+     (ordered-resource/retrieve-responses tdr (fn [{records :records :as response}]
                                                 (.log js/console (clj->js ["TIMELINE RESPONSE: " response]))
-                                                (om/update! timeline-chart [:timeline-data] data)))
+                                                (om/update! timeline-chart [:timeline-data] records)))
 
      (events/listen! "clustermap-change-view" (fn [e]
                                                 ;; only reflow charts when they are visible
@@ -125,47 +108,25 @@
                                                             .reflow)))))))
   (will-update
    [_
-    {{{next-index :index
-       next-index-type :index-type
-       next-time-variable :time-variable
-       next-measure-variables :measure-variables
-       next-interval :interval
-       :as next-controls} :controls
-       next-timeline-data :timeline-data
-       :as next-timeline-chart} :timeline-chart
-       next-filter-spec :filter-spec
-        :as next-props}
+    {{next-query :query
+      next-timeline-data :timeline-data} :timeline-chart
+      next-filter-spec :filter-spec}
     {next-timeline-data-resource :timeline-data-resource}]
 
    (.log js/console (clj->js ["FILTER_SPEC: " next-filter-spec]))
    (when (or (not next-timeline-data)
-             (not= next-controls controls)
+             (not= next-query query)
              (not= next-filter-spec filter-spec))
 
      (request-timeline-data next-timeline-data-resource
-                            next-index
-                            next-index-type
-                            next-filter-spec
-                            nil
-                            next-time-variable
-                            next-interval
-                            next-measure-variables)))
+                            next-query
+                            next-filter-spec)))
 
   (did-update
    [_
-    {{{prev-index :index
-       prev-index-type :index-type
-       prev-time-variable :time-variable
-       prev-measure-variables :measure-variables
-       prev-interval :interval
-       :as prev-controls} :controls
-       prev-timeline-data :timeline-data
-       :as prev-timeline-chart} :timeline-chart
-       {prev-filter-by-view :filter-by-view
-        prev-compiled-filter :compiled
-        :as prev-filter-spec} :filter-spec
-        prev-bounds :bounds
-        :as prev-props}
+    {{prev-query :query
+      prev-timeline-data :timeline-data} :timeline-chart
+      prev-filter-spec :filter-spec}
     _]
    (when (not= prev-timeline-data timeline-data)
-     (create-chart timeline-data (om/get-node owner "chart") measure-variables opts))))
+     (create-chart  (om/get-node owner "chart") query timeline-data opts))))

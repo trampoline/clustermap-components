@@ -156,15 +156,10 @@
        :size size}))
 
 (defn timeline
-  [index type filter-spec bounds time-variable after before interval metric-variables]
-  (POST (str "/api/" api-prefix "/timeline/" index "/" type)
-      {:filter-spec filter-spec
-       :bounds bounds
-       :time-variable time-variable
-       :after after
-       :before before
-       :interval interval
-       :metric-variables metric-variables}))
+  [query filter-spec]
+  (POST (str "/api/" api-prefix "/timeline")
+      {:query query
+       :filter-spec filter-spec}))
 
 (defn geo-sponsors
   [bounds]
