@@ -3,6 +3,7 @@
   (:require
    [om.core :as om :include-macros true]
    [om-tools.core :refer-macros [defcomponent]]
+   [domina.events :as events]
    [jayq.core :refer [$]]
    [sablono.core :as html :refer-macros [html]]
    [clustermap.api :as api]
@@ -92,23 +93,36 @@
 
   (did-mount
    [_]
-   (let [tdr (ordered-resource/make-discard-stale-resource "timeline-data-resource")]
+   (let [node (om/get-node owner)
+         tdr (ordered-resource/make-discard-stale-resource "timeline-data-resource")
+         last-dims (atom nil)
+         w (.-offsetWidth node)
+         h (.-offsetHeight node)]
+
+     ;; only set last-dims if we are initialised on-screen... later
+     ;; when chart shows, if last-dims is nil, we reflow again
+     (when (and (> w 0) (> h 0))
+       (reset! last-dims [w h]))
+
      (om/set-state! owner :timeline-data-resource tdr)
      (ordered-resource/retrieve-responses tdr (fn [{data :data :as response}]
                                                 (.log js/console (clj->js ["TIMELINE RESPONSE: " response]))
-                                                (om/update! timeline-chart [:timeline-data] data))))
+                                                (om/update! timeline-chart [:timeline-data] data)))
 
-   (let [node (om/get-node owner)]
-     (-> js/document
-         $
-         (.on "clustermap-change-view" (fn [e]
-                                         ;; only reflow charts when they are visible
-                                         ;; they disappear otherwise
-                                         (let [chart (-> (om/get-node owner "chart") $)]
-                                           (when (.is chart ":visible")
-                                             (some-> chart
-                                                     .highcharts
-                                                     .reflow))))))))
+     (events/listen! "clustermap-change-view" (fn [e]
+                                                ;; only reflow charts when they are visible
+                                                ;; they disappear otherwise
+                                                (let [w (.-offsetWidth node)
+                                                      h (.-offsetHeight node)]
+
+                                                  (when (and (> w 0)
+                                                             (> h 0)
+                                                             (not= @last-dims [w h]))
+
+                                                    (some-> (om/get-node owner "chart")
+                                                            $
+                                                            .highcharts
+                                                            .reflow)))))))
   (will-update
    [_
     {{{next-index :index
