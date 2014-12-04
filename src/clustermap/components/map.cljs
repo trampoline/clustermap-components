@@ -418,40 +418,6 @@
                                                          (locate-map leaflet-map initial-bounds))
                                                        (reset! last-dims current-dims)))))
 
-
-        ;; (.on leaflet-map "mousemove" (fn [e]
-        ;;                                (let [lat (-> e .-latlng .-lat)
-        ;;                                      lng (-> e .-latlng .-lng)
-
-        ;;                                      hits (point-in-boundarylines-fn lng lat)
-        ;;                                      highlight-hit (first hits)
-        ;;                                      highlight-path-id (:id highlight-hit)
-        ;;                                      highlight-path-ids (when highlight-path-id (set [highlight-path-id]))
-        ;;                                      ;; _ (when highlight-path-id (.log js/console highlight-path-id))
-
-        ;;                                      old-path-highlights (om/get-state owner :path-highlights)]
-
-        ;;                                  (when (and highlight-hit
-        ;;                                             (not= old-path-highlights highlight-path-ids)
-        ;;                                             (not (om/get-state owner :popup-selected)))
-        ;;                                    (doto (js/L.popup)
-        ;;                                      (.setLatLng (clj->js [lat lng]))
-        ;;                                      (.setContent (constituency-marker-popup-content path-fn highlight-hit))
-        ;;                                      (.openOn leaflet-map)))
-
-        ;;                                  (om/set-state! owner :path-highlights highlight-path-ids))))
-
-        ;; (.on leaflet-map "click" (fn [e]
-        ;;                            (let [hits (point-in-boundarylines-fn (-> e .-latlng .-lng) (-> e .-latlng .-lat))
-        ;;                                  boundaryline-id (some-> hits first :id)]
-        ;;                              (when boundaryline-id
-
-        ;;                                (om/update! filter-spec [:components :boundaryline]
-        ;;                                            {:nested {:path "?boundarylines"
-        ;;                                                      :filter {:term {"boundaryline_id" boundaryline-id}}}})
-
-        ;;                                (put! comm [:select [:constituency boundaryline-id]])))))
-
         (let [adr (ordered-resource/make-discard-stale-resource "aggregation-data-resource")]
           (om/set-state! owner :aggregation-data-resource adr)
           (ordered-resource/retrieve-responses adr (fn [data] (om/update! cursor [:data] data))))
