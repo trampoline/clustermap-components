@@ -24,7 +24,7 @@
 
         metrics (make-sequential metrics)
 
-        ys (for [{:keys [variable metric title] :as metric-spec} metrics]
+        ys (for [{:keys [variable metric title] :or {metric :sum} :as metric-spec} metrics]
              (assoc metric-spec :records
                     (for [record records]
                       (get-in record [(keyword variable) (keyword metric) ]))))]
