@@ -12,7 +12,7 @@
        [:div.tbl-cell title]
        [:div.tbl-cell
         [:select {:onChange (fn [e]
-                              (let [val (-> e .-target .-value)]
+                              (let [val (-> e .-target .-value not-empty)]
                                 (.log js/console val)
                                 (om/update! cursor key val)))}
          (for [[value description] value-descriptions]
