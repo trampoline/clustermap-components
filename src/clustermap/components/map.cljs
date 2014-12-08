@@ -105,10 +105,10 @@
   (.removeLayer leaflet-map marker))
 
 (defn update-markers
-  [path-fn leaflet-map markers-atom new-locations]
+  [path-fn leaflet-map markers-atom show-points new-locations]
   (let [markers @markers-atom
         marker-keys (-> markers keys set)
-        location-keys (-> new-locations keys set)
+        location-keys (when show-points (-> new-locations keys set))
 
         _ (.log js/console (clj->js [(count location-keys) location-keys]))
 
@@ -337,7 +337,7 @@
      boundaryline-collections :boundaryline-collections
      {:keys [initial-bounds
              link-render-fn
-             bounds zoom
+             bounds zoom show-points
              boundaryline-collection
              colorchooser
              boundaryline-agg
@@ -433,6 +433,7 @@
                     next-boundaryline-collections :boundaryline-collections
                     {next-zoom :zoom
                      next-bounds :bounds
+                     next-show-points :show-points
                      next-link-render-fn :link-render-fn
                      next-boundaryline-collection :boundaryline-collection
                      next-colorchooser :colorchooser
@@ -530,9 +531,10 @@
                   (update-paths-invocation)))
               )))
 
-        (when (not= next-point-data point-data)
+        (when (or (not= next-show-points show-points)
+                  (not= next-point-data point-data))
 
-          (update-markers link-render-fn leaflet-map next-markers (:records next-point-data))
+          (update-markers link-render-fn leaflet-map next-markers next-show-points (:records next-point-data))
           )))
 
     om/IWillUnmount
