@@ -54,11 +54,15 @@
                                              (om/update! filter-spec [:components :turnover]
                                                          (condp = val
                                                            "low" {:range {"!latest_turnover" {:lt 1000000}}}
-                                                           "high" {:range {"!latest_turnover" {:gte 1000000}}}
+                                                           "mid" {:range {"!latest_turnover" {:gte 1000000 :lt 100000000}}}
+                                                           "high" {:range {"!latest_turnover" {:gte 100000000 :lt 1000000000}}}
+                                                           "bn" {:range {"!latest_turnover" {:gte 1000000000}}}
                                                            nil))))}
                       [:option {:value ""} "any"]
-                      [:option {:value "low"} "< £1 million"]
-                      [:option {:value "high"} ">= £1 million"]]]]
+                      [:option {:value "low"} "< £1m"]
+                      [:option {:value "mid"} ">= £1m, < £100m"]
+                      [:option {:value "high"} ">= £100m, < £1bn"]
+                      [:option {:value "bn"} ">= £1bn"]]]]
 
      ;; [:div.tbl-row
      ;;  [:div.tbl-cell "Sector"]
