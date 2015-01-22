@@ -72,7 +72,7 @@
                         formatter (or formatter identity)]
                     ;; (.log js/console (clj->js [col-key col-name]))
                     ;; (.log js/console (clj->js ["KEYS" col-key (type col-key) col-name (type col-name) (get record col-key)]))
-                    [:td (formatter (get record col-key))])))
+                    [:td (formatter (get record col-key) record)])))
           ;; _ (.log js/console (clj->js ["ROW" columns record row]))
           ]
       row))))
