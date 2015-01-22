@@ -37,7 +37,8 @@
   (get-state [this])
   (get-comm [this])
   (get-history [this])
-  (get-navigator-fn [this]))
+  (get-navigator-fn [this])
+  (navigate [this view]))
 
 (defn create-app-instance
   [initial-state-value component-defs app-service]
@@ -95,7 +96,9 @@
         history*)
 
       (get-navigator-fn [_]
-        nav-fn))))
+        nav-fn)
+
+      (navigate [_ view] (nav-fn view)))))
 
 (defn start-or-restart-app
   [app-instance-atom initial-state components app-service]
