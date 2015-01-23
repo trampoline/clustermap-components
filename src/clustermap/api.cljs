@@ -197,3 +197,12 @@
       {:index-name index
        :index-type index-type
        :filter filter-spec}))
+
+(defn records
+  [index index-type filter-spec sort-spec size]
+  (POST (str "/api/" api-prefix "/records")
+      {:index-name index
+       :index-type index-type
+       :filter filter-spec
+       :sort sort-spec
+       :size size}))
