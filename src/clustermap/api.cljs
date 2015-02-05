@@ -128,6 +128,11 @@
        :scale-attr scale-attr
        :post-scale-factor post-scale-factor}))
 
+(defn nested-aggregation
+  [& {:keys [index-name index-type filter-spec nested-path nested-filter nested-attr stats-attr] :as q}]
+  (POST (str "/api/" api-prefix "/nested-agg")
+      q))
+
 ;; summary stats
 (defn summary-stats
   [index type statsattrs filter bounds & [type-ids]]
