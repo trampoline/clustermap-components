@@ -211,3 +211,11 @@
        :filter filter-spec
        :sort sort-spec
        :size size}))
+
+(defn tags-of-type
+  [tag-type]
+  (GET (str "/api/" api-prefix "/tags/" tag-type)))
+
+(defn latlong-tags-of-type
+  [tag-type]
+  (GET (str "/api/" api-prefix "/latlong-tags/" tag-type)))
