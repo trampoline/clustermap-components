@@ -69,7 +69,7 @@
                  "mccraigmccraig.h4f921b9"))
 
 (defn create-map
-  [id-or-el {:keys [initial-bounds map-options api-key] :or {api-key default-api-key}}]
+  [id-or-el {:keys [initial-bounds bounds map-options api-key] :or {api-key default-api-key}}]
   (let [zoom-control (if (false? (:zoomControl map-options)) false true)
         m ((-> js/L .-map) id-or-el (clj->js (merge map-options {:zoomControl false :maxZoom 19})))
         tiles ((-> js/L .-mapbox .-tileLayer) api-key #js {:detectRetina (not js/config.repl)})
@@ -78,7 +78,7 @@
     (when zoom-control
       (.addControl m zoom))
 
-    (locate-map m initial-bounds)
+    (locate-map m (or bounds initial-bounds))
 
     {:leaflet-map m
      :markers (atom {})
