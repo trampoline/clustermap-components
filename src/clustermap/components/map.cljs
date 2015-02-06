@@ -61,6 +61,7 @@
 
     {:leaflet-map m
      :markers (atom {})
+     :geotag-markers (atom {})
      :paths (atom {})
      :path-selections (atom #{})}))
 
@@ -127,6 +128,55 @@
         _ (doseq [k remove-marker-keys] (remove-marker leaflet-map (get markers k)))]
 
     (reset! markers-atom (merge updated-markers new-markers))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn geotag-marker-popup-content
+  [render-fn geotag geotag-agg]
+  (hiccups/html
+   [:ul.map-marker-popup-location-list
+    [:li (render-fn geotag geotag-agg)]]))
+
+(defn create-geotag-marker
+  [leaflet-map render-fn geotag geotag-agg]
+  (let [latlong (clj->js [(:latitude geotag) (:longitude geotag)])
+        icon (js/L.divIcon (clj->js {:className "map-marker" :iconSize [24,28] :iconAnchor [12 14] :popupAnchor [0, -8] }))
+        marker (js/L.marker latlong (clj->js {:icon icon}) )
+        popup-content (geotag-marker-popup-content render-fn geotag geotag-agg)]
+    (.bindPopup marker popup-content)
+    (.addTo marker leaflet-map)
+    marker))
+
+(defn update-geotag-marker
+  [leaflet-map marker render-fn geotag geotag-agg]
+  (.setPopupContent marker (geotag-marker-popup-content render-fn geotag geotag-agg ))
+  marker)
+
+(defn update-geotag-markers
+  [leaflet-map geotag-markers-atom render-fn geotag-data geotag-agg-data]
+  (let [geotags (reduce (fn [m t] (assoc m (:tag t) t)) {} geotag-data)
+        geotag-aggs (reduce (fn [m a] (assoc m (:nested_attr a) a)) {} geotag-agg-data)
+        markers @geotag-markers-atom
+        marker-keys (-> markers keys set)
+
+        latest-marker-keys (map :nested_attr geotag-agg-data)
+        update-marker-keys (set/intersection marker-keys latest-marker-keys)
+        new-marker-keys (set/difference latest-marker-keys marker-keys)
+        remove-marker-keys (set/difference marker-keys latest-marker-keys)
+
+        new-markers (->> new-marker-keys
+                         (map (fn [k] [k (create-geotag-marker leaflet-map render-fn (get geotags k) (get geotag-aggs k))]))
+                         (into {}))
+
+        updated-markers (->> update-marker-keys
+                             (map (fn [k] [k (update-geotag-marker leaflet-map (get markers k) render-fn (get geotags k) (get geotag-aggs k))]))
+                             (into {}))
+
+        _ (doseq [k remove-marker-keys] (remove-marker leaflet-map (get markers k)))]
+
+
+    (reset! geotag-markers-atom (merge updated-markers new-markers))
+    ))
 
 ;; path-utilities
 
@@ -330,6 +380,18 @@
                              filter
                              bounds))
 
+(defn request-geotag-data
+  [resource tag-type]
+  (ordered-resource/api-call resource
+                             api/geotags-of-type
+                             tag-type))
+
+(defn request-geotag-agg-data
+  [resource query]
+  (ordered-resource/api-call resource
+                             api/nested-aggregation
+                             query))
+
 (defn map-component
   "put the leaflet map as state in the om component"
   [{{data :data
@@ -341,7 +403,8 @@
              boundaryline-collection
              colorchooser
              boundaryline-agg
-             threshold-colors]} :controls :as cursor} :map-state
+             threshold-colors
+             geotag-aggs]} :controls :as cursor} :map-state
      filter-spec :filter-spec
      filter :filter
      :as cursor-data}
@@ -424,7 +487,20 @@
 
         (let [pdr (ordered-resource/make-discard-stale-resource "point-data-resource")]
           (om/set-state! owner :point-data-resource pdr)
-          (ordered-resource/retrieve-responses pdr (fn [point-data] (om/update! cursor [:point-data] point-data))))))
+          (ordered-resource/retrieve-responses pdr (fn [point-data] (om/update! cursor [:point-data] point-data))))
+
+        (let [gtdr (ordered-resource/make-discard-stale-resource "geotag-data-resource")]
+          (om/set-state! owner :geotag-data-resource gtdr)
+          (ordered-resource/retrieve-responses gtdr (fn [geotag-data] (om/update! cursor [:controls :geotag-aggs :geotag-data] geotag-data)))
+          )
+
+        (let [gtadr (ordered-resource/make-discard-stale-resource "geotag-agg-data-resource")]
+          (om/set-state! owner :geotag-agg-data-resource gtadr)
+          (ordered-resource/retrieve-responses gtadr (fn [geotag-agg-data] (om/update! cursor [:controls :geotag-aggs :geotag-agg-data] (:records geotag-agg-data))))
+          )
+        ))
+
+
 
     om/IWillUpdate
     (will-update [this
@@ -438,18 +514,22 @@
                      next-boundaryline-collection :boundaryline-collection
                      next-colorchooser :colorchooser
                      next-boundaryline-agg :boundaryline-agg
-                     next-threshold-colors :threshold-colors} :controls
+                     next-threshold-colors :threshold-colors
+                     next-geotag-aggs :geotag-aggs} :controls
                     :as next-cursor
                     } :map-state
                       next-filter :filter
                       next-filter-spec :filter-spec
                       :as next-cursor-data}
                   {{next-markers :markers
+                    next-geotag-markers :geotag-markers
                     next-paths :paths
                     next-path-selections :path-selections} :map
                     next-path-highlights :path-highlights
                     next-aggregation-data-resource :aggregation-data-resource
                     next-point-data-resource :point-data-resource
+                    next-geotag-data-resource :geotag-data-resource
+                    next-geotag-agg-data-resource :geotag-agg-data-resource
                     }]
 
       (let [{:keys [comm path-fn link-fn fetch-boundarylines-fn point-in-boundarylines-fn]} (om/get-shared owner)
@@ -474,7 +554,8 @@
           (om/update! cursor [:controls :boundaryline-collection] (choose-boundaryline-collection next-boundaryline-collections (.getZoom leaflet-map))))
 
         (when (and next-boundaryline-collection
-                   (or (and next-boundaryline-agg (not= next-boundaryline-agg boundaryline-agg))
+                   next-boundaryline-agg
+                   (or (not= next-boundaryline-agg boundaryline-agg)
                        (not= next-filter filter)
                        (not= next-bounds bounds)))
           (let [ticket (next-ticket)]
@@ -497,9 +578,22 @@
                                 (bounds-array (.getBounds leaflet-map)))
             ))
 
-        (when (or (not= next-data data)
-                  (not= next-colorchooser colorchooser)
-                  )
+        (when (and next-geotag-aggs
+                   (or (not (:geotag-data next-geotag-aggs))))
+          (request-geotag-data next-geotag-data-resource
+                                (:tag-type next-geotag-aggs)))
+
+        (when (and next-geotag-aggs
+                   (or (not (:geotag-agg-data next-geotag-aggs))
+                       (not= next-filter filter)
+                       (not= next-bounds bounds)))
+          (request-geotag-agg-data next-geotag-agg-data-resource
+                                   (merge (:query next-geotag-aggs) {:filter-spec next-filter})))
+
+        (when (and next-colorchooser
+                   next-data
+                   (or (not= next-data data)
+                       (not= next-colorchooser colorchooser)))
 
           ;; (.log js/console (clj->js ["next-data" next-data]))
           ;; (.log js/console (clj->js ["threshold-colors" new-threshold-colors]))
@@ -534,8 +628,17 @@
         (when (or (not= next-show-points show-points)
                   (not= next-point-data point-data))
 
-          (update-markers link-render-fn leaflet-map next-markers next-show-points (:records next-point-data))
-          )))
+          (update-markers link-render-fn leaflet-map next-markers next-show-points (:records next-point-data)))
+
+        (when (or (not= (:geotag-data next-geotag-aggs) (:geotag-data geotag-aggs))
+                  (not= (:geotag-agg-data next-geotag-aggs) (:geotag-agg-data geotag-aggs)))
+          (update-geotag-markers leaflet-map
+                                 next-geotag-markers
+                                 (:render-fn next-geotag-aggs)
+                                 (:geotag-data next-geotag-aggs)
+                                 (:geotag-agg-data next-geotag-aggs)))
+
+        ))
 
     om/IWillUnmount
     (will-unmount [this]
