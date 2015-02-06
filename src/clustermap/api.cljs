@@ -129,7 +129,7 @@
        :post-scale-factor post-scale-factor}))
 
 (defn nested-aggregation
-  [& {:keys [index-name index-type filter-spec nested-path nested-filter nested-attr stats-attr] :as q}]
+  [{:keys [index-name index-type filter-spec nested-path nested-filter nested-attr stats-attr] :as q}]
   (POST (str "/api/" api-prefix "/nested-agg")
       q))
 
@@ -216,6 +216,6 @@
   [tag-type]
   (GET (str "/api/" api-prefix "/tags/" tag-type)))
 
-(defn latlong-tags-of-type
+(defn geotags-of-type
   [tag-type]
-  (GET (str "/api/" api-prefix "/latlong-tags/" tag-type)))
+  (GET (str "/api/" api-prefix "/geotags/" tag-type)))
