@@ -19,7 +19,7 @@
      ;;                          :onChange (fn [e] (let [val (-> e .-target .-checked)]
      ;;                                              (om/update! filter-spec [:filter-by-view] val)))}]]]
      [:div.tbl-row
-      [:div.tbl-cell "age"]
+      [:div.tbl-cell "Age"]
       [:div.tbl-cell [:select {:onChange (fn [e]
                                            (let [val (-> e .-target .-value)]
                                              (.log js/console val)
@@ -47,7 +47,7 @@
      ;;                  [:option {:value "notgroup"} "not group"]]]]
 
      [:div.tbl-row
-      [:div.tbl-cell "turnover"]
+      [:div.tbl-cell "Investment"]
       [:div.tbl-cell [:select {:onChange (fn [e]
                                            (let [val (-> e .-target .-value)]
                                              (.log js/console val)

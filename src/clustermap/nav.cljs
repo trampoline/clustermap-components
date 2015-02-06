@@ -3,7 +3,7 @@
             [domina.css :as css]
             [domina.xpath :as xpath]
             [domina.events :as events]
-            [secretary.core :as secretary :include-macros true :refer [defroute]]
+            [secretary.core :as secretary :include-macros true]
             [jayq.core :as jayq :refer [$]]
             [cljs.core.async :refer [put! chan <!]]))
 
@@ -93,15 +93,15 @@
 (defn init-routes
   [app-state path default-view]
 
-  (defroute "" []
+  (secretary/defroute "" []
     ;; (set-view app-state path default-view)
     )
 
-  (defroute "/" []
+  (secretary/defroute "/" []
     ;; (set-view app-state path default-view)
     )
 
-  (defroute "/:view" [view]
+  (secretary/defroute "/:view" [view]
     (set-view app-state path view)))
 
 (defn init

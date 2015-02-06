@@ -482,6 +482,23 @@
         (om/set-state! owner :map map)
         (om/set-state! owner :path-highlights #{})
 
+        ;; if there is a window size change when the map isn't visible, invalidate the map size
+        (events/listen! "clustermap-change-view" (fn [e]
+                                                   (let [w (.-offsetWidth node)
+                                                         h (.-offsetHeight node)
+                                                         current-dims [w h]
+                                                         props (om/get-props owner)
+                                                         use-bounds (get-in props [:map-state :controls :initial-bounds])]
+                                                     (when (and (> w 0)
+                                                                (> h 0)
+                                                                (not= @last-dims current-dims))
+                                                       (.log js/console "window size changed !")
+                                                       (.invalidateSize leaflet-map)
+                                                       (when-not @last-dims
+                                                         (.log js/console "first map show !")
+                                                         (when use-bounds (locate-map leaflet-map use-bounds)))
+                                                       (reset! last-dims current-dims)))))
+
         (.on leaflet-map "moveend" (fn [e]
                                      (.log js/console "moveend")
                                      (om/update! cursor [:controls :zoom] (.getZoom leaflet-map))
@@ -520,21 +537,6 @@
                                          handler (find-event-handler handler-id)]
                                      (when handler
                                        (handler e))))))
-
-        ;; if there is a window size change when the map isn't visible, invalidate the map size
-        (events/listen! "clustermap-change-view" (fn [e]
-                                                   (let [w (.-offsetWidth node)
-                                                         h (.-offsetHeight node)
-                                                         current-dims [w h]]
-                                                     (when (and (> w 0)
-                                                                (> h 0)
-                                                                (not= @last-dims current-dims))
-                                                       (.log js/console "window size changed !")
-                                                       (.invalidateSize leaflet-map)
-                                                       (when-not @last-dims
-                                                         (.log js/console "first map show !")
-                                                         (locate-map leaflet-map initial-bounds))
-                                                       (reset! last-dims current-dims)))))
 
         (let [adr (ordered-resource/make-discard-stale-resource "aggregation-data-resource")]
           (om/set-state! owner :aggregation-data-resource adr)
@@ -599,7 +601,8 @@
         ;; apply requested but not-yet-applied bounds changes
         (when (and leaflet-map next-bounds (not= next-bounds bounds) (not= next-bounds (bounds-array (.getBounds leaflet-map))))
           (.fitBounds leaflet-map (clj->js next-bounds))
-          (om/update! cursor [:controls :bounds] (bounds-array (.getBounds leaflet-map))))
+          ;; (om/update! cursor [:controls :bounds] (bounds-array (.getBounds leaflet-map)))
+          )
 
         ;; change the boundaryline-collection if necessary
         (when (and leaflet-map boundaryline-collections
