@@ -15,11 +15,30 @@
    [clustermap.boundarylines :as bl]
    [clustermap.data.colorchooser :as colorchooser]))
 
-(def ^:private ticket (atom 0))
+(def ^:private event-handler-keys (atom 0))
+(def ^:private event-handlers (atom {}))
 
-(defn next-ticket
+(defn ^:private next-event-handler-key
   []
-  (swap! ticket inc))
+  (swap! event-handler-keys inc))
+
+(defn- register-event-handler
+  "register's an event handler function, returns a key"
+  [f]
+  (let [k (next-event-handler-key)]
+    (swap! event-handlers assoc k f)
+    k))
+
+(defn- remove-event-handler
+  "remove's an event handler with key k"
+  [k]
+  (swap! event-handlers dissoc k)
+  nil)
+
+(defn- find-event-handler
+  "find's an event handler with key k"
+  [k]
+  (get @event-handlers k))
 
 (defn bounds-array
   "convert a Leaflet LatLngBounds object into nested-array form"
@@ -90,22 +109,24 @@
   ;; extract the location-sites from the first record... they are all the same
   (if-let [latlong (some-> location-sites first :location reverse clj->js)]
     (let [icon (js/L.divIcon (clj->js {:className "map-marker" :iconSize [24,28] :iconAnchor [12 14] :popupAnchor [0, -8] })) ;;
-          marker (js/L.marker latlong (clj->js {:icon icon}) ) ;;
+          leaflet-marker (js/L.marker latlong (clj->js {:icon icon}) ) ;;
           popup-content (marker-popup-content path-fn location-sites)]
       ;; (.log js/console popup-content)
-      (.bindPopup marker popup-content)
-      (.addTo marker leaflet-map)
-      marker)
+      (.bindPopup leaflet-marker popup-content)
+      (.addTo leaflet-marker leaflet-map)
+      {:leaflet-marker leaflet-marker
+       :handler-key nil})
     (.log js/console (str "missing location: " (with-out-str (pr location-sites))))))
 
 (defn update-marker
-  [path-fn leaflet-map marker location]
-  (.setPopupContent marker (marker-popup-content path-fn location))
+  [path-fn leaflet-map {:keys [leaflet-marker] :as marker} location]
+  (.setPopupContent leaflet-marker (marker-popup-content path-fn location))
   marker)
 
 (defn remove-marker
-  [leaflet-map marker]
-  (.removeLayer leaflet-map marker))
+  [leaflet-map {:keys [leaflet-marker]}]
+  (.removeLayer leaflet-map leaflet-marker)
+  nil)
 
 (defn update-markers
   [path-fn leaflet-map markers-atom show-points new-locations]
@@ -134,23 +155,25 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn create-geotag-marker
-  [leaflet-map {:keys [icon-render-fn popup-render-fn] :as geotag-agg-spec} geotag geotag-agg]
+  [leaflet-map {:keys [icon-render-fn popup-render-fn click-fn] :as geotag-agg-spec} geotag geotag-agg]
   (let [latlong (clj->js [(:latitude geotag) (:longitude geotag)])
         icon (js/L.divIcon (clj->js {:className "map-marker-3"
                                      :iconSize [24,28]
                                      :iconAnchor [12 14]
                                      :popupAnchor [0, -8]
                                      :html (icon-render-fn geotag geotag-agg )}))
-        marker (js/L.marker latlong (clj->js {:icon icon}) )
+        leaflet-marker (js/L.marker latlong (clj->js {:icon icon}) )
         popup (js/L.popup (clj->js {:autoPan false}))]
     (.setContent popup (popup-render-fn geotag geotag-agg))
-    (.bindPopup marker popup)
-    (.addTo marker leaflet-map)
-    marker))
+    (.on popup "click" (fn [] (click-fn geotag geotag-agg)))
+    (.bindPopup leaflet-marker popup)
+    (.addTo leaflet-marker leaflet-map)
+    {:leaflet-marker leaflet-marker
+     :handler-key nil}))
 
 (defn update-geotag-marker
-  [leaflet-map {:keys [icon-render-fn popup-render-fn] :as geotag-aggs} marker geotag geotag-agg]
-  (.setPopupContent marker (popup-render-fn geotag geotag-agg ))
+  [leaflet-map {:keys [icon-render-fn popup-render-fn] :as geotag-aggs} {:keys [leaflet-marker] :as marker} geotag geotag-agg]
+  (.setPopupContent leaflet-marker (popup-render-fn geotag geotag-agg ))
   marker)
 
 (defn update-geotag-markers
@@ -567,25 +590,22 @@
                    (or (not= next-boundaryline-agg boundaryline-agg)
                        (not= next-filter filter)
                        (not= next-bounds bounds)))
-          (let [ticket (next-ticket)]
-            (om/update! cursor [:controls :ticket] ticket)
-            ;; time for some new data !
-            (request-aggregation-data next-aggregation-data-resource
-                                      (:index next-boundaryline-agg)
-                                      (:index-type next-boundaryline-agg)
-                                      (choose-boundaryline-collection next-boundaryline-collections (.getZoom leaflet-map))
-                                      (:variable next-boundaryline-agg)
-                                      (om/-value next-filter)
-                                      (bounds-array (.getBounds leaflet-map))
-                                      (:scale-attr next-boundaryline-agg)
-                                      (:post-scale-factor next-boundaryline-agg))
+          ;; time for some new data !
+          (request-aggregation-data next-aggregation-data-resource
+                                    (:index next-boundaryline-agg)
+                                    (:index-type next-boundaryline-agg)
+                                    (choose-boundaryline-collection next-boundaryline-collections (.getZoom leaflet-map))
+                                    (:variable next-boundaryline-agg)
+                                    (om/-value next-filter)
+                                    (bounds-array (.getBounds leaflet-map))
+                                    (:scale-attr next-boundaryline-agg)
+                                    (:post-scale-factor next-boundaryline-agg))
 
-            (request-point-data next-point-data-resource
-                                (:index next-boundaryline-agg)
-                                (:index-type next-boundaryline-agg)
-                                (om/-value next-filter)
-                                (bounds-array (.getBounds leaflet-map)))
-            ))
+          (request-point-data next-point-data-resource
+                              (:index next-boundaryline-agg)
+                              (:index-type next-boundaryline-agg)
+                              (om/-value next-filter)
+                              (bounds-array (.getBounds leaflet-map))))
 
         (when (and next-geotag-aggs
                    (or (not (:geotag-data next-geotag-aggs))))
