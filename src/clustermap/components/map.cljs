@@ -50,12 +50,14 @@
                  "mccraigmccraig.h4f921b9"))
 
 (defn create-map
-  [id-or-el initial-bounds]
-  (let [m ((-> js/L .-map) id-or-el #js {:zoomControl false :maxZoom 19})
+  [id-or-el initial-bounds map-options]
+  (let [zoom-control (if (false? (:zoomControl map-options)) false true)
+        m ((-> js/L .-map) id-or-el (clj->js (merge map-options {:zoomControl false :maxZoom 19})))
         tiles ((-> js/L .-mapbox .-tileLayer) api-key #js {:detectRetina (not js/config.repl)})
         zoom ((-> js/L .-control .-zoom) #js {:position "bottomleft"})]
     (.addLayer m tiles)
-    (.addControl m zoom)
+    (when zoom-control
+      (.addControl m zoom))
 
     (locate-map m initial-bounds)
 
@@ -131,45 +133,51 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn geotag-marker-popup-content
-  [render-fn geotag geotag-agg]
-  (hiccups/html
-   [:ul.map-marker-popup-location-list
-    [:li (render-fn geotag geotag-agg)]]))
-
 (defn create-geotag-marker
-  [leaflet-map render-fn geotag geotag-agg]
+  [leaflet-map {:keys [icon-render-fn popup-render-fn] :as geotag-agg-spec} geotag geotag-agg]
   (let [latlong (clj->js [(:latitude geotag) (:longitude geotag)])
-        icon (js/L.divIcon (clj->js {:className "map-marker" :iconSize [24,28] :iconAnchor [12 14] :popupAnchor [0, -8] }))
+        icon (js/L.divIcon (clj->js {:className "map-marker-3"
+                                     :iconSize [24,28]
+                                     :iconAnchor [12 14]
+                                     :popupAnchor [0, -8]
+                                     :html (icon-render-fn geotag geotag-agg )}))
         marker (js/L.marker latlong (clj->js {:icon icon}) )
-        popup-content (geotag-marker-popup-content render-fn geotag geotag-agg)]
-    (.bindPopup marker popup-content)
+        popup (js/L.popup (clj->js {:autoPan false}))]
+    (.setContent popup (popup-render-fn geotag geotag-agg))
+    (.bindPopup marker popup)
     (.addTo marker leaflet-map)
     marker))
 
 (defn update-geotag-marker
-  [leaflet-map marker render-fn geotag geotag-agg]
-  (.setPopupContent marker (geotag-marker-popup-content render-fn geotag geotag-agg ))
+  [leaflet-map {:keys [icon-render-fn popup-render-fn] :as geotag-aggs} marker geotag geotag-agg]
+  (.setPopupContent marker (popup-render-fn geotag geotag-agg ))
   marker)
 
 (defn update-geotag-markers
-  [leaflet-map geotag-markers-atom render-fn geotag-data geotag-agg-data]
-  (let [geotags (reduce (fn [m t] (assoc m (:tag t) t)) {} geotag-data)
-        geotag-aggs (reduce (fn [m a] (assoc m (:nested_attr a) a)) {} geotag-agg-data)
+  [leaflet-map geotag-markers-atom {:keys [icon-render-fn popup-render-fn geotag-data geotag-agg-data] :as geotag-agg-spec}]
+  (let [geotags-by-tag (reduce (fn [m t] (assoc m (:tag t) t)) {} geotag-data)
+        geotag-aggs-by-tag (reduce (fn [m a] (assoc m (:nested_attr a) a)) {} geotag-agg-data)
+
         markers @geotag-markers-atom
         marker-keys (-> markers keys set)
 
-        latest-marker-keys (map :nested_attr geotag-agg-data)
+        latest-marker-keys (keys geotag-aggs-by-tag)
         update-marker-keys (set/intersection marker-keys latest-marker-keys)
         new-marker-keys (set/difference latest-marker-keys marker-keys)
         remove-marker-keys (set/difference marker-keys latest-marker-keys)
 
+        _ (.log js/console (clj->js {:geotag-aggs geotag-agg-spec
+                                     :latest-marker-keys latest-marker-keys
+                                     :update-marker-keys update-marker-keys
+                                     :new-marker-keys new-marker-keys
+                                     :remove-marker-keys remove-marker-keys}))
+
         new-markers (->> new-marker-keys
-                         (map (fn [k] [k (create-geotag-marker leaflet-map render-fn (get geotags k) (get geotag-aggs k))]))
+                         (map (fn [k] [k (create-geotag-marker leaflet-map geotag-agg-spec (get geotags-by-tag k) (get geotag-aggs-by-tag k))]))
                          (into {}))
 
         updated-markers (->> update-marker-keys
-                             (map (fn [k] [k (update-geotag-marker leaflet-map (get markers k) render-fn (get geotags k) (get geotag-aggs k))]))
+                             (map (fn [k] [k (update-geotag-marker leaflet-map geotag-agg-spec (get markers k) (get geotags-by-tag k) (get geotag-aggs-by-tag k))]))
                              (into {}))
 
         _ (doseq [k remove-marker-keys] (remove-marker leaflet-map (get markers k)))]
@@ -398,6 +406,7 @@
      point-data :point-data
      boundaryline-collections :boundaryline-collections
      {:keys [initial-bounds
+             map-options
              link-render-fn
              bounds zoom show-points
              boundaryline-collection
@@ -418,7 +427,7 @@
     om/IDidMount
     (did-mount [this]
       (let [node (om/get-node owner)
-            {:keys [leaflet-map markers path] :as map} (create-map node initial-bounds)
+            {:keys [leaflet-map markers path] :as map} (create-map node initial-bounds map-options)
             {:keys [comm fetch-boundarylines-fn point-in-boundarylines-fn link-fn path-fn
                     path-marker-click-fn]} (om/get-shared owner)
             last-dims (atom nil)
@@ -634,9 +643,7 @@
                   (not= (:geotag-agg-data next-geotag-aggs) (:geotag-agg-data geotag-aggs)))
           (update-geotag-markers leaflet-map
                                  next-geotag-markers
-                                 (:render-fn next-geotag-aggs)
-                                 (:geotag-data next-geotag-aggs)
-                                 (:geotag-agg-data next-geotag-aggs)))
+                                 next-geotag-aggs))
 
         ))
 
