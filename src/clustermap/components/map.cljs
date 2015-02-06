@@ -25,7 +25,7 @@
 (defn- register-event-handler
   "register's an event handler function, returns a key"
   [f]
-  (let [k (next-event-handler-key)]
+  (let [k (str (next-event-handler-key))]
     (swap! event-handlers assoc k f)
     k))
 
@@ -115,7 +115,7 @@
       (.bindPopup leaflet-marker popup-content)
       (.addTo leaflet-marker leaflet-map)
       {:leaflet-marker leaflet-marker
-       :handler-key nil})
+       :click-handler-key nil})
     (.log js/console (str "missing location: " (with-out-str (pr location-sites))))))
 
 (defn update-marker
@@ -124,7 +124,8 @@
   marker)
 
 (defn remove-marker
-  [leaflet-map {:keys [leaflet-marker]}]
+  [leaflet-map {:keys [leaflet-marker click-handler-key]}]
+  (remove-event-handler click-handler-key)
   (.removeLayer leaflet-map leaflet-marker)
   nil)
 
@@ -154,6 +155,13 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn render-popup-content
+  [click-handler-key content]
+  (hiccups/html
+   (if click-handler-key
+     [:div {:data-onclick-id click-handler-key} content]
+     content)))
+
 (defn create-geotag-marker
   [leaflet-map {:keys [icon-render-fn popup-render-fn click-fn] :as geotag-agg-spec} geotag geotag-agg]
   (let [latlong (clj->js [(:latitude geotag) (:longitude geotag)])
@@ -161,19 +169,24 @@
                                      :iconSize [24,28]
                                      :iconAnchor [12 14]
                                      :popupAnchor [0, -8]
-                                     :html (icon-render-fn geotag geotag-agg )}))
+                                     :html (hiccups/html (icon-render-fn geotag geotag-agg ))}))
         leaflet-marker (js/L.marker latlong (clj->js {:icon icon}) )
-        popup (js/L.popup (clj->js {:autoPan false}))]
-    (.setContent popup (popup-render-fn geotag geotag-agg))
-    (.on popup "click" (fn [] (click-fn geotag geotag-agg)))
+        popup (js/L.popup (clj->js {:autoPan false}))
+        click-handler-key (when click-fn (register-event-handler (partial click-fn geotag geotag-agg)))]
+    (.setContent popup (render-popup-content click-handler-key (popup-render-fn geotag geotag-agg)))
     (.bindPopup leaflet-marker popup)
     (.addTo leaflet-marker leaflet-map)
     {:leaflet-marker leaflet-marker
-     :handler-key nil}))
+     :click-handler-key click-handler-key}))
 
 (defn update-geotag-marker
-  [leaflet-map {:keys [icon-render-fn popup-render-fn] :as geotag-aggs} {:keys [leaflet-marker] :as marker} geotag geotag-agg]
-  (.setPopupContent leaflet-marker (popup-render-fn geotag geotag-agg ))
+  [leaflet-map {:keys [icon-render-fn popup-render-fn click-fn] :as geotag-aggs} {:keys [leaflet-marker click-handler-key] :as marker} geotag geotag-agg]
+  (let [popup (js/L.popup (clj->js {:autoPan false}))
+        new-click-handler-key (when click-fn (register-event-handler (partial click-fn geotag geotag-agg)))]
+    (when click-handler-key (remove-event-handler click-handler-key))
+    (.setContent popup (render-popup-content new-click-handler-key (popup-render-fn geotag geotag-agg)))
+    (.bindPopup leaflet-marker popup)
+    (assoc marker :click-handler-key new-click-handler-key))
   marker)
 
 (defn update-geotag-markers
@@ -212,10 +225,10 @@
 ;; path-utilities
 
 (defn postgis-envelope->latlngbounds
-  "turns a PostGIS envelope into a L.LatLngBounds"
+  "turns a PostGIS envelope into leaflet bounds"
   [envelope]
   (let [{[[[miny0 minx0] [maxy1 minx1] [maxy2 maxx2] [miny3 maxx3] [miny4 minx4] :as inner] :as coords] "coordinates" :as clj-envelope} (js->clj envelope)]
-    (js/L.latLngBounds (clj->js [[minx0 miny0] [maxx2 maxy2]]))))
+    (clj->js [[minx0 miny0] [maxx2 maxy2]])))
 
 ;; manage paths
 
@@ -490,13 +503,23 @@
         (when path-marker-click-fn
           ;; click off of a path resets boundary selection
           (.on leaflet-map "click" (fn [e] (path-marker-click-fn nil)))
-          (-> js/document $ (.on "click" "a.boundaryline-popup-link"
+          (-> node $ (.on "click" "a.boundaryline-popup-link"
                                  (fn [e]
                                    (.preventDefault e)
                                    (some-> e
                                            .-target
                                            (domina/attr "data-boundaryline-id")
                                            path-marker-click-fn)))))
+
+        ;; find a generic handler function, presumably with om data wrapped in a closure
+        (-> node $ (.on "click" "[data-onclick-id]"
+                                 (fn [e]
+                                   (.preventDefault e)
+                                   (let [current-target (.-currentTarget e)
+                                         handler-id (domina/attr current-target "data-onclick-id")
+                                         handler (find-event-handler handler-id)]
+                                     (when handler
+                                       (handler e))))))
 
         ;; if there is a window size change when the map isn't visible, invalidate the map size
         (events/listen! "clustermap-change-view" (fn [e]
@@ -669,14 +692,16 @@
 
     om/IWillUnmount
     (will-unmount [this]
-      (-> js/document $ (.off "click" "a.boundaryline-popup-link"))
-      (events/unlisten! "clustermap-change-view")
+      (let [node (om/get-node owner)]
+        (-> node $ .off)
+        (events/unlisten! node)
+        (events/unlisten! "clustermap-change-view")
 
-      (let [{{:keys [leaflet-map markers paths path-selections]} :map
-             :keys [aggregation-data-resource point-data-resource]} (om/get-state owner)]
-        (ordered-resource/close aggregation-data-resource)
-        (ordered-resource/close point-data-resource)
+        (let [{{:keys [leaflet-map markers paths path-selections]} :map
+               :keys [aggregation-data-resource point-data-resource]} (om/get-state owner)]
+          (ordered-resource/close aggregation-data-resource)
+          (ordered-resource/close point-data-resource)
 
-        (.remove leaflet-map)))
+          (.remove leaflet-map))))
 
     ))
