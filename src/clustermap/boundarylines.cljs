@@ -133,8 +133,12 @@
                       (filter (fn [[blid [tol bl]]] (not= tol i-tol)))
                       (map first))
         ;;_     (.log js/console (clj->js ["required" required]))
-        notify-chan (when (not-empty required)
-                      (fetch-boundarylines app-state general-cache-path collection-cache-path collection-id i-tol :boundaryline-ids required :bounds bounds))]
+        notify-chan (if (not-empty required)
+                      (fetch-boundarylines app-state general-cache-path collection-cache-path collection-id i-tol :boundaryline-ids required :bounds bounds)
+                      (let [ch (chan)] ;; already complete, so return a notify-channel pre-loaded with true
+                        (put! ch true)
+                        (close! ch)
+                        ch))]
 
     [best-versions notify-chan]))
 
