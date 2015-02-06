@@ -46,11 +46,11 @@
               (clj->js {"paddingTopLeft" [0 0]
                         "paddingBottomRight" [0 0]})))
 
-(def api-key (or (some-> js/config .-components .-map .-api_key)
+(def default-api-key (or (some-> js/config .-components .-map .-api_key)
                  "mccraigmccraig.h4f921b9"))
 
 (defn create-map
-  [id-or-el initial-bounds map-options]
+  [id-or-el {:keys [initial-bounds map-options api-key] :or {api-key default-api-key}}]
   (let [zoom-control (if (false? (:zoomControl map-options)) false true)
         m ((-> js/L .-map) id-or-el (clj->js (merge map-options {:zoomControl false :maxZoom 19})))
         tiles ((-> js/L .-mapbox .-tileLayer) api-key #js {:detectRetina (not js/config.repl)})
@@ -161,7 +161,7 @@
         markers @geotag-markers-atom
         marker-keys (-> markers keys set)
 
-        latest-marker-keys (keys geotag-aggs-by-tag)
+        latest-marker-keys (-> geotag-aggs-by-tag keys set)
         update-marker-keys (set/intersection marker-keys latest-marker-keys)
         new-marker-keys (set/difference latest-marker-keys marker-keys)
         remove-marker-keys (set/difference marker-keys latest-marker-keys)
@@ -413,7 +413,7 @@
              colorchooser
              boundaryline-agg
              threshold-colors
-             geotag-aggs]} :controls :as cursor} :map-state
+             geotag-aggs] :as controls} :controls :as cursor} :map-state
      filter-spec :filter-spec
      filter :filter
      :as cursor-data}
@@ -427,7 +427,7 @@
     om/IDidMount
     (did-mount [this]
       (let [node (om/get-node owner)
-            {:keys [leaflet-map markers path] :as map} (create-map node initial-bounds map-options)
+            {:keys [leaflet-map markers path] :as map} (create-map node controls)
             {:keys [comm fetch-boundarylines-fn point-in-boundarylines-fn link-fn path-fn
                     path-marker-click-fn]} (om/get-shared owner)
             last-dims (atom nil)
