@@ -25,20 +25,23 @@
 (defn- register-event-handler
   "register's an event handler function, returns a key"
   [f]
-  (let [k (str (next-event-handler-key))]
-    (swap! event-handlers assoc k f)
-    k))
+  (when (fn? f)
+    (let [k (str (next-event-handler-key))]
+      (swap! event-handlers assoc k f)
+      k)))
 
 (defn- remove-event-handler
   "remove's an event handler with key k"
   [k]
-  (swap! event-handlers dissoc k)
+  (when k
+    (swap! event-handlers dissoc k))
   nil)
 
 (defn- find-event-handler
   "find's an event handler with key k"
   [k]
-  (get @event-handlers k))
+  (when k
+    (get @event-handlers k)))
 
 (defn bounds-array
   "convert a Leaflet LatLngBounds object into nested-array form"
@@ -97,40 +100,65 @@
       (.fitBounds m super-bounds))))
 
 (defn marker-popup-content
-  [path-fn location-sites]
+  [path-fn location-sites location-site-click-handler-keys]
   (hiccups/html
    [:ul.map-marker-popup-location-list
     (for [site location-sites]
-      [:li (when path-fn
-             (path-fn site))])]))
+      (let [click-handler-key (get location-site-click-handler-keys site)
+            content (when path-fn (path-fn site))]
+        [:li
+         (if click-handler-key
+           [:div {:data-onclick-id click-handler-key} content]
+           content)]))]))
 
 (defn create-marker
-  [path-fn leaflet-map location-sites]
+  [path-fn leaflet-map location-sites {:keys [marker-click-fn]}]
   ;; extract the location-sites from the first record... they are all the same
   (if-let [latlong (some-> location-sites first :location reverse clj->js)]
     (let [icon (js/L.divIcon (clj->js {:className "map-marker" :iconSize [24,28] :iconAnchor [12 14] :popupAnchor [0, -8] })) ;;
           leaflet-marker (js/L.marker latlong (clj->js {:icon icon}) ) ;;
-          popup-content (marker-popup-content path-fn location-sites)]
+          popup (js/L.popup (clj->js {:autoPan false}))
+          location-site-click-handler-keys (when marker-click-fn
+                                             (->> location-sites
+                                                  (map (fn [ls] [ls (register-event-handler (partial marker-click-fn ls))]))
+                                                  (into {})))]
       ;; (.log js/console popup-content)
-      (.bindPopup leaflet-marker popup-content)
+      (.setContent popup (marker-popup-content path-fn location-sites location-site-click-handler-keys))
+      (.bindPopup leaflet-marker popup)
       (.addTo leaflet-marker leaflet-map)
       {:leaflet-marker leaflet-marker
-       :click-handler-key nil})
+       :click-handler-keys (vals location-site-click-handler-keys)})
     (.log js/console (str "missing location: " (with-out-str (pr location-sites))))))
 
+(defn remove-marker-event-handlers
+  [{:keys [click-handler-key click-handler-keys] :as marker}]
+    (remove-event-handler click-handler-key)
+    (doseq [chk click-handler-keys]
+      (remove-event-handler chk)))
+
 (defn update-marker
-  [path-fn leaflet-map {:keys [leaflet-marker] :as marker} location]
-  (.setPopupContent leaflet-marker (marker-popup-content path-fn location))
-  marker)
+  [path-fn leaflet-map {:keys [leaflet-marker click-handler-key click-handler-keys] :as marker} location {:keys [marker-click-fn]}]
+  (let [popup (js/L.popup (clj->js {:autoPan false}))
+        location-site-click-handler-keys (when marker-click-fn
+                                           (->> location
+                                                (map (fn [ls] [ls (register-event-handler (partial marker-click-fn ls))]))
+                                                (into {})))]
+    (remove-marker-event-handlers marker)
+
+    (.setContent popup (marker-popup-content path-fn location location-site-click-handler-keys))
+    (.bindPopup leaflet-marker popup)
+    (-> marker
+        (dissoc :click-handler-key)
+        (assoc :click-handler-keys (vals location-site-click-handler-keys)))))
 
 (defn remove-marker
-  [leaflet-map {:keys [leaflet-marker click-handler-key]}]
-  (remove-event-handler click-handler-key)
+  [leaflet-map {:keys [leaflet-marker click-handler-key click-handler-keys] :as marker}]
+  (remove-marker-event-handlers marker)
   (.removeLayer leaflet-map leaflet-marker)
   nil)
 
 (defn update-markers
-  [path-fn leaflet-map markers-atom show-points new-locations]
+  [path-fn leaflet-map markers-atom show-points new-locations {:keys [marker-click-fn] :as opts}]
   (let [markers @markers-atom
         marker-keys (-> markers keys set)
         location-keys (when show-points (-> new-locations keys set))
@@ -142,11 +170,11 @@
         remove-marker-keys (set/difference marker-keys location-keys)
 
         new-markers (->> new-marker-keys
-                         (map (fn [k] [k (create-marker path-fn leaflet-map (get-in new-locations [k :records]))]))
+                         (map (fn [k] [k (create-marker path-fn leaflet-map (get-in new-locations [k :records]) opts)]))
                          (into {}))
 
         updated-markers (->> update-marker-keys
-                             (map (fn [k] [k (update-marker path-fn leaflet-map (get markers k) (get-in new-locations [k :records]))]))
+                             (map (fn [k] [k (update-marker path-fn leaflet-map (get markers k) (get-in new-locations [k :records]) opts)]))
                              (into {}))
 
         _ (doseq [k remove-marker-keys] (remove-marker leaflet-map (get markers k)))]
@@ -444,6 +472,7 @@
      {:keys [initial-bounds
              map-options
              link-render-fn
+             link-click-fn
              bounds zoom show-points
              boundaryline-collection
              colorchooser
@@ -568,6 +597,7 @@
                      next-bounds :bounds
                      next-show-points :show-points
                      next-link-render-fn :link-render-fn
+                     next-link-click-fn :link-click-fn
                      next-boundaryline-collection :boundaryline-collection
                      next-colorchooser :colorchooser
                      next-boundaryline-agg :boundaryline-agg
@@ -683,7 +713,7 @@
         (when (or (not= next-show-points show-points)
                   (not= next-point-data point-data))
 
-          (update-markers link-render-fn leaflet-map next-markers next-show-points (:records next-point-data)))
+          (update-markers link-render-fn leaflet-map next-markers next-show-points (:records next-point-data) {:marker-click-fn link-click-fn}))
 
         (when (or (not= (:geotag-data next-geotag-aggs) (:geotag-data geotag-aggs))
                   (not= (:geotag-agg-data next-geotag-aggs) (:geotag-agg-data geotag-aggs)))
