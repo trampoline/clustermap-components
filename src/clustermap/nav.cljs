@@ -27,7 +27,7 @@
                        (dom/has-class? mr "open")
                        (do
                          (dom/remove-class! mr "open")
-                         (-> mr dom/nodes first $ (jayq/anim {"right" "-270px"} 400)))
+                         (-> mr dom/nodes first $ (jayq/anim {"right" "-300px"} 400)))
 
                        true
                        (do
