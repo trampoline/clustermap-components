@@ -69,7 +69,7 @@
    :plus? - include a leading + for positive numbers
    :default - default result when (nil? n)"
   [n & {:keys [dec plus? default]}]
-  (if n
+  (if (and (number? n) (not (js/isNaN n)))
     (let [abs-n (js/Math.abs n)
           round-n (round-decimal abs-n dec)
           round-n-str (str round-n)

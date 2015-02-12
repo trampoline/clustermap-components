@@ -20,7 +20,7 @@
    :plus? - use a plus prefix for +ve amounts
    :default - default result when (nil? n)"
   [n & {:keys [sf curr plus? default] :or {curr "£"}}]
-  (if n
+  (if (and (number? n) (not (js/isNaN n)))
     (let [[sig exp] (nform/eng-notation n :sf sf)
           abs-sig (js/Math.abs sig)
           suffix (money-suffix exp)]
