@@ -209,9 +209,15 @@
 
 (defn update-geotag-marker
   [leaflet-map {:keys [icon-render-fn popup-render-fn click-fn] :as geotag-aggs} {:keys [leaflet-marker click-handler-key] :as marker} geotag geotag-agg]
-  (let [popup (js/L.popup (clj->js {:autoPan false}))
+  (let [icon (js/L.divIcon (clj->js {:className "map-marker-3"
+                                     :iconSize [24,28]
+                                     :iconAnchor [12 14]
+                                     :popupAnchor [0, -8]
+                                     :html (hiccups/html (icon-render-fn geotag geotag-agg ))}))
+        popup (js/L.popup (clj->js {:autoPan false}))
         new-click-handler-key (when click-fn (register-event-handler (partial click-fn geotag geotag-agg)))]
     (when click-handler-key (remove-event-handler click-handler-key))
+    (.setIcon leaflet-marker icon)
     (.setContent popup (render-popup-content new-click-handler-key (popup-render-fn geotag geotag-agg)))
     (.bindPopup leaflet-marker popup)
     (assoc marker :click-handler-key new-click-handler-key))
