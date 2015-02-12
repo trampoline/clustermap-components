@@ -25,7 +25,7 @@
                                                                        :filter {:bool {:must [{:term {"type" tag-type}}
                                                                                               {:term {"tag" val}}]}}}}))))
                                  }
-                        [:option {:value ""} "all"]
+                        [:option {:value ""} "Any"]
                         (for [[tag descr] tag-filter-spec]
                           [:option {:value tag} descr])]]]]])))
 
