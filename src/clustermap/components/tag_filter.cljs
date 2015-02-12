@@ -9,7 +9,9 @@
   (let [tag-type (:type tag-filter-spec)
         filter-component-id (str "tag-filter-" (name tag-type))
         label (:label tag-filter-spec)
-        tag-filter-spec (dissoc tag-filter-spec :type :label)]
+        sorted (:sorted tag-filter-spec)
+        tag-filter-spec (dissoc tag-filter-spec :type :label :sorted)
+        tag-filter-spec (if sorted (->> tag-filter-spec (sort-by last)) tag-filter-spec)]
     (html
      [:div.tag-filter-component
       [:div.tbl
