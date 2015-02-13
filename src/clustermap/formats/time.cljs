@@ -28,6 +28,11 @@
   []
   (tc/now))
 
+(defn today-str
+  []
+  (-> (now)
+      format-date))
+
 (defn year-quarter-ago
   "returns [start end] for a quarter at least n months before t"
   [t n]
