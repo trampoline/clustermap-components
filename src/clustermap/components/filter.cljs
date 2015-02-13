@@ -4,17 +4,17 @@
             [clustermap.filters :as filters]))
 
 (defn render-filter-row
-  [{:keys [components] :as filter-spec} {:keys [label options] :as component-spec}]
-  (let [options-by-key (->> options (map (fn [o] [(:key o) o])) (into {}))]
+  [{:keys [components] :as filter-spec} {:keys [id label options] :as component-spec}]
+  (let [options-by-id (->> options (map (fn [o] [(:id o) o])) (into {}))]
     [:div.tbl-row
      [:div.tbl-cell label]
      [:div.tbl-cell [:select {:onChange (fn [e]
                                           (let [val (-> e .-target .-value)]
-                                            (.log js/console (clj->js ["SELECT-FILTER" label ]) val)
-                                            (om/update! filter-spec [:components key]
-                                                        (->> val (get options-by-key) :filter))))}
-                     (for [{:keys [key label] :as option} options]
-                       [:option {:value key} label])]]]))
+                                            (.log js/console (clj->js ["SELECT-FILTER" label id val]))
+                                            (om/update! filter-spec [:components id]
+                                                        (->> val (get options-by-id) :filter))))}
+                     (for [{:keys [id label] :as option} options]
+                       [:option {:value id} label])]]]))
 
 (defn render
   [{:keys [components component-specs] :as filter-spec}]
