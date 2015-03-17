@@ -64,7 +64,7 @@
   [color-scheme-spec scale key variable data]
   (let [color-scheme (get-in colorbrewer/schemes color-scheme-spec )
         col-count (count color-scheme)
-        values (picker/pick-variable variable data)
+        values (->> (picker/pick-variable variable data) (filter identity))
         min-value (apply min values)
         max-value (apply max values)
         thresholds (condp = scale
