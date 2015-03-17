@@ -14,5 +14,6 @@
        (for [[threshold color] threshold-colors]
          [:div.tbl-cell {:style {:background-color color
                                  :color (color/stand-out-color color)}}
-          (money/readable threshold :sf 2 :curr "" :default "")])
+          (when threshold
+            (money/readable threshold :sf 2 :curr "" :default ""))])
 ]]])))
