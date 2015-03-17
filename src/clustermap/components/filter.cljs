@@ -6,7 +6,7 @@
 (defn render-filter-row
   [{:keys [components] :as filter-spec} {:keys [id label options] :as component-spec}]
   (let [options-by-id (->> options (map (fn [o] [(:id o) o])) (into {}))]
-    [:div.tbl-row
+    [:div.tbl-row {:class (:id filter-spec)}
      [:div.tbl-cell label]
      [:div.tbl-cell [:select {:onChange (fn [e]
                                           (let [val (-> e .-target .-value)]
