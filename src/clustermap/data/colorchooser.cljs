@@ -62,7 +62,7 @@
 (defn choose
   "return a map of {key-value => colours}"
   [color-scheme-spec scale key variable data]
-  (let [color-scheme (get-in colorbrewer/schemes color-scheme-spec )
+  (let [color-scheme (get-in colorbrewer/schemes (map keyword color-scheme-spec))
         col-count (count color-scheme)
         values (->> (picker/pick-variable variable data) (filter identity))
         min-value (apply min values)
