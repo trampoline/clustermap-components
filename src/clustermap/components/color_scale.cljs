@@ -6,14 +6,25 @@
 
 (defn color-scale-component
   [threshold-colors owner]
-  (om/component
-   (html
-    [:div.color-scale
-     [:div.tbl
-      [:div.tbl-row
-       (for [[threshold color] threshold-colors]
-         [:div.tbl-cell {:style {:background-color color
-                                 :color (color/stand-out-color color)}}
-          (when threshold
-            (money/readable threshold :sf 2 :curr "" :default ""))])
-]]])))
+  (let [font-size (condp <= (count threshold-colors)
+                    12 "40%"
+                    11 "50%"
+                    10 "60%"
+                    9 "70%"
+                    8 "80%"
+                    7 "90%"
+                    "100%")]
+    (om/component
+     (html
+      [:div.color-scale
+       [:div.tbl
+        [:div.tbl-row
+         (for [[threshold color] threshold-colors]
+           [:div.tbl-cell {:style {:background-color color
+                                   :color (color/stand-out-color color)
+                                   :font-size font-size
+                                   :padding-left "1px"
+                                   :padding-right "1px"}}
+            (when threshold
+              (money/readable threshold :sf 2 :curr "" :default ""))])
+         ]]]))))
