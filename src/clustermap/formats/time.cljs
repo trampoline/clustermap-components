@@ -50,3 +50,9 @@
   (-> (now)
       (tc/minus (tc/years (quot n 12)))
       (tc/minus (tc/months (mod n 12)))))
+
+(defn end-of-year-at-least-n-months-prev
+  [n]
+  (let [t (months-ago n)
+        y (tc/year t)]
+    (tc/date-time y 1 1)))
