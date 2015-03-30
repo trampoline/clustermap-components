@@ -499,7 +499,7 @@
     (did-mount [this]
       (let [node (om/get-node owner)
             {:keys [leaflet-map markers path] :as map} (create-map node controls)
-            {:keys [comm fetch-boundarylines-fn point-in-boundarylines-fn link-fn path-fn
+            {:keys [comm fetch-boundarylines-fn point-in-boundarylines-fn
                     path-marker-click-fn]} (om/get-shared owner)
             last-dims (atom nil)
             w (.-offsetWidth node)
@@ -625,7 +625,7 @@
                     next-geotag-agg-data-resource :geotag-agg-data-resource
                     }]
 
-      (let [{:keys [comm path-fn link-fn fetch-boundarylines-fn point-in-boundarylines-fn]} (om/get-shared owner)
+      (let [{:keys [comm fetch-boundarylines-fn point-in-boundarylines-fn]} (om/get-shared owner)
             {{:keys [leaflet-map markers paths path-selections]} :map
              pan-pending :pan-pending
              path-highlights :path-highlights} (om/get-state owner)]

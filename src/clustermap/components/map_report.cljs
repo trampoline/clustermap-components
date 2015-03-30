@@ -7,18 +7,11 @@
             [clustermap.formats.money :as mf :refer [fmoney]]
             [clustermap.formats.string :as sf :refer [pluralize]]))
 
-(defn full-report-button
-  [comm view-path-fn]
-  (html [:a.btn.btn-link {:href (view-path-fn :lists)}
-         [:i.icon-lists-sm]
-         "Full report"]))
-
 (defn summary-stats-report
   [{{{variables :variables
        :as summary-stats} :summary-stats
       :as controls} :controls}
    comm
-   view-path-fn
    {data :data}]
   (.log js/console (clj->js ["SUMMARY-STATS-VARIABLES" variables]))
   (.log js/console (clj->js ["SUMMARY-STATS-DATA" data]))
@@ -57,8 +50,8 @@
 
     om/IRenderState
     (render-state [_ state]
-      (let [{:keys [comm path-fn view-path-fn]} (om/get-shared owner)]
-        (summary-stats-report map-report comm view-path-fn summary-stats-data))
+      (let [{:keys [comm]} (om/get-shared owner)]
+        (summary-stats-report map-report comm summary-stats-data))
       )
 
     om/IWillUpdate

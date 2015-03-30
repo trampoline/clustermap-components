@@ -9,7 +9,6 @@
    [om.core :as om :include-macros true]
    [om.dom :as dom :include-macros true]
    [clustermap.api :as api]
-   [clustermap.routes :as routes]
    [clustermap.nav :as nav]
    [clustermap.ganalytics :as ga]
    [clustermap.components.mount :as mount]
