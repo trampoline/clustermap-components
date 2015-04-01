@@ -12,8 +12,7 @@
    {:keys [type] :as component-spec}]
 
   (condp = type
-    (.log js/console (clj->js ["FILTER-CONTROL" {:component-spec component-spec
-                                                 :components components} ]))
+
     :select (om/build select-filter/select-filter-component {:component-spec component-spec
                                                              :components components}))
   )
