@@ -32,22 +32,18 @@
                           [:option {:value tag} descr])]]]]])))
 
 (def TagFilterComponentSchema
-  {:filter-spec {:components {:tag-filter s/Any
-                              s/Keyword s/Any}
+  {:filter-spec {:components {s/Keyword s/Any}
                  s/Keyword s/Any}
    :tag-filter-spec {:type s/Str
                      :label s/Str
+                     (s/optional-key :sorted) s/Bool
                      s/Str s/Str}})
 
 (defcomponentk tag-filter-component
   [[:data filter-spec tag-filter-spec] :- TagFilterComponentSchema
    owner]
 
-  (render [_]
-          (render* filter-spec tag-filter-spec)
-
-                )
+  (render [_] (render* filter-spec tag-filter-spec))
 
   (will-update [_ {:as next-props} {:as next-state}])
-
   )
