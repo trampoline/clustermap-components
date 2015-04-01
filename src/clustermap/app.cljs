@@ -8,6 +8,7 @@
    [secretary.core :as secretary :include-macros true :refer [defroute]]
    [om.core :as om :include-macros true]
    [om.dom :as dom :include-macros true]
+   [schema.core :as s :refer-macros [with-fn-validation]]
    [clustermap.api :as api]
    [clustermap.nav :as nav]
    [clustermap.ganalytics :as ga]
@@ -26,7 +27,9 @@
   ;; destroy any resources created in init
   (destroy [this app])
   ;; handle an even from the app channel
-  (handle-event [this app type val]))
+  (handle-event [this app type val])
+  ;; boolean if app is in dev-mode
+  (dev-mode? [this]))
 
 (defprotocol IAppControl
   (start [this])
@@ -60,13 +63,22 @@
 
           (doseq [{:keys [name f target path paths]} component-defs]
             (.log js/console (clj->js ["component" name f target paths]))
-            (mount/mount name
-                         f
-                         state
-                         :target target
-                         :shared shared
-                         :path path
-                         :paths paths))
+            (if (dev-mode? app-service)
+              (s/with-fn-validation
+                (mount/mount name
+                             f
+                             state
+                             :target target
+                             :shared shared
+                             :path path
+                             :paths paths))
+              (mount/mount name
+                           f
+                           state
+                           :target target
+                           :shared shared
+                           :path path
+                           :paths paths)))
 
           (go
             (while true
