@@ -5,7 +5,8 @@
             [schema.core :as s]
             [sablono.core :as html :refer-macros [html]]
             [clustermap.filters :as filters]
-            [clustermap.components.filters.select-filter :as select-filter]))
+            [clustermap.components.filters.select-filter :as select-filter]
+            [clustermap.components.filters.tag-filter :as tag-filter]))
 
 (defn render-filter-control
   [{:keys [components] :as filter-spec}
@@ -14,7 +15,10 @@
   (condp = type
 
     :select (om/build select-filter/select-filter-component {:component-spec component-spec
-                                                             :components components}))
+                                                             :components components})
+    :tag (om/build tag-filter/tag-filter-component {:component-spec component-spec
+                                                    :components components})
+    )
   )
 
 (defn render-filter-row
