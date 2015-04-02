@@ -5,11 +5,22 @@
             [schema.core :as s]
             [sablono.core :as html :refer-macros [html]]))
 
+(defn get-select-value
+  [components id]
+  (or (get-in components [id :nested :filter :bool :must 1 :term "tag"])
+      ""))
+
+(defn get-tag-description
+  [component-spec tag-spec]
+  (when (and tag-spec
+             (not (:omit-description tag-spec)))
+    (str (:label component-spec) ": " (:label tag-spec))))
+
 (defnk render*
   [[:component-spec id label sorted tag-type tags] components]
-  (let [current-tag (get-in components [id :nested :filter :bool :must 1 :term "tag"])]
+  (let [select-value (get-select-value components id)]
     (html
-     [:select {:value (if current-tag current-tag "")
+     [:select {:value select-value
                :style {:width "100%"}
                :onChange (fn [e]
                            (let [val (-> e .-target .-value)]
@@ -20,7 +31,6 @@
                                                      :filter {:bool {:must [{:term {"type" tag-type}}
                                                                             {:term {"tag" val}}]}}}})
                                          )))}
-      [:option {:value ""} "Any"]
       (for [{:keys [value label]} tags]
         [:option {:value value}
          label])])))
@@ -32,12 +42,33 @@
                     (s/optional-key :sorted) s/Bool
                     :tag-type s/Str
                     :tags [{:value s/Str
-                            :label s/Str}]}
-   :components {s/Keyword s/Any}})
+                            :label s/Str
+                            (s/optional-key :omit-description) (s/maybe s/Bool)}]}
+   :components {s/Keyword s/Any}
+   :component-descrs {s/Keyword s/Str}})
 
 ;; a <select> filter
 (defcomponentk tag-filter-component
   [data :- TagFilterComponentSchema
    owner]
 
-  (render [_] (render* data)))
+  (render
+   [_]
+   (render* data))
+
+  (will-update
+   [_
+    {{next-id :id
+      next-tags :tags
+      :as next-component-spec} :component-spec
+      next-components :components
+      next-component-descrs :component-descrs
+      :as next-data}
+    next-state]
+   (let [next-select-value (get-select-value next-components next-id)
+         next-tag-spec (->> next-tags (some (fn [ts] (when (= (:value ts) next-select-value) ts))))
+
+         next-descr (get next-component-descrs next-id)
+         correct-descr (get-tag-description next-component-spec next-tag-spec)]
+     (when (not= next-descr correct-descr)
+       (om/update! next-component-descrs [next-id] correct-descr)))))

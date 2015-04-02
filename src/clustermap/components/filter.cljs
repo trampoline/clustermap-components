@@ -9,15 +9,17 @@
             [clustermap.components.filters.tag-filter :as tag-filter]))
 
 (defn render-filter-control
-  [{:keys [components] :as filter-spec}
+  [{:keys [components component-descrs] :as filter-spec}
    {:keys [type] :as component-spec}]
 
   (condp = type
 
     :select (om/build select-filter/select-filter-component {:component-spec component-spec
-                                                             :components components})
+                                                             :components components
+                                                             :component-descrs component-descrs})
     :tag (om/build tag-filter/tag-filter-component {:component-spec component-spec
-                                                    :components components})
+                                                    :components components
+                                                    :component-descrs component-descrs})
     )
   )
 
@@ -47,8 +49,10 @@
                                     :label s/Str
                                     s/Keyword s/Any}]
                  :components {s/Keyword s/Any}
+                 :component-descrs {s/Keyword s/Any}
                  (s/optional-key :base-filters) s/Any
-                 (s/optional-key :composed) s/Any}})
+                 (s/optional-key :composed) s/Any
+                 }})
 
 (defcomponentk filter-component
   [[:data [:filter-spec components :as filter-spec]] :- FilterComponentSchema
