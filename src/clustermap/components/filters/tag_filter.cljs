@@ -5,18 +5,18 @@
             [schema.core :as s]
             [sablono.core :as html :refer-macros [html]]))
 
-(defn get-select-value
+(defn ^:private get-select-value
   [components id]
   (or (get-in components [id :nested :filter :bool :must 1 :term "tag"])
       ""))
 
-(defn get-tag-description
+(defn ^:private get-tag-description
   [component-spec tag-spec]
   (when (and tag-spec
              (not (:omit-description tag-spec)))
     (str (:label component-spec) ": " (:label tag-spec))))
 
-(defnk render*
+(defnk ^:private render*
   [[:component-spec id label sorted tag-type tags] components]
   (let [select-value (get-select-value components id)]
     (html

@@ -8,7 +8,7 @@
             [clustermap.components.filters.select-filter :as select-filter]
             [clustermap.components.filters.tag-filter :as tag-filter]))
 
-(defn render-filter-control
+(defn ^:private render-filter-control
   [{:keys [components component-descrs] :as filter-spec}
    {:keys [type] :as component-spec}]
 
@@ -23,7 +23,7 @@
     )
   )
 
-(defn render-filter-row
+(defn ^:private render-filter-row
   [filter-spec
    {:keys [id label] :as component-spec}]
 
@@ -32,7 +32,7 @@
    [:div.tbl-cell
     (render-filter-control filter-spec component-spec)]])
 
-(defnk render*
+(defnk ^:private render*
   [component-specs components :as filter-spec]
   (.log js/console (clj->js ["COMPONENT-SPECS" component-specs]))
   (html

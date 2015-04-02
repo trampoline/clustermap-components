@@ -5,12 +5,12 @@
             [schema.core :as s]
             [sablono.core :as html :refer-macros [html]]))
 
-(defnk get-options-by-value
+(defnk ^:private get-options-by-value
   [options]
   (->> (for [o options] [(:value o) o])
        (into {})))
 
-(defnk get-option-value
+(defnk ^:private get-option-value
   "get the selected option-value by comparing the selected filter with the
    option filters"
   [[:component-spec id label options] components]
@@ -20,14 +20,14 @@
              :value)
         "")))
 
-(defn get-option-description
+(defn ^:private get-option-description
   "describe the selected option"
   [component-spec option-spec]
   (when (and option-spec
              (not (:omit-description option-spec)))
     (str (:label component-spec) ": " (:label option-spec))))
 
-(defnk render*
+(defnk ^:private render*
   [[:component-spec id label options :as component-spec] components :as data]
 
   (let [current-option-value (get-option-value data)
