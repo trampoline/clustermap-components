@@ -5,8 +5,10 @@
    [cljs.core.async :as async :refer [<! chan close! put! sliding-buffer to-chan]]
    [clustermap.api :as api]))
 
+(def ^:private min-tolerance 0.01)
+
 (def ^:private zoom-tolerances
-  [[7 0.01]
+  [[7 min-tolerance]
    [10 0.002]
    [12 0.0003]
    [nil 0]])
@@ -41,28 +43,59 @@
 
 (defn cache-boundarylines
   "cache a seq of boundarylines in the general and collection-specific caches"
-  [app-state boundarylines-path collection-boundarylines-path boundarylines]
-  (let [boundarylines-path (make-sequential boundarylines-path)
-        collection-boundarylines-path (make-sequential collection-boundarylines-path)]
+  [app-state boundarylines-path boundarylines]
+  (let [boundarylines-path (make-sequential boundarylines-path)]
+    (swap! app-state
+           (fn [old-state]
+             (->> boundarylines
+                  (reduce (fn [s bl]
+                            (let [boundaryline-id (aget bl "id")
+                                  tolerance (aget bl "tolerance")
+                                  collection-ids (aget bl "boundaryline_collection_ids")
 
-    (doseq [bl boundarylines]
-      (let [boundaryline-id (aget bl "id")
-            tolerance (aget bl "tolerance")
-            general-cache-path (concat boundarylines-path [boundaryline-id tolerance])
-            collection-cache-path (when collection-boundarylines-path (concat collection-boundarylines-path [boundaryline-id tolerance]))]
-        ;;       (.log js/console (clj->js ["rx" app-state boundaryline-id tolerance bl]))
-        (swap! app-state update-in general-cache-path (fn [old] bl))
-        (when collection-cache-path
-          (swap! app-state update-in collection-cache-path (fn [old] bl)))))))
+                                  general-cache-path (concat boundarylines-path [:boundarylines boundaryline-id tolerance])
+
+                                  collection-cache-base-path (concat boundarylines-path [:collections])
+                                  collection-cache-paths (for [collection-id collection-ids]
+                                                           (concat collection-cache-base-path [collection-id :boundarylines boundaryline-id tolerance]))
+
+                                  all-cache-paths (conj collection-cache-paths general-cache-path)]
+
+                              (->> all-cache-paths
+                                   (reduce (fn [s2 cp]
+                                             (assoc-in s2 cp bl))
+                                           s))))
+                          old-state))))))
+
+(defn fetch-boundaryline-set
+  [app-state boundarylines-path & {:keys [boundaryline-ids bounds tolerance] :or {tolerance min-tolerance}}]
+  (let [comm (api/boundaryline-set boundaryline-ids tolerance :raw true)]
+    (go
+      (let [bls (<! comm)]
+        (cache-boundarylines app-state boundarylines-path bls))
+      true)))
+
+(defn get-or-fetch-boundaryline
+  "return a channel with a single boundaryline gotten from cache or API"
+  [app-state boundarylines-path boundaryline-id & {:keys [tolerance] :or {tolerance min-tolerance}}]
+  (let [boundarylines-path (make-sequential boundarylines-path)
+        cache-path (concat boundarylines-path [:boundarylines boundaryline-id tolerance])
+        cached-bl (get-in @app-state cache-path)]
+    (go
+      (if cached-bl
+        cached-bl
+        (do
+          (<! (fetch-boundaryline-set app-state boundarylines-path :boundaryline-ids [boundaryline-id] :tolerance tolerance))
+          (get-in @app-state cache-path))))))
 
 (defn fetch-boundarylines
   "fetch a set of boundarylines for a given tolerance in one API call, add the results to the collection-specific and
    general caches. returns a single value true on the go-block channel when complete"
-  [app-state boundarylines-path collection-boundarylines-path collection-id tolerance & {:keys [boundaryline-ids bounds]}]
+  [app-state boundarylines-path collection-id tolerance & {:keys [boundaryline-ids bounds]}]
   (let [comm (api/boundaryline-collection-view collection-id tolerance bounds :boundaryline-ids boundaryline-ids :raw true)]
     (go
       (let [bls (<! comm)]
-        (cache-boundarylines app-state boundarylines-path collection-boundarylines-path bls))
+        (cache-boundarylines app-state boundarylines-path bls))
       true)))
 
 (defn- fetch-from-index
@@ -134,7 +167,7 @@
                       (map first))
         ;;_     (.log js/console (clj->js ["required" required]))
         notify-chan (if (not-empty required)
-                      (fetch-boundarylines app-state general-cache-path collection-cache-path collection-id i-tol :boundaryline-ids required :bounds bounds)
+                      (fetch-boundarylines app-state boundarylines-path collection-id i-tol :boundaryline-ids required :bounds bounds)
                       (let [ch (chan)] ;; already complete, so return a notify-channel pre-loaded with true
                         (put! ch true)
                         (close! ch)
