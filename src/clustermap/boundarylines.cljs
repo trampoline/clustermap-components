@@ -35,13 +35,13 @@
         (some avail-set finer)
         (some avail-set coarser))))
 
-(defn make-sequential
+(defn ^:private make-sequential
   [x]
   (cond (nil? x) nil
         (sequential? x) x
         true [x]))
 
-(defn cache-boundarylines
+(defn ^:private cache-boundarylines
   "cache a seq of boundarylines in the general and collection-specific caches"
   [app-state boundarylines-path boundarylines]
   (let [boundarylines-path (make-sequential boundarylines-path)]
@@ -67,6 +67,30 @@
                                            s))))
                           old-state))))))
 
+;; should have a cache-boundarylines-index function which pulls an index apart
+;; into individual boundaryline entries
+
+(defn ^:private cache-index
+  "take a geojson boundaryline collection index and index the individual boundarylines
+
+   first put each geojson geometry into a geojson featurecollection, along
+   with properties (including the original index object, for later retrieval)"
+  [app-state boundarylines-path js-index]
+  (let [keys (js/Object.keys js-index)]
+    (swap! app-state
+           (fn [old-state]
+             (->> keys
+                  (reduce (fn [s k]
+                            (let [bl (aget js-index k)
+                                  boundaryline-id (aget bl "id")
+                                  tolerance (aget bl "tolerance")
+                                  cache-path (concat boundarylines-path [:boundarylines boundaryline-id tolerance])]
+                              (assoc-in s cache-path bl )
+                              )
+                            )
+                          old-state))))))
+
+
 (defn fetch-boundaryline-set
   [app-state boundarylines-path & {:keys [boundaryline-ids bounds tolerance] :or {tolerance min-tolerance}}]
   (let [comm (api/boundaryline-set boundaryline-ids tolerance :raw true)]
@@ -87,6 +111,12 @@
         (do
           (<! (fetch-boundaryline-set app-state boundarylines-path :boundaryline-ids [boundaryline-id] :tolerance tolerance))
           (get-in @app-state cache-path))))))
+
+(defn rp
+  [ch]
+  (go
+    (let [v (<! ch)]
+      (.log js/console (clj->js v)))))
 
 (defn fetch-boundarylines
   "fetch a set of boundarylines for a given tolerance in one API call, add the results to the collection-specific and
@@ -225,7 +255,10 @@
 
           ;; add to the rtree index if this swap! was succesful
           (if (= (get-in @app-state index-path) bl-coll-index)
-            (rtree-index rtree bl-coll-index)))))))
+            (rtree-index rtree bl-coll-index))
+
+          ;; cache the individual boundarylines
+          (cache-index app-state boundarylines-path bl-coll-index))))))
 
 
 (defn point-in-boundarylines
