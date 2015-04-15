@@ -9,6 +9,17 @@
   {:components [s/Keyword]
    :filter-spec {s/Keyword s/Any}})
 
+(defn render-filter-component
+  [filter-spec component-id]
+  (when-let [component-descr (get-in filter-spec [:component-descrs component-id])]
+    [:span [:a {:href "#"
+                :onClick (fn [e]
+                           (.preventDefault e)
+                           (om/update! filter-spec [:components component-id] nil)
+                           (om/update! filter-spec [:component-descrs component-id] nil))}
+            "\u00D7"]
+     component-descr]))
+
 (defcomponentk filter-description-component
   [[:data
     components
@@ -18,7 +29,7 @@
   (render
    [_]
    (html
-    [:span (some->> components
-                    (map #(get-in filter-spec [:component-descrs %]))
-                    (filter identity)
-                    (str/join ", "))])))
+    [:span
+     (some->> components
+              (map #(render-filter-component filter-spec %))
+              (filter identity))])))
