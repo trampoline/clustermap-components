@@ -31,7 +31,7 @@
                                      {:nested {:path "?tags"
                                                :filter {:bool {:must [{:term {"type" tag-type}}
                                                                       {:term {"tag" val}}]}}}})
-                                 tag-spec (->> tags (some (fn [ts] (when (= (:value ts) val)) ts)))
+                                 tag-spec (->> tags (some (fn [ts] (when (= (:value ts) val) ts))))
                                  d (get-tag-description component-spec tag-spec)]
                              (.log js/console (clj->js ["TAG-FILTER" label val id f d]))
                              (om/update! filter-spec
