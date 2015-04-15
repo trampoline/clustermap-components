@@ -2,7 +2,8 @@
   (:require [om.core :as om :include-macros true]
             [om-tools.core :refer-macros [defcomponentk]]
             [schema.core :as s]
-            [sablono.core :as html :refer-macros [html]]))
+            [sablono.core :as html :refer-macros [html]]
+            [clustermap.filters :as filters]))
 
 
 (def FilterComponentDescriptionSchema
@@ -24,8 +25,7 @@
                   :onClick (fn [e]
                              (.preventDefault e)
                              (.log js/console "clear selection")
-                             (om/update! filter-spec [:components component-key] nil)
-                             (om/update! filter-spec [:component-descrs component-key] nil))}
+                             (om/update! filter-spec (filters/update-filter-component filter-spec component-key nil nil)))}
               "\u00D7"]
        "\u00a0"
        (get-in filter-spec [:component-descrs component-key])]
