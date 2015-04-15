@@ -3,7 +3,8 @@
             [om.core :as om :include-macros true]
             [om-tools.core :refer-macros [defcomponentk]]
             [schema.core :as s]
-            [sablono.core :as html :refer-macros [html]]))
+            [sablono.core :as html :refer-macros [html]]
+            [clustermap.filters :as filters]))
 
 (def FilterDescriptionSchema
   {:components [s/Keyword]
@@ -15,8 +16,7 @@
     [:span [:a {:href "#"
                 :onClick (fn [e]
                            (.preventDefault e)
-                           (om/update! filter-spec [:components component-id] nil)
-                           (om/update! filter-spec [:component-descrs component-id] nil))}
+                           (om/update! filter-spec (filters/update-filter-component filter-spec component-id nil nil)))}
             "\u00D7"]
      component-descr]))
 

@@ -8,20 +8,30 @@
             [clustermap.components.filters.select-filter :as select-filter]
             [clustermap.components.filters.tag-filter :as tag-filter]))
 
+(defn ^:private parse-filter-url
+  "delegate to filter-component type parsers for each fragment param
+   which matches a component id"
+  [{:keys [component-specs components component-descrs] :as filter-spec}]
+
+  )
+
+(defn ^:private encode-filter-url
+  "delegate to filter-component type encoders for each present
+   filter component"
+  [{:keys [component-specs components component-descrs] :as filter-spec}]
+
+  )
+
 (defn ^:private render-filter-control
-  [{:keys [components component-descrs] :as filter-spec}
+  [filter-spec
    {:keys [type] :as component-spec}]
 
   (condp = type
 
     :select (om/build select-filter/select-filter-component {:component-spec component-spec
-                                                             :components components
-                                                             :component-descrs component-descrs})
+                                                             :filter-spec filter-spec})
     :tag (om/build tag-filter/tag-filter-component {:component-spec component-spec
-                                                    :components components
-                                                    :component-descrs component-descrs})
-    )
-  )
+                                                    :filter-spec filter-spec})))
 
 (defn ^:private render-filter-row
   [filter-spec
@@ -40,32 +50,13 @@
 
     [:div.tbl
      (for [component-spec component-specs]
-       (render-filter-row filter-spec component-spec))
-     ]]))
+       (render-filter-row filter-spec component-spec))]]))
 
 (def FilterComponentSchema
-  {:filter-spec {:component-specs [{:id s/Keyword
-                                    :type s/Keyword
-                                    :label s/Str
-                                    s/Keyword s/Any}]
-                 :components {s/Keyword s/Any}
-                 :component-descrs {s/Keyword s/Any}
-                 (s/optional-key :base-filters) s/Any
-                 (s/optional-key :composed) s/Any
-                 }})
+  {:filter-spec filters/FilterSchema})
 
 (defcomponentk filter-component
   [[:data [:filter-spec components :as filter-spec]] :- FilterComponentSchema
    owner]
 
-  (render [_] (render* filter-spec))
-
-  (will-update [_
-                {{next-component-specs :component-specs
-                  next-components :components
-                  next-base-filters :base-filters} :filter-spec}
-                next-state]
-               (when (or (not= next-components components))
-
-                 (om/update! filter-spec [:composed] (filters/compose-filters next-components next-base-filters)))
-               ))
+  (render [_] (render* filter-spec)))

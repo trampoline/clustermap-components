@@ -3,7 +3,8 @@
             [om-tools.core :refer-macros [defcomponentk]]
             [plumbing.core :refer-macros [defnk]]
             [schema.core :as s]
-            [sablono.core :as html :refer-macros [html]]))
+            [sablono.core :as html :refer-macros [html]]
+            [clustermap.filters :as filters]))
 
 (defn ^:private get-select-value
   [components id]
@@ -17,20 +18,24 @@
     (str (:label component-spec) ": " (:label tag-spec))))
 
 (defnk ^:private render*
-  [[:component-spec id label sorted tag-type tags] components]
+  [[:component-spec id label sorted tag-type tags :as component-spec]
+   [:filter-spec components :as filter-spec]]
   (let [select-value (get-select-value components id)]
     (html
      [:select {:value select-value
                :style {:width "100%"}
                :onChange (fn [e]
-                           (let [val (-> e .-target .-value)]
-                             (.log js/console (clj->js ["TAG-FILTER" label id val]))
-                             (om/update! components [id]
-                                         (when (not-empty val)
-                                           {:nested {:path "?tags"
-                                                     :filter {:bool {:must [{:term {"type" tag-type}}
-                                                                            {:term {"tag" val}}]}}}})
-                                         )))}
+                           (let [val (-> e .-target .-value)
+
+                                 f (when (not-empty val)
+                                     {:nested {:path "?tags"
+                                               :filter {:bool {:must [{:term {"type" tag-type}}
+                                                                      {:term {"tag" val}}]}}}})
+                                 tag-spec (->> tags (some (fn [ts] (when (= (:value ts) val)) ts)))
+                                 d (get-tag-description component-spec tag-spec)]
+                             (.log js/console (clj->js ["TAG-FILTER" label val id f d]))
+                             (om/update! filter-spec
+                                         (filters/update-filter-component filter-spec id f d))))}
       (for [{:keys [value label]} tags]
         [:option {:value value}
          label])])))
@@ -44,8 +49,7 @@
                     :tags [{:value s/Str
                             :label s/Str
                             (s/optional-key :omit-description) (s/maybe s/Bool)}]}
-   :components {s/Keyword s/Any}
-   :component-descrs {s/Keyword s/Str}})
+   :filter-spec filters/FilterSchema})
 
 ;; a <select> filter
 (defcomponentk tag-filter-component
@@ -54,21 +58,4 @@
 
   (render
    [_]
-   (render* data))
-
-  (will-update
-   [_
-    {{next-id :id
-      next-tags :tags
-      :as next-component-spec} :component-spec
-      next-components :components
-      next-component-descrs :component-descrs
-      :as next-data}
-    next-state]
-   (let [next-select-value (get-select-value next-components next-id)
-         next-tag-spec (->> next-tags (some (fn [ts] (when (= (:value ts) next-select-value) ts))))
-
-         next-descr (get next-component-descrs next-id)
-         correct-descr (get-tag-description next-component-spec next-tag-spec)]
-     (when (not= next-descr correct-descr)
-       (om/update! next-component-descrs [next-id] correct-descr)))))
+   (render* data)))

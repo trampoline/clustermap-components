@@ -2,10 +2,13 @@
   (:require [schema.core :as s :include-macros true]))
 
 (def FilterSchema
-  {:components {s/Keyword s/Any}
-   :component-descrs {s/Keyword (s/maybe s/Str)}
+  {:component-specs [{:id s/Keyword
+                      :type s/Keyword
+                      :label s/Str
+                      s/Keyword s/Any}]
+   :components {s/Keyword s/Any}
+   :component-descrs {s/Keyword s/Any}
    :base-filters {s/Keyword s/Any}
-   :component-specs [s/Any]
    :composed s/Any})
 
 (defn compose-base-filter
