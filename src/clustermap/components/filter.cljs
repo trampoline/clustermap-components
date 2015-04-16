@@ -6,7 +6,8 @@
             [sablono.core :as html :refer-macros [html]]
             [clustermap.filters :as filters]
             [clustermap.components.filters.select-filter :as select-filter]
-            [clustermap.components.filters.tag-filter :as tag-filter]))
+            [clustermap.components.filters.tag-filter :as tag-filter]
+            [clustermap.components.filters.checkboxes-filter :as checkboxes-filter]))
 
 (defn ^:private parse-filter-url
   "delegate to filter-component type parsers for each fragment param
@@ -31,7 +32,9 @@
     :select (om/build select-filter/select-filter-component {:component-spec component-spec
                                                              :filter-spec filter-spec})
     :tag (om/build tag-filter/tag-filter-component {:component-spec component-spec
-                                                    :filter-spec filter-spec})))
+                                                    :filter-spec filter-spec})
+    :checkboxes (om/build checkboxes-filter/checkboxes-filter-component {:component-spec component-spec
+                                                                         :filter-spec filter-spec})))
 
 (defn ^:private render-filter-row
   [filter-spec

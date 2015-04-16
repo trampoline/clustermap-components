@@ -11,21 +11,39 @@
    :base-filters {s/Keyword s/Any}
    :composed s/Any})
 
+(defn make-sequential
+  [s]
+  (cond (sequential? s) (vec s)
+        (nil? s) []
+        :else [s]))
+
+(defn or-filters
+  [filters]
+  (let [filters (make-sequential filters)]
+    {:bool {:should filters}}))
+
+(defn de-or-filters
+  [combf]
+  (get-in combf [:bool :should]))
+
+(defn and-filters
+  "and a sequence of filters"
+  [filters]
+  (let [filters (make-sequential filters)]
+    {:bool {:must filters}}))
+
+(defn de-and-filters
+  "extract a sequence of filters which have been ANDed"
+  [combf]
+  (get-in combf [:bool :must]))
+
 (defn compose-base-filter
   "AND all components and a base-filter"
   [components base-filter]
   (let [filters (some-> components vals (conj base-filter))
         filters (->> filters (filter identity) vec)]
-    (cond
 
-     (> (count filters) 1)
-     {:bool {:must (vec filters)}}
-
-     (= (count filters) 1)
-     (first filters)
-
-     :else
-     {:exists {:field "_uid"}})))
+    (and-filters filters)))
 
 (defn compose-filters
   "take the filter components, and combine with each base-filter to produce
