@@ -11,6 +11,12 @@
             [sablono.core :as html :refer-macros [html]]
             [clustermap.filters :as filters]))
 
+(defn make-sequential
+  [s]
+  (cond (nil? s) nil
+        (sequential? s) s
+        :else [s]))
+
 (defn ^:private get-options-by-value
   "return a map of options keyed by value"
   [options]
@@ -50,13 +56,12 @@
     (.log js/console (clj->js ["CHECBOXES-FILTER" id val f]))
     (om/update! filter-spec (filters/update-filter-component filter-spec id f d u))))
 
-(defn ^:private set-filters-for-url-components
+(defn ^:private set-filters-for-url-component
   "given a map of url components set the filters"
   [filter-spec
    {:keys [id] :as component-spec}
-   url-components]
-  (let [values-str (get url-components id)
-        values (when values-str (js->clj (js/JSON.parse values-str)))]
+   values-str]
+  (let [values (some-> values-str js/JSON.parse js->clj make-sequential)]
     (set-filters-for-values filter-spec component-spec values)))
 
 (defnk ^:private render*
@@ -100,16 +105,17 @@
 
 ;; a <select> filter
 (defcomponentk checkboxes-filter-component
-  [[:data [:component-spec id] :as data] :- CheckboxesFilterComponentSchema
+  [[:data filter-spec [:component-spec id :as component-spec] :as data] :- CheckboxesFilterComponentSchema
    [:opts component-filter-rq-chan] :- {:component-filter-rq-chan ManyToManyChannel}
    owner]
 
   (did-mount
    [_]
    (go
-     (while (when-let [rq (<! component-filter-rq-chan)]
+     (while (when-let [[component-id rq] (<! component-filter-rq-chan)]
 
               (.log js/console (clj->js ["CHECKBOXES-FILTER-RQ" id rq]))
+              (set-filters-for-url-component filter-spec component-spec rq)
 
               true))))
 

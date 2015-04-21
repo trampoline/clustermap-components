@@ -122,10 +122,10 @@
                 (let [component-filter-rq-chans (om/get-state owner :component-filter-rq-chans)
                       component-ids (keys filter-rq)]
 
-                  (doseq [id component-ids]
-                    (.log js/console (clj->js ["FILTER" filter-id id (get filter-rq id)]))
-                    (when-let [component-filter-rq-chan (get component-filter-rq-chans id)]
-                      (put! component-filter-rq-chan (get filter-rq id)))))
+                  (doseq [component-id component-ids]
+                    (.log js/console (clj->js ["FILTER" filter-id component-id (get filter-rq component-id)]))
+                    (when-let [component-filter-rq-chan (get component-filter-rq-chans component-id)]
+                      (put! component-filter-rq-chan [component-id (get filter-rq component-id)]))))
                 true)))))
 
   (will-unmount

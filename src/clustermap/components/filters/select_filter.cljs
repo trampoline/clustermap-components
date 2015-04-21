@@ -50,14 +50,6 @@
     (.log js/console (clj->js ["SELECT-FILTER" id value  f d]))
     (om/update! filter-spec (filters/update-filter-component filter-spec id f d value))))
 
-(defn ^:private set-filters-for-url-components
-  "given a map of url components, set the filters"
-  [filter-spec
-   {:keys [id] :as component-spec}
-   url-components]
-  (let [value (get url-components id)]
-    (set-filters-for-value filter-spec component-spec value)))
-
 (defnk ^:private render*
   [[:filter-spec components :as filter-spec]
    [:component-spec id label options :as component-spec]
@@ -90,17 +82,17 @@
 
 ;; a <select> filter
 (defcomponentk select-filter-component
-  [[:data [:component-spec id] :as data] :- SelectFilterComponentSchema
+  [[:data filter-spec [:component-spec id :as component-spec] :as data] :- SelectFilterComponentSchema
    [:opts component-filter-rq-chan] :- {:component-filter-rq-chan ManyToManyChannel}
    owner]
 
   (did-mount
    [_]
    (go
-     (while (when-let [rq (<! component-filter-rq-chan)]
+     (while (when-let [[component-id rq] (<! component-filter-rq-chan)]
 
               (.log js/console (clj->js ["SELECT-FILTER-RQ" id rq]))
-
+              (set-filters-for-value filter-spec component-spec rq)
               true))))
   (render
    [_]

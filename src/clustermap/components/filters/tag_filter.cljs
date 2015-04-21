@@ -75,17 +75,17 @@
 
 ;; a <select> filter
 (defcomponentk tag-filter-component
-  [[:data [:component-spec id] :as data] :- TagFilterComponentSchema
+  [[:data filter-spec [:component-spec id :as component-spec] :as data] :- TagFilterComponentSchema
    [:opts component-filter-rq-chan] :- {:component-filter-rq-chan ManyToManyChannel}
    owner]
 
   (did-mount
    [_]
    (go
-     (while (when-let [rq (<! component-filter-rq-chan)]
+     (while (when-let [[component-id rq] (<! component-filter-rq-chan)]
 
               (.log js/console (clj->js ["TAG-FILTER-RQ" id rq]))
-
+              (set-filters-for-value filter-spec component-spec rq)
               true))))
   (render
    [_]
