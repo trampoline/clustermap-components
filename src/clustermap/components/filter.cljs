@@ -1,9 +1,13 @@
 (ns clustermap.components.filter
-  (:require [om.core :as om :include-macros true]
+  (:require-macros
+   [cljs.core.async.macros :refer [go]])
+  (:require [clojure.set :refer [difference intersection union]]
+            [om.core :as om :include-macros true]
             [om-tools.core :refer-macros [defcomponentk]]
             [plumbing.core :refer-macros [defnk]]
             [schema.core :as s]
             [sablono.core :as html :refer-macros [html]]
+            [cljs.core.async :refer [chan sub unsub <! put! close!]]
             [clustermap.filters :as filters]
             [clustermap.components.filters.select-filter :as select-filter]
             [clustermap.components.filters.tag-filter :as tag-filter]
@@ -25,41 +29,129 @@
 
 (defn ^:private render-filter-control
   [filter-spec
-   {:keys [type] :as component-spec}]
+   {:keys [type] :as component-spec}
+   component-filter-rq-chan]
 
   (condp = type
 
-    :select (om/build select-filter/select-filter-component {:component-spec component-spec
-                                                             :filter-spec filter-spec})
-    :tag (om/build tag-filter/tag-filter-component {:component-spec component-spec
-                                                    :filter-spec filter-spec})
-    :checkboxes (om/build checkboxes-filter/checkboxes-filter-component {:component-spec component-spec
-                                                                         :filter-spec filter-spec})))
+    :select (om/build select-filter/select-filter-component
+                      {:component-spec component-spec
+                       :filter-spec filter-spec}
+                      {:opts {:component-filter-rq-chan component-filter-rq-chan}})
+
+    :tag (om/build tag-filter/tag-filter-component
+                   {:component-spec component-spec
+                    :filter-spec filter-spec}
+                   {:opts {:component-filter-rq-chan component-filter-rq-chan}})
+
+    :checkboxes (om/build checkboxes-filter/checkboxes-filter-component
+                          {:component-spec component-spec
+                           :filter-spec filter-spec}
+                          {:opts {:component-filter-rq-chan component-filter-rq-chan}})))
 
 (defn ^:private render-filter-row
   [filter-spec
-   {:keys [id label] :as component-spec}]
+   {:keys [id label] :as component-spec}
+   component-filter-rq-chan]
 
   [:div.tbl-row {:class (:id filter-spec)}
    [:div.tbl-cell label]
    [:div.tbl-cell
-    (render-filter-control filter-spec component-spec)]])
+    (render-filter-control filter-spec component-spec component-filter-rq-chan)]])
+
+(defn update-component-filter-rq-chans
+  [component-filter-rq-chans component-ids]
+  (let [existing-ids (-> component-filter-rq-chans keys set)
+        required-ids (-> component-ids set)
+        new-ids (difference required-ids existing-ids)
+        dead-ids (difference existing-ids required-ids)
+        changing-ids (union new-ids dead-ids)]
+
+    (->> changing-ids
+         (reduce (fn [chs id]
+                   (cond
+
+                     (new-ids id)
+                     (let [ch (chan)]
+                       (assoc chs id ch))
+
+                     (dead-ids id)
+                     (let [ch (get chs id)]
+                       (dissoc chs id)
+                       (close! ch))))
+                 component-filter-rq-chans))))
 
 (defnk ^:private render*
-  [component-specs components :as filter-spec]
-  (.log js/console (clj->js ["COMPONENT-SPECS" component-specs]))
-  (html
-   [:div.filter-component
+  [[:filter-spec component-specs components :as filter-spec]
+   component-filter-rq-chans
+   owner]
+  (let [component-ids (map :id component-specs)
+        new-component-filter-rq-chans (update-component-filter-rq-chans component-filter-rq-chans
+                                                                        component-ids)]
+    (.log js/console (clj->js ["COMPONENT-SPECS" component-specs]))
 
-    [:div.tbl
-     (for [component-spec component-specs]
-       (render-filter-row filter-spec component-spec))]]))
+    (when (not= new-component-filter-rq-chans component-filter-rq-chans)
+      (om/set-state! owner
+                     :component-filter-rq-chans
+                     new-component-filter-rq-chans))
+
+    (html
+     [:div.filter-component
+
+      [:div.tbl
+       (for [{:keys [id] :as component-spec} component-specs]
+         (let [component-filter-rq-chan ()]
+           (render-filter-row filter-spec component-spec (get new-component-filter-rq-chans id))))]])))
 
 (def FilterComponentSchema
   {:filter-spec filters/FilterSchema})
 
 (defcomponentk filter-component
-  [[:data [:filter-spec components :as filter-spec]] :- FilterComponentSchema
+  [[:data [:filter-spec id component-specs components url-components :as filter-spec]] :- FilterComponentSchema
+   [:shared filter-rq-pub history]
    owner]
 
-  (render [_] (render* filter-spec)))
+  (did-mount
+   [_]
+   (let [filter-rq-sub (chan)]
+     (sub filter-rq-pub id filter-rq-sub)
+     (om/set-state! owner :filter-rq-sub filter-rq-sub)
+
+     (go
+       (while (when-let [[filter-id filter-rq] (<! filter-rq-sub)]
+                (let [component-filter-rq-chans (om/get-state owner :component-filter-rq-chans)
+                      component-ids (keys filter-rq)]
+
+                  (doseq [id component-ids]
+                    (.log js/console (clj->js ["FILTER" filter-id id (get filter-rq id)]))
+                    (when-let [component-filter-rq-chan (get component-filter-rq-chans id)]
+                      (put! component-filter-rq-chan (get filter-rq id)))))
+                true)))))
+
+  (will-unmount
+   [_]
+   (let [filter-rq-sub (om/get-state owner :filter-rq-sub)
+         chs (om/get-state owner :component-filter-rq-chans)]
+     (unsub filter-rq-pub id filter-rq-sub)
+     (close! filter-rq-sub)
+
+     (doseq [[component-id ch] chs]
+       (close! ch))
+     (om/set-state! owner :component-filter-rq-chans nil)))
+
+  (render
+   [_]
+   (let [component-filter-rq-chans (om/get-state owner :component-filter-rq-chans)]
+     (render* {:filter-spec filter-spec
+               :component-filter-rq-chans component-filter-rq-chans
+               :owner owner})))
+
+  (will-update [_
+                {{{:as next-url-components} :url-components
+                  :as next-filter-spec} :filter-spec
+                 :as next-props}
+                _]
+
+               (when (not= next-url-components url-components)
+                 (.log js/console (clj->js ["URL-COMPONENTS " url-components next-url-components]))
+                 (.log js/console (clj->js ["SHARED" filter-rq-pub history])))))

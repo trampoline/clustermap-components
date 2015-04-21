@@ -2,12 +2,14 @@
   (:require [schema.core :as s :include-macros true]))
 
 (def FilterSchema
-  {:component-specs [{:id s/Keyword
+  {:id s/Keyword
+   :component-specs [{:id s/Keyword
                       :type s/Keyword
                       :label s/Str
                       s/Keyword s/Any}]
    :components {s/Keyword s/Any}
    :component-descrs {s/Keyword s/Any}
+   :url-components {s/Keyword (s/maybe s/Str)}
    :base-filters {s/Keyword s/Any}
    :composed s/Any})
 
@@ -59,9 +61,21 @@
   [filters :- FilterSchema
    k :- s/Str
    f :- s/Any
-   d :- s/Str]
+   d :- s/Str
+   u :- s/Str]
 
   (let [f (-> filters
               (assoc-in [:components k] f)
-              (assoc-in [:component-descrs k] d))]
+              (assoc-in [:component-descrs k] d)
+              (assoc-in [:url-components k] u))]
     (assoc-in f [:composed] (compose-filters (:components f) (:base-filters f)))))
+
+(s/defn filter-url-param-value
+  "JSON encode the filter for use as a URL param"
+  [{:keys [url-components]} :- FilterSchema]
+  (some->> url-components
+           (filter (fn [[k v]] v))
+           (into {})
+           not-empty
+           clj->js
+           js/JSON.stringify))

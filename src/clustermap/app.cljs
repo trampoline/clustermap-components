@@ -4,7 +4,7 @@
   (:require
    [clojure.string :as str]
    [goog.events :as events]
-   [cljs.core.async :refer [chan <! put! sliding-buffer]]
+   [cljs.core.async :refer [pub chan <! put! sliding-buffer]]
    [secretary.core :as secretary :include-macros true :refer [defroute]]
    [om.core :as om :include-macros true]
    [om.dom :as dom :include-macros true]
@@ -38,6 +38,7 @@
 (defprotocol IApp
   (get-state [this])
   (get-comm [this])
+  (get-filter-rq [this])
   (get-history [this])
   (get-navigator-fn [this])
   (navigate [this view]))
@@ -45,21 +46,25 @@
 (defn create-app-instance
   [initial-state-value component-defs app-service]
   (let [comm (chan)
+        filter-rq (chan)
+        filter-rq-pub (pub filter-rq first) ;; first element defines the filter component
         state (atom initial-state-value)
         nav-fn (nav/init history* state [:view] "map")]
 
     (reify
       IAppControl
       (start [this]
-        (let [shared (merge (init app-service this) {:comm comm})]
+        (events/listen history*
+                       EventType.NAVIGATE
+                       (fn [e]
+                         (let [token (.-token e)]
+                           ;; (ga/send-pageview token)
+                           (secretary/dispatch! token))))
+        (.setEnabled history* true)
 
-          (events/listen history*
-                 EventType.NAVIGATE
-                 (fn [e]
-                   (let [token (.-token e)]
-                     ;; (ga/send-pageview token)
-                     (secretary/dispatch! token))))
-          (.setEnabled history* true)
+        (let [shared (merge (init app-service this) {:comm comm
+                                                     :filter-rq-pub filter-rq-pub
+                                                     :history history*})]
 
           (doseq [{:keys [name f target path paths]} component-defs]
             (.log js/console (clj->js ["component" name f target paths]))
@@ -102,6 +107,9 @@
 
       (get-comm [_]
         comm)
+
+      (get-filter-rq [_]
+        filter-rq)
 
       (get-history [_]
         history*)

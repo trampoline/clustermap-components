@@ -1,61 +1,92 @@
 (ns clustermap.components.filters.tag-filter
-  (:require [om.core :as om :include-macros true]
+  (:require-macros
+   [cljs.core.async.macros :refer [go]])
+  (:require [cljs.core.async :refer [<!]]
+            [cljs.core.async.impl.channels :refer [ManyToManyChannel]]
+            [om.core :as om :include-macros true]
             [om-tools.core :refer-macros [defcomponentk]]
             [plumbing.core :refer-macros [defnk]]
             [schema.core :as s]
             [sablono.core :as html :refer-macros [html]]
             [clustermap.filters :as filters]))
 
-(defn ^:private get-select-value
+(defn ^:private get-current-value
   [components id]
   (or (get-in components [id :nested :filter :bool :must 1 :term "tag"])
       ""))
 
+(defn ^:private tag-for-value
+  [tags value]
+  (->> tags
+       (filter #(= value (:value %)))
+       first))
+
+(defn ^:private filter-for-value
+  [{:keys [tag-type tags] :as component-spec}
+   value]
+  (when (not-empty value)
+    (when-let [t (tag-for-value tags value)]
+      {:nested {:path "?tags"
+                :filter {:bool {:must [{:term {"type" tag-type}}
+                                       {:term {"tag" value}}]}}}})))
+
 (defn ^:private get-tag-description
-  [component-spec tag-spec]
-  (when (and tag-spec
-             (not (:omit-description tag-spec)))
-    (str (:label component-spec) ": " (:label tag-spec))))
+  [{:keys [label tags] :as component-spec}
+   value]
+  (let [tag-spec (tag-for-value tags value)]
+    (when (and tag-spec
+               (not (:omit-description tag-spec)))
+      (str label ": " (:label tag-spec)))))
+
+(defn ^:private set-filters-for-value
+  [filter-spec
+   {:keys [id tags] :as component-spec}
+   value]
+  (let [f (filter-for-value component-spec value)
+        d (get-tag-description component-spec value)]
+    (.log js/console (clj->js ["TAG-FILTER" id val f d]))
+    (om/update! filter-spec (filters/update-filter-component filter-spec id f d value))))
 
 (defnk ^:private render*
-  [[:component-spec id label sorted tag-type tags :as component-spec]
-   [:filter-spec components :as filter-spec]]
-  (let [select-value (get-select-value components id)]
+  [[:filter-spec components :as filter-spec]
+   [:component-spec id label sorted tag-type tags :as component-spec]]
+  (let [select-value (get-current-value components id)]
     (html
      [:select {:value select-value
                :style {:width "100%"}
                :onChange (fn [e]
-                           (let [val (-> e .-target .-value)
+                           (let [val (-> e .-target .-value)]
 
-                                 f (when (not-empty val)
-                                     {:nested {:path "?tags"
-                                               :filter {:bool {:must [{:term {"type" tag-type}}
-                                                                      {:term {"tag" val}}]}}}})
-                                 tag-spec (->> tags (some (fn [ts] (when (= (:value ts) val) ts))))
-                                 d (get-tag-description component-spec tag-spec)]
-                             (.log js/console (clj->js ["TAG-FILTER" label val id f d]))
-                             (om/update! filter-spec
-                                         (filters/update-filter-component filter-spec id f d))))}
+                             (set-filters-for-value filter-spec component-spec val)))}
       (for [{:keys [value label]} tags]
         [:option {:value value}
          label])])))
 
 (def TagFilterComponentSchema
-  {:component-spec {:id s/Keyword
+  {:filter-spec filters/FilterSchema
+   :component-spec {:id s/Keyword
                     :type (s/eq :tag)
                     :label s/Str
                     (s/optional-key :sorted) s/Bool
                     :tag-type s/Str
                     :tags [{:value s/Str
                             :label s/Str
-                            (s/optional-key :omit-description) (s/maybe s/Bool)}]}
-   :filter-spec filters/FilterSchema})
+                            (s/optional-key :omit-description) (s/maybe s/Bool)}]}})
 
 ;; a <select> filter
 (defcomponentk tag-filter-component
-  [data :- TagFilterComponentSchema
+  [[:data [:component-spec id] :as data] :- TagFilterComponentSchema
+   [:opts component-filter-rq-chan] :- {:component-filter-rq-chan ManyToManyChannel}
    owner]
 
+  (did-mount
+   [_]
+   (go
+     (while (when-let [rq (<! component-filter-rq-chan)]
+
+              (.log js/console (clj->js ["TAG-FILTER-RQ" id rq]))
+
+              true))))
   (render
    [_]
    (render* data)))

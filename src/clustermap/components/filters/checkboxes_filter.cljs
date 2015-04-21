@@ -1,5 +1,9 @@
 (ns clustermap.components.filters.checkboxes-filter
+  (:require-macros
+   [cljs.core.async.macros :refer [go]])
   (:require [clojure.string :as str]
+            [cljs.core.async :refer [<!]]
+            [cljs.core.async.impl.channels :refer [ManyToManyChannel]]
             [om.core :as om :include-macros true]
             [om-tools.core :refer-macros [defcomponentk]]
             [plumbing.core :refer-macros [defnk]]
@@ -35,9 +39,29 @@
     (when (not-empty sel)
       (str label ": " (str/join ", " (map :label sel))))))
 
+(defn ^:private set-filters-for-values
+  "given a seq of option values set the filters"
+  [filter-spec
+   {:keys [id options] :as component-spec}
+   values]
+  (let [f (combine-filter-for-option-values options values)
+        d (get-options-description component-spec values)
+        u (when (not-empty values) (js/JSON.stringify (clj->js values)))]
+    (.log js/console (clj->js ["CHECBOXES-FILTER" id val f]))
+    (om/update! filter-spec (filters/update-filter-component filter-spec id f d u))))
+
+(defn ^:private set-filters-for-url-components
+  "given a map of url components set the filters"
+  [filter-spec
+   {:keys [id] :as component-spec}
+   url-components]
+  (let [values-str (get url-components id)
+        values (when values-str (js->clj (js/JSON.parse values-str)))]
+    (set-filters-for-values filter-spec component-spec values)))
+
 (defnk ^:private render*
-  [[:component-spec id label options :as component-spec]
-   [:filter-spec components :as filter-spec]
+  [[:filter-spec components :as filter-spec]
+   [:component-spec id label options :as component-spec]
    :as data]
 
   (let [options-by-value (get-options-by-value options)
@@ -57,30 +81,37 @@
                               (let [val (-> e .-target .-value)
                                     checked (-> e .-target .-checked)
 
-                                    current-option-values (if checked
-                                                            (conj current-option-values value)
-                                                            (disj current-option-values value))
-                                    f (combine-filter-for-option-values options current-option-values)
-                                    d (get-options-description component-spec current-option-values)]
+                                    values (if checked
+                                             (conj current-option-values value)
+                                             (disj current-option-values value))]
 
-                                (.log js/console (clj->js ["CHECBOXES-FILTER" id val checked f]))
-                                (om/update! filter-spec (filters/update-filter-component filter-spec id f d))))}]
+                                (set-filters-for-values filter-spec component-spec values)))}]
          label])])))
 
 (def CheckboxesFilterComponentSchema
-  {:component-spec {:id s/Keyword
+  {:filter-spec filters/FilterSchema
+   :component-spec {:id s/Keyword
                     :type (s/eq :checkboxes)
                     :label s/Str
                     :options [{:value (s/either s/Keyword s/Str)
                                :label s/Str
                                :filter (s/maybe {s/Keyword s/Any})
-                               (s/optional-key :omit-description) (s/maybe s/Bool)}]}
-   :filter-spec filters/FilterSchema})
+                               (s/optional-key :omit-description) (s/maybe s/Bool)}]}})
 
 ;; a <select> filter
 (defcomponentk checkboxes-filter-component
-  [data :- CheckboxesFilterComponentSchema
+  [[:data [:component-spec id] :as data] :- CheckboxesFilterComponentSchema
+   [:opts component-filter-rq-chan] :- {:component-filter-rq-chan ManyToManyChannel}
    owner]
+
+  (did-mount
+   [_]
+   (go
+     (while (when-let [rq (<! component-filter-rq-chan)]
+
+              (.log js/console (clj->js ["CHECKBOXES-FILTER-RQ" id rq]))
+
+              true))))
 
   (render
    [_]

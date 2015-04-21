@@ -1,12 +1,16 @@
 (ns clustermap.components.filters.select-filter
-  (:require [om.core :as om :include-macros true]
+  (:require-macros
+   [cljs.core.async.macros :refer [go]])
+  (:require [cljs.core.async :refer [<!]]
+            [cljs.core.async.impl.channels :refer [ManyToManyChannel]]
+            [om.core :as om :include-macros true]
             [om-tools.core :refer-macros [defcomponentk]]
             [plumbing.core :refer-macros [defnk]]
             [schema.core :as s]
             [sablono.core :as html :refer-macros [html]]
             [clustermap.filters :as filters]))
 
-(defnk ^:private get-options-by-value
+(defn ^:private get-options-by-value
   [options]
   (->> (for [o options] [(:value o) o])
        (into {})))
@@ -22,52 +26,82 @@
              :value)
         "")))
 
+(defn ^:private filter-for-option-value
+  [options value]
+  (let [options-by-value (get-options-by-value options)
+        option-spec (get options-by-value value)]
+    (:filter option-spec)))
+
 (defn ^:private get-option-description
   "describe the selected option"
-  [component-spec option-spec]
-  (when (and option-spec
-             (not (:omit-description option-spec)))
-    (str (:label component-spec) ": " (:label option-spec))))
+  [{:keys [label options] :as component-spec}
+   value]
+  (let [option-spec (->> options (filter #(= value (:value %))) first)]
+    (when (and option-spec
+               (not (:omit-description option-spec)))
+      (str label ": " (:label option-spec)))))
+
+(defn ^:private set-filters-for-value
+  [filter-spec
+   {:keys [id options] :as component-spec}
+   value]
+  (let [f (filter-for-option-value options value)
+        d (get-option-description component-spec value)]
+    (.log js/console (clj->js ["SELECT-FILTER" id value  f d]))
+    (om/update! filter-spec (filters/update-filter-component filter-spec id f d value))))
+
+(defn ^:private set-filters-for-url-components
+  "given a map of url components, set the filters"
+  [filter-spec
+   {:keys [id] :as component-spec}
+   url-components]
+  (let [value (get url-components id)]
+    (set-filters-for-value filter-spec component-spec value)))
 
 (defnk ^:private render*
-  [[:component-spec id label options :as component-spec]
-   [:filter-spec components :as filter-spec]
+  [[:filter-spec components :as filter-spec]
+   [:component-spec id label options :as component-spec]
    :as data]
 
   (let [current-option-value (get-option-value data)
-        options-by-value (get-options-by-value component-spec)]
+        options-by-value (get-options-by-value options)]
 
     (.log js/console (clj->js ["SELECT-OPTION" id current-option-value]))
 
     (html
      [:select {:value current-option-value
                :onChange (fn [e]
-                           (let [val (-> e .-target .-value)
-                                 option-spec (get options-by-value val)
-                                 f (get option-spec :filter)
-                                 d (get-option-description component-spec option-spec)]
+                           (let [val (-> e .-target .-value)]
 
-                             (.log js/console (clj->js ["SELECT-FILTER" label val id f d]))
-                             (om/update! filter-spec (filters/update-filter-component filter-spec id f d))))}
+                             (set-filters-for-value filter-spec component-spec val)))}
 
       (for [{:keys [value label] :as option} options]
         [:option {:value value} label])])))
 
 (def SelectFilterComponentSchema
-  {:component-spec {:id s/Keyword
+  {:filter-spec filters/FilterSchema
+   :component-spec {:id s/Keyword
                     :type (s/eq :select)
                     :label s/Str
                     :options [{:value (s/either s/Keyword s/Str)
                                :label s/Str
                                :filter (s/maybe {s/Keyword s/Any})
-                               (s/optional-key :omit-description) (s/maybe s/Bool)}]}
-   :filter-spec filters/FilterSchema})
+                               (s/optional-key :omit-description) (s/maybe s/Bool)}]}})
 
 ;; a <select> filter
 (defcomponentk select-filter-component
-  [data :- SelectFilterComponentSchema
+  [[:data [:component-spec id] :as data] :- SelectFilterComponentSchema
+   [:opts component-filter-rq-chan] :- {:component-filter-rq-chan ManyToManyChannel}
    owner]
 
+  (did-mount
+   [_]
+   (go
+     (while (when-let [rq (<! component-filter-rq-chan)]
+
+              (.log js/console (clj->js ["SELECT-FILTER-RQ" id rq]))
+
+              true))))
   (render
    [_]
    (render* data)))
