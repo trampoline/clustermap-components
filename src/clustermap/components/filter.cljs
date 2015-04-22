@@ -161,4 +161,5 @@
                        encoded-filter (filters/filter-url-param-value next-url-components)
                        new-token (url/add-param-to-token token id encoded-filter)]
                    (.log js/console (clj->js ["TOKEN-CHANGE" token new-token]))
-                   (.setToken history new-token)))))
+                   (.setToken history new-token)
+                   ))))

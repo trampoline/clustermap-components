@@ -54,17 +54,18 @@
     (reify
       IAppControl
       (start [this]
-        (events/listen history*
-                       EventType.NAVIGATE
-                       (fn [e]
-                         (let [token (.-token e)]
-                           ;; (ga/send-pageview token)
-                           (secretary/dispatch! token))))
-        (.setEnabled history* true)
-
         (let [shared (merge (init app-service this) {:comm comm
                                                      :filter-rq-pub filter-rq-pub
-                                                     :history history*})]
+                                                     :history history*})
+              initial-token (.getToken history*)]
+
+          (events/listen history*
+                         EventType.NAVIGATE
+                         (fn [e]
+                           (let [token (.-token e)]
+                             ;; (ga/send-pageview token)
+                             (secretary/dispatch! token))))
+          (.setEnabled history* true)
 
           (doseq [{:keys [name f target path paths]} component-defs]
             (.log js/console (clj->js ["component" name f target paths]))
@@ -89,6 +90,10 @@
             (while true
               (let [{type :type :as e} (<! comm)]
                 (handle-event app-service this type e))))
+
+          ;; need to dispatch the initial token after all components have been mounted
+          ;; so that any filters get applied
+          (secretary/dispatch! initial-token)
           ))
 
       (stop [this]
