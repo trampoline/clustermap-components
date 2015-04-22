@@ -72,9 +72,9 @@
 
 (s/defn filter-url-param-value
   "JSON encode the filter for use as a URL param"
-  [{:keys [url-components]} :- FilterSchema]
+  [url-components]
   (some->> url-components
-           (filter (fn [[k v]] v))
+           (filter (fn [[k v]] (not-empty v)))
            (into {})
            not-empty
            clj->js

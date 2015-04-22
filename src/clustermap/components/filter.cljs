@@ -9,6 +9,7 @@
             [sablono.core :as html :refer-macros [html]]
             [cljs.core.async :refer [chan sub unsub <! put! close!]]
             [clustermap.filters :as filters]
+            [clustermap.formats.url :as url]
             [clustermap.components.filters.select-filter :as select-filter]
             [clustermap.components.filters.tag-filter :as tag-filter]
             [clustermap.components.filters.checkboxes-filter :as checkboxes-filter]))
@@ -152,6 +153,11 @@
                  :as next-props}
                 _]
 
-               (when (not= next-url-components url-components)
-                 (.log js/console (clj->js ["URL-COMPONENTS " url-components next-url-components]))
-                 (.log js/console (clj->js ["SHARED" filter-rq-pub history])))))
+               (when (and history
+                          (not= next-url-components url-components))
+
+                 (let [token (.getToken history)
+                       encoded-filter (filters/filter-url-param-value next-url-components)
+                       new-token (url/add-param-to-token token id encoded-filter)]
+                   (.log js/console (clj->js ["TOKEN-CHANGE" token new-token]))
+                   (.setToken history new-token)))))

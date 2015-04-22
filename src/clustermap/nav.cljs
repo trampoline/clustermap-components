@@ -5,7 +5,8 @@
             [domina.events :as events]
             [secretary.core :as secretary :include-macros true]
             [jayq.core :as jayq :refer [$]]
-            [cljs.core.async :refer [put! chan <!]]))
+            [cljs.core.async :refer [put! chan <!]]
+            [clustermap.formats.url :as url]))
 
 (defn- init-bootstrap-tooltips
   []
