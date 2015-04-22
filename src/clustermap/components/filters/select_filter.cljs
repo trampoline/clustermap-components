@@ -48,7 +48,7 @@
   (let [f (filter-for-option-value options value)
         d (get-option-description component-spec value)]
     (.log js/console (clj->js ["SELECT-FILTER" id value  f d]))
-    (om/update! filter-spec (filters/update-filter-component filter-spec id f d value))))
+    (filters/update-filter-component filter-spec id f d value)))
 
 (defnk ^:private render*
   [[:filter-spec components :as filter-spec]
@@ -65,7 +65,7 @@
                :onChange (fn [e]
                            (let [val (-> e .-target .-value)]
 
-                             (set-filters-for-value filter-spec component-spec val)))}
+                             (om/update! filter-spec (set-filters-for-value filter-spec component-spec val))))}
 
       (for [{:keys [value label] :as option} options]
         [:option {:value value} label])])))
@@ -90,10 +90,12 @@
    [_]
    (go
      (while (when-let [[component-id rq] (<! component-filter-rq-chan)]
+              (let [{:keys [component-spec filter-spec]} (om/get-props owner)]
 
-              (.log js/console (clj->js ["SELECT-FILTER-RQ" id rq]))
-              (set-filters-for-value filter-spec component-spec rq)
-              true))))
+                (.log js/console (clj->js ["SELECT-FILTER-RQ" id rq]))
+                (om/update! filter-spec
+                            (set-filters-for-value @filter-spec @component-spec rq))
+                true)))))
   (render
    [_]
    (render* data)))

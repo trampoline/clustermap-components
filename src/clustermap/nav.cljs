@@ -6,7 +6,8 @@
             [secretary.core :as secretary :include-macros true]
             [jayq.core :as jayq :refer [$]]
             [cljs.core.async :refer [put! chan <!]]
-            [clustermap.formats.url :as url]))
+            [clustermap.formats.url :as url]
+            [clustermap.filters :as filters]))
 
 (defn- init-bootstrap-tooltips
   []
@@ -63,7 +64,7 @@
     (events/dispatch! "clustermap-change-view" {})))
 
 (defn- handle-view-switches
-  "sends [:change-view <view>] messages to the command channel"
+  "switches views based on nav-link clicks"
   [nav-fn]
   (events/listen! (css/sel ".nav-links a")
                   :click
@@ -78,12 +79,11 @@
 
 (defn set-route
   [history view]
-  (cond
-   view
-   (.setToken history (str "/" (name view)))
-
-   true
-   (.setToken history (str ""))))
+  (let [token (.getToken history)
+        new-token (cond
+                    view (url/change-token-path token (str "/" (name view)))
+                    :else (url/change-token-path token (str "")))]
+    (.setToken history new-token)))
 
 (defn set-view
   [app-state path view]
@@ -91,38 +91,47 @@
   (swap! app-state assoc-in path view)
   (change-view view))
 
+(defn send-filter-rqs
+  [filter-rq query-params]
+  (.log js/console (str ["ROUTE-PARAMS" query-params]))
+  (doseq [[filter-id filter-str] query-params]
+    (let [f (filters/parse-url-param-value filter-str)]
+      (put! filter-rq [filter-id f]))))
+
 (defn init-routes
-  [app-state path default-view]
+  [filter-rq app-state path default-view]
 
-  (secretary/defroute "" []
+  (secretary/defroute "" [query-params]
     ;; (set-view app-state path default-view)
     )
 
-  (secretary/defroute "/" []
+  (secretary/defroute "/" [query-params]
     ;; (set-view app-state path default-view)
     )
 
-  (secretary/defroute "/:view" [view]
-    (set-view app-state path view)))
+  (secretary/defroute "/:view" [view query-params]
+    (set-view app-state path view)
+    (send-filter-rqs filter-rq query-params)))
 
 (defn init
   "initialise navigation and routing
 
    history : the History object
+   filter-rq : core.async channel for filter request messages
    app-state : the app state atom
    path : the path to update with the current view
    default-view : default-view to be applied
 
    returns a function of a single param, thew view, which
    can be used to navigate to that view"
-  [history app-state path default-view]
+  [history filter-rq app-state path default-view]
   (let [navigator-fn (partial set-route history)]
 
     (init-bootstrap-tooltips)
     (handle-hide-show-map-report)
     (handle-view-switches navigator-fn)
 
-    (init-routes app-state path default-view)
+    (init-routes filter-rq app-state path default-view)
 
     navigator-fn))
 

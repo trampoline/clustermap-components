@@ -46,7 +46,8 @@
       (str label ": " (str/join ", " (map :label sel))))))
 
 (defn ^:private set-filters-for-values
-  "given a seq of option values set the filters"
+  "given a seq of option values set the filters.
+   returns an updated filter-spec value, but doesn't update the cursor"
   [filter-spec
    {:keys [id options] :as component-spec}
    values]
@@ -54,7 +55,7 @@
         d (get-options-description component-spec values)
         u (when (not-empty values) (js/JSON.stringify (clj->js values)))]
     (.log js/console (clj->js ["CHECBOXES-FILTER" id val f]))
-    (om/update! filter-spec (filters/update-filter-component filter-spec id f d u))))
+    (filters/update-filter-component filter-spec id f d u)))
 
 (defn ^:private set-filters-for-url-component
   "given a map of url components set the filters"
@@ -90,7 +91,8 @@
                                              (conj current-option-values value)
                                              (disj current-option-values value))]
 
-                                (set-filters-for-values filter-spec component-spec values)))}]
+                                (om/update! filter-spec
+                                            (set-filters-for-values filter-spec component-spec values))))}]
          label])])))
 
 (def CheckboxesFilterComponentSchema
@@ -113,11 +115,11 @@
    [_]
    (go
      (while (when-let [[component-id rq] (<! component-filter-rq-chan)]
-
-              (.log js/console (clj->js ["CHECKBOXES-FILTER-RQ" id rq]))
-              (set-filters-for-url-component filter-spec component-spec rq)
-
-              true))))
+              (let [{:keys [filter-spec component-spec]} (om/get-props owner)]
+                (.log js/console (clj->js ["CHECKBOXES-FILTER-RQ" id rq]))
+                (om/update! filter-spec
+                            (set-filters-for-url-component @filter-spec @component-spec rq))
+                true)))))
 
   (render
    [_]

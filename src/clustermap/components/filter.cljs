@@ -120,6 +120,7 @@
 
      (go
        (while (when-let [[filter-id filter-rq] (<! filter-rq-sub)]
+                (.log js/console (clj->js ["FILTER-RQ" filter-id filter-rq]))
                 (let [component-filter-rq-chans (om/get-state owner :component-filter-rq-chans)
                       component-ids (keys filter-rq)]
 

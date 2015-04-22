@@ -57,7 +57,7 @@
 
 
 (s/defn update-filter-component :- FilterSchema
-  "update the filter component k with filter f and description d"
+  "update the filter component k with filter f, description d, and url component u"
   [filters :- FilterSchema
    k :- s/Str
    f :- s/Any
@@ -79,3 +79,9 @@
            not-empty
            clj->js
            js/JSON.stringify))
+
+(s/defn parse-url-param-value
+  [v]
+  (some-> v
+          js/JSON.parse
+          (js->clj :keywordize-keys true)))

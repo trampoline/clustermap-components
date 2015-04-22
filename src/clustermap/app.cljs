@@ -19,7 +19,7 @@
            [goog.history EventType]))
 
 
-(def ^:private history* (History.))
+(defonce ^:private history* (History.))
 
 (defprotocol IAppService
   ;; initialise : returns component shared state
@@ -49,7 +49,7 @@
         filter-rq (chan)
         filter-rq-pub (pub filter-rq first) ;; first element defines the filter component
         state (atom initial-state-value)
-        nav-fn (nav/init history* state [:view] "map")]
+        nav-fn (nav/init history* filter-rq state [:view] "map")]
 
     (reify
       IAppControl

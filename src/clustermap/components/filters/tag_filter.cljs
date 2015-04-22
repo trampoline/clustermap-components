@@ -39,13 +39,14 @@
       (str label ": " (:label tag-spec)))))
 
 (defn ^:private set-filters-for-value
+  "return an updated filter-spec value (doesn't update the cursor)"
   [filter-spec
    {:keys [id tags] :as component-spec}
    value]
   (let [f (filter-for-value component-spec value)
         d (get-tag-description component-spec value)]
     (.log js/console (clj->js ["TAG-FILTER" id val f d]))
-    (om/update! filter-spec (filters/update-filter-component filter-spec id f d value))))
+    (filters/update-filter-component filter-spec id f d value)))
 
 (defnk ^:private render*
   [[:filter-spec components :as filter-spec]
@@ -57,7 +58,8 @@
                :onChange (fn [e]
                            (let [val (-> e .-target .-value)]
 
-                             (set-filters-for-value filter-spec component-spec val)))}
+                             (om/update! filter-spec
+                                         (set-filters-for-value filter-spec component-spec val))))}
       (for [{:keys [value label]} tags]
         [:option {:value value}
          label])])))
@@ -83,10 +85,12 @@
    [_]
    (go
      (while (when-let [[component-id rq] (<! component-filter-rq-chan)]
+              (let [{:keys [component-spec filter-spec]} (om/get-props owner)]
 
-              (.log js/console (clj->js ["TAG-FILTER-RQ" id rq]))
-              (set-filters-for-value filter-spec component-spec rq)
-              true))))
+                (.log js/console (clj->js ["TAG-FILTER-RQ" id rq]))
+                (om/update! filter-spec
+                            (set-filters-for-value @filter-spec @component-spec rq))
+                true)))))
   (render
    [_]
    (render* data)))
