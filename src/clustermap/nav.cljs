@@ -102,12 +102,10 @@
   [filter-rq app-state path default-view]
 
   (secretary/defroute "" [query-params]
-    ;; (set-view app-state path default-view)
-    )
+    (send-filter-rqs filter-rq query-params))
 
   (secretary/defroute "/" [query-params]
-    ;; (set-view app-state path default-view)
-    )
+    (send-filter-rqs filter-rq query-params))
 
   (secretary/defroute "/:view" [view query-params]
     (set-view app-state path view)
