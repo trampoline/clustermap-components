@@ -53,17 +53,9 @@
    values]
   (let [f (combine-filter-for-option-values options values)
         d (get-options-description component-spec values)
-        u (when (not-empty values) (js/JSON.stringify (clj->js values)))]
+        u (when (not-empty values) values)]
     (.log js/console (clj->js ["CHECBOXES-FILTER" id val f]))
     (filters/update-filter-component filter-spec id f d u)))
-
-(defn ^:private set-filters-for-url-component
-  "given a map of url components set the filters"
-  [filter-spec
-   {:keys [id] :as component-spec}
-   values-str]
-  (let [values (some-> values-str js/JSON.parse js->clj make-sequential)]
-    (set-filters-for-values filter-spec component-spec values)))
 
 (defnk ^:private render*
   [[:filter-spec components :as filter-spec]
@@ -118,7 +110,7 @@
               (let [{:keys [filter-spec component-spec]} (om/get-props owner)]
                 (.log js/console (clj->js ["CHECKBOXES-FILTER-RQ" id rq]))
                 (om/update! filter-spec
-                            (set-filters-for-url-component @filter-spec @component-spec rq))
+                            (set-filters-for-values @filter-spec @component-spec rq))
                 true)))))
 
   (render
