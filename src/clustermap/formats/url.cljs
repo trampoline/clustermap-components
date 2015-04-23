@@ -18,12 +18,12 @@
 (defn set-token
   "encode a path and params into a token"
   [path params]
-  (let [params-str (->> params
-                        (filter (fn [[k v]] v))
-                        (map (fn [[k v]] (if (= true v) [(name k)] [(name k) v])))
-                        (map #(str/join "=" %))
-                        (str/join "&")
-                        not-empty)]
+  (let [params-str (some->> params
+                            (filter (fn [[k v]] v))
+                            (map (fn [[k v]] (if (= true v) [(name k)] [(name k) (js/encodeURIComponent v)])))
+                            (map #(str/join "=" %))
+                            (str/join "&")
+                            not-empty)]
     (str/join "?" (filter identity [path params-str]))))
 
 (defn remove-param-from-token
