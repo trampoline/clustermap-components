@@ -12,7 +12,8 @@
             [clustermap.formats.url :as url]
             [clustermap.components.filters.select-filter :as select-filter]
             [clustermap.components.filters.tag-filter :as tag-filter]
-            [clustermap.components.filters.checkboxes-filter :as checkboxes-filter]))
+            [clustermap.components.filters.checkboxes-filter :as checkboxes-filter]
+            [clustermap.components.filters.external-filter :as external-filter]))
 
 (defn ^:private parse-filter-url
   "delegate to filter-component type parsers for each fragment param
@@ -48,7 +49,12 @@
     :checkboxes (om/build checkboxes-filter/checkboxes-filter-component
                           {:component-spec component-spec
                            :filter-spec filter-spec}
-                          {:opts {:component-filter-rq-chan component-filter-rq-chan}})))
+                          {:opts {:component-filter-rq-chan component-filter-rq-chan}})
+
+    :external (om/build external-filter/external-filter-component
+                        {:component-spec component-spec
+                         :filter-spec filter-spec}
+                        {:opts {:component-filter-rq-chan component-filter-rq-chan}})))
 
 (defn ^:private render-filter-row
   [filter-spec

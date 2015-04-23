@@ -20,7 +20,10 @@
   [path params]
   (let [params-str (some->> params
                             (filter (fn [[k v]] v))
-                            (map (fn [[k v]] (if (= true v) [(name k)] [(name k) (js/encodeURIComponent v)])))
+                            (map (fn [[k v]] (if (= true v) [(name k)] [(name k)
+                                                                        ;; v
+                                                                        (js/encodeURIComponent v)
+                                                                        ])))
                             (map #(str/join "=" %))
                             (str/join "&")
                             not-empty)]
