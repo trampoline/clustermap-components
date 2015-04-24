@@ -6,6 +6,7 @@
    :component-specs [{:id s/Keyword
                       :type s/Keyword
                       :label s/Str
+                      (s/optional-key :skip-label) s/Bool
                       s/Keyword s/Any}]
    :components {s/Keyword s/Any}
    :component-descrs {s/Keyword s/Any}

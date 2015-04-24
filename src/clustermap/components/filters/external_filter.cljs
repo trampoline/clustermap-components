@@ -14,26 +14,29 @@
 
 (defnk ^:private render*
   [[:filter-spec components :as filter-spec]
-   [:component-spec id label default-text :as component-spec]
+   [:component-spec id label {formatter identity} default-text :as component-spec]
    :as data]
 
   (html
-   (if (not-empty (get-in filter-spec [:components id]))
-     [:span [:a {:href "#"
-                 :onClick (fn [e]
-                            (.preventDefault e)
-                            (.log js/console "clear selection")
-                            (om/update! filter-spec (filters/update-filter-component filter-spec id nil nil nil)))}
-             "\u00D7"]
-      "\u00a0"
-      (get-in filter-spec [:component-descrs id])]
-     [:span (or default-text "")])))
+   (formatter
+    (if (not-empty (get-in filter-spec [:components id]))
+      [:span [:a {:href "#"
+                  :onClick (fn [e]
+                             (.preventDefault e)
+                             (.log js/console "clear selection")
+                             (om/update! filter-spec (filters/update-filter-component filter-spec id nil nil nil)))}
+              "\u00D7"]
+       "\u00a0"
+       (get-in filter-spec [:component-descrs id])]
+      [:span (or default-text "")]))))
 
 (def ExternalFilterComponentSchema
   {:filter-spec filters/FilterSchema
    :component-spec {:id s/Keyword
                     :type (s/eq :external)
                     :label s/Str
+                    (s/optional-key :skip-label) s/Bool
+                    (s/optional-key :formatter) (s/pred fn?)
                     :default-text s/Str
                     :set-filter-for-url (s/pred fn?)}})
 

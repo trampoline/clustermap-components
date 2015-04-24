@@ -58,12 +58,12 @@
 
 (defn ^:private render-filter-row
   [filter-spec
-   {:keys [id label] :as component-spec}
+   {:keys [id label skip-label] :as component-spec}
    component-filter-rq-chan]
 
-  [:div.tbl-row {:class (:id filter-spec)}
-   [:div.tbl-cell label]
-   [:div.tbl-cell
+  [:tr {:class (:id filter-spec)}
+   (when-not skip-label [:td label])
+   [:td (if skip-label {:colSpan 2} {})
     (render-filter-control filter-spec component-spec component-filter-rq-chan)]])
 
 (defn update-component-filter-rq-chans
@@ -105,10 +105,11 @@
     (html
      [:div.filter-component
 
-      [:div.tbl
-       (for [{:keys [id] :as component-spec} component-specs]
-         (let [component-filter-rq-chan ()]
-           (render-filter-row filter-spec component-spec (get new-component-filter-rq-chans id))))]])))
+      [:table
+       [:tbody
+        (for [{:keys [id] :as component-spec} component-specs]
+          (let [component-filter-rq-chan ()]
+            (render-filter-row filter-spec component-spec (get new-component-filter-rq-chans id))))]]])))
 
 (def FilterComponentSchema
   {:filter-spec filters/FilterSchema})
