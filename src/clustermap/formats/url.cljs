@@ -11,7 +11,8 @@
         param-values (map #(str/split % #"=") param-value-strs)
         keyw-values (->> param-values
                          (map #(assoc % 0 (keyword (get % 0))))
-                         (map #(assoc % 1 (or (get % 1) true)))) ;; map empty values to true
+                         (map #(assoc % 1 (or (some-> % (get 1) js/decodeURIComponent)
+                                              true)))) ;; map empty values to true
         params (into {} keyw-values)]
     [path params]))
 
@@ -21,9 +22,7 @@
   (let [params-str (some->> params
                             (filter (fn [[k v]] v))
                             (map (fn [[k v]] (if (= true v) [(name k)] [(name k)
-                                                                        ;; v
-                                                                        (js/encodeURIComponent v)
-                                                                        ])))
+                                                                        (js/encodeURIComponent v)])))
                             (map #(str/join "=" %))
                             (str/join "&")
                             not-empty)]
