@@ -71,6 +71,16 @@
               (assoc-in [:url-components k] u))]
     (assoc-in f [:composed] (compose-filters (:components f) (:base-filters f)))))
 
+(s/defn reset-filter :- FilterSchema
+  "reset all filter components"
+  [filters :- FilterSchema]
+
+  (let [f (-> filters
+              (assoc-in [:components] {})
+              (assoc-in [:component-descrs] {})
+              (assoc-in [:url-components] {}))]
+    (assoc-in f [:composed] (compose-filters (:components f) (:base-filters f)))))
+
 (s/defn filter-url-param-value
   "JSON encode the filter for use as a URL param"
   [url-components]
