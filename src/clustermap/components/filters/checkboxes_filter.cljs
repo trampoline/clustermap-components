@@ -68,24 +68,30 @@
     (.log js/console (clj->js ["SELECT-CHECKBOXES" id current-option-values]))
 
     (html
-     [:div
+     [:ul.filter-items
       (for [{:keys [value label filter]} options]
-        [:label
-         [:input {:type "checkbox"
-                  :name id
-                  :value value
-                  :checked (current-option-values value)
-                  :onChange (fn [e]
-                              (let [val (-> e .-target .-value)
-                                    checked (-> e .-target .-checked)
+        [:li
+         [:label
+          [:div
+           [:span.label
+            [:input {:type "checkbox"
+                     :name id
+                     :value value
+                     :checked (current-option-values value)
+                     :onChange (fn [e]
+                                 (let [val (-> e .-target .-value)
+                                       checked (-> e .-target .-checked)
 
-                                    values (if checked
-                                             (conj current-option-values value)
-                                             (disj current-option-values value))]
+                                       values (if checked
+                                                (conj current-option-values value)
+                                                (disj current-option-values value))]
 
-                                (om/update! filter-spec
-                                            (set-filters-for-values filter-spec component-spec values))))}]
-         label])])))
+                                   (om/update! filter-spec
+                                               (set-filters-for-values filter-spec component-spec values))))}]
+            label]]
+          [:div
+           [:span.badge 123]]
+          ]])])))
 
 (def CheckboxesFilterComponentSchema
   {:filter-spec filters/FilterSchema

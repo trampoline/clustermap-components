@@ -61,10 +61,11 @@
    {:keys [id label skip-label] :as component-spec}
    component-filter-rq-chan]
 
-  [:tr {:class (:id filter-spec)}
-   (when-not skip-label [:td label])
-   [:td (if skip-label {:colSpan 2} {})
-    (render-filter-control filter-spec component-spec component-filter-rq-chan)]])
+  [:div.filter-group {:class (:id filter-spec)}
+   [:div.filter-header
+    [:i.icon-toggle-filter]
+    (when-not skip-label [:span label])]
+   (render-filter-control filter-spec component-spec component-filter-rq-chan)])
 
 (defn update-component-filter-rq-chans
   [component-filter-rq-chans component-ids]
@@ -103,13 +104,10 @@
                      new-component-filter-rq-chans))
 
     (html
-     [:div.filter-component
-
-      [:table
-       [:tbody
-        (for [{:keys [id] :as component-spec} component-specs]
-          (let [component-filter-rq-chan ()]
-            (render-filter-row filter-spec component-spec (get new-component-filter-rq-chans id))))]]])))
+     [:div.grdh.grdw.grda
+      (for [{:keys [id] :as component-spec} component-specs]
+        (let [component-filter-rq-chan ()]
+          (render-filter-row filter-spec component-spec (get new-component-filter-rq-chans id))))])))
 
 (def FilterComponentSchema
   {:filter-spec filters/FilterSchema})

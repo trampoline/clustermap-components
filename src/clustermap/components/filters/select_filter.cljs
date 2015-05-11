@@ -61,14 +61,15 @@
     (.log js/console (clj->js ["SELECT-OPTION" id current-option-value]))
 
     (html
-     [:select {:value current-option-value
-               :onChange (fn [e]
-                           (let [val (-> e .-target .-value)]
+     [:ul.filter-items
+      [:select {:value current-option-value
+                :onChange (fn [e]
+                            (let [val (-> e .-target .-value)]
 
-                             (om/update! filter-spec (set-filters-for-value filter-spec component-spec val))))}
+                              (om/update! filter-spec (set-filters-for-value filter-spec component-spec val))))}
 
-      (for [{:keys [value label] :as option} options]
-        [:option {:value value} label])])))
+       (for [{:keys [value label] :as option} options]
+         [:option {:value value} label])]])))
 
 (def SelectFilterComponentSchema
   {:filter-spec filters/FilterSchema

@@ -13,12 +13,13 @@
 (defn render-filter-component
   [filter-spec component-id]
   (when-let [component-descr (get-in filter-spec [:component-descrs component-id])]
-    [:span [:a {:href "#"
-                :onClick (fn [e]
-                           (.preventDefault e)
-                           (om/update! filter-spec (filters/update-filter-component filter-spec component-id nil nil)))}
-            "\u00D7"]
-     component-descr]))
+    [:li
+     [:span component-descr]
+     [:button.close {:type "button"
+                     :onClick (fn [e]
+                                (.preventDefault e)
+                                (om/update! filter-spec (filters/update-filter-component filter-spec component-id nil nil)))}
+      "\u00D7"]]))
 
 (defcomponentk filter-description-component
   [[:data
@@ -29,7 +30,17 @@
   (render
    [_]
    (html
-    [:span
-     (some->> components
-              (map #(render-filter-component filter-spec %))
-              (filter identity))])))
+    [:div.filter-settings
+     
+     [:div.filter-buttons
+      [:button.btn.btn-primary#filter-toggle {:type "button"}
+       "Open Filter"]
+      [:button.btn.btn-default#filter-reset {:type "button"
+                                             :onClick (fn [e]
+                                                        (om/update! filter-spec (filters/reset-filter filter-spec)))}
+       "Reset"]]
+     
+     (into  [:ul.filter-selected-items]
+            (some->> components
+                     (map #(render-filter-component filter-spec %))
+                     (filter identity)))])))
