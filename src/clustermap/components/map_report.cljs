@@ -15,11 +15,18 @@
    {data :data}]
   (.log js/console (clj->js ["SUMMARY-STATS-VARIABLES" variables]))
   (.log js/console (clj->js ["SUMMARY-STATS-DATA" data]))
-  (html [:div
-         [:ul
-          (for [{:keys [key metric label render-fn] :or {render-fn identity}} variables]
-            [:li (render-fn (get-in data [key metric]))
-             [:small label]])]]))
+  (html (into [:div.row.headline-stats]
+              (for [row-variables (partition-all 2 variables)]
+                [:div.col-md-6
+                 (into [:div.row]
+                       (for [{:keys [key metric label render-fn] :or {render-fn identity}} row-variables]
+                         [:div.col-sm-6
+                          [:h4.stat-title label]
+                          [:div.stat-amount (render-fn (get-in data [key metric]))]
+                          ;; [:div.stat-change
+                          ;;  [:i.icon-positive]
+                          ;;  [:span 12345]]
+                          ]))]))))
 
 (defn request-summary-stats
   [resource index index-type variables filt bounds]
