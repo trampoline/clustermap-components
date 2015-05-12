@@ -41,41 +41,30 @@
 (defn change-view
   "do the DOM manip to change the view"
   [view]
-  (let [target-page (css/sel (str "#page-" view))
-        _ (when (= 0 (count (dom/nodes target-page)))
-            (throw (ex-info (str "can't find view element: #page-" view) {:view view})))
+  (let [view (or (not-empty view) "main")
+        view-class (str ".view-" view)
 
-        body (css/sel "body")
-        view-body-class (str "view-" view)
-        body-classes (conj (dom/classes body) view-body-class)
-        new-body-classes (->> body-classes
-                              (filter (fn [s]
-                                        (or (not (re-matches view-class-pattern s))
-                                            (= s view-body-class)))))
+        hide-sections (css/sel ".view")
+        show-sections (css/sel view-class)]
 
-        target (css/sel (str ".nav-links .view-" view))
-        links (css/sel ".nav-links")
-        active (css/sel links ".active")]
-
-    (dom/remove-class! active "active")
-    (dom/add-class! target "active")
-    (dom/set-classes! body new-body-classes)
+    (dom/add-class! hide-sections "hide")
+    (dom/remove-class! show-sections "hide")
 
     (events/dispatch! "clustermap-change-view" {})))
 
-(defn- handle-view-switches
-  "switches views based on nav-link clicks"
-  [nav-fn]
-  (events/listen! (css/sel ".nav-links a")
-                  :click
-                  (fn [e]
-                    (let [target (events/target e)
-                          target-classes (dom/classes target)
-                          view-class (some->> target-classes (filter #(re-matches view-class-pattern %)) first)
-                          v (when (not-empty view-class) (some->> view-class (re-find view-class-pattern) last))]
-                      (events/prevent-default e)
-                      (when v
-                        (nav-fn v))))))
+;; (defn- handle-view-switches
+;;   "switches views based on nav-link clicks"
+;;   [nav-fn]
+;;   (events/listen! (css/sel ".nav-links a")
+;;                   :click
+;;                   (fn [e]
+;;                     (let [target (events/target e)
+;;                           target-classes (dom/classes target)
+;;                           view-class (some->> target-classes (filter #(re-matches view-class-pattern %)) first)
+;;                           v (when (not-empty view-class) (some->> view-class (re-find view-class-pattern) last))]
+;;                       (events/prevent-default e)
+;;                       (when v
+;;                         (nav-fn v))))))
 
 (defn set-route
   [history view]
@@ -102,9 +91,11 @@
   [filter-rq app-state path default-view]
 
   (secretary/defroute "" [query-params]
+    (set-view app-state path "main")
     (send-filter-rqs filter-rq query-params))
 
   (secretary/defroute "/" [query-params]
+    (set-view app-state path "main")
     (send-filter-rqs filter-rq query-params))
 
   (secretary/defroute "/:view" [view query-params]
@@ -127,7 +118,7 @@
 
     (init-bootstrap-tooltips)
     (handle-hide-show-map-report)
-    (handle-view-switches navigator-fn)
+    ;; (handle-view-switches navigator-fn)
 
     (init-routes filter-rq app-state path default-view)
 
