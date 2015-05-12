@@ -25,21 +25,27 @@
   [[:data
     components
     filter-spec] :- FilterDescriptionSchema
+    state
     owner]
 
   (render
    [_]
    (html
     [:div.filter-settings
-     
+
      [:div.filter-buttons
-      [:button.btn.btn-primary#filter-toggle {:type "button"}
-       "Open Filter"]
+      [:button.btn.btn-primary#filter-toggle {:type "button"
+                                              :onClick (fn [e]
+                                                         (swap! state update-in [:open] not)
+                                                         true)}
+       (if (:open @state)
+         "Close Filter"
+         "Open Filter")]
       [:button.btn.btn-default#filter-reset {:type "button"
                                              :onClick (fn [e]
                                                         (om/update! filter-spec (filters/reset-filter filter-spec)))}
        "Reset"]]
-     
+
      (into  [:ul.filter-selected-items]
             (some->> components
                      (map #(render-filter-component filter-spec %))
