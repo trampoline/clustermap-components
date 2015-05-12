@@ -16,15 +16,16 @@
                     "100%")]
     (om/component
      (html
-      [:div.color-scale
-       [:div.tbl
-        [:div.tbl-row
+      [:table.table-key
+       [:tbody
+        [:tr
          (for [[threshold color] threshold-colors]
-           [:div.tbl-cell {:style {:background-color color
-                                   :color (color/stand-out-color color)
-                                   :font-size font-size
-                                   :padding-left "1px"
-                                   :padding-right "1px"}}
+           [:td {:style {:background-color color
+                         :color (color/stand-out-color color)
+                         :font-size font-size
+                         ;; :padding-left "1px"
+                         ;; :padding-right "1px"
+                         }}
             (when threshold
               (money/readable threshold :sf 2 :curr "" :default ""))])
          ]]]))))
