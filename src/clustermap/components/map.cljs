@@ -76,14 +76,17 @@
   (let [zoom-control (if (false? (:zoomControl map-options)) false true)
         m ((-> js/L .-map) id-or-el (clj->js (merge map-options {:zoomControl false :maxZoom 19})))
         tiles ((-> js/L .-mapbox .-tileLayer) api-key #js {:detectRetina (not js/config.repl)})
-        zoom ((-> js/L .-control .-zoom) #js {:position "bottomleft"})]
+        zoom ((-> js/L .-control .-zoom) #js {:position "bottomleft"})
+        lmcg ((-> js/L .-markerClusterGroup) #js {:maxClusterRadius 40})]
     (.addLayer m tiles)
+    (.addLayer m lmcg)
     (when zoom-control
       (.addControl m zoom))
 
     (locate-map m (or bounds initial-bounds))
 
     {:leaflet-map m
+     :leaflet-marker-cluster-group lmcg
      :markers (atom {})
      :geotag-markers (atom {})
      :paths (atom {})
@@ -112,7 +115,7 @@
            content)]))]))
 
 (defn create-marker
-  [path-fn leaflet-map location-sites {:keys [marker-click-fn]}]
+  [path-fn leaflet-map leaflet-marker-cluster-group location-sites {:keys [marker-click-fn]}]
   ;; extract the location-sites from the first record... they are all the same
   (if-let [latlong (some-> location-sites first :location reverse clj->js)]
     (let [icon (js/L.divIcon (clj->js {:className "icon-marker-single" :iconSize [20,32] :iconAnchor [10 16] :popupAnchor [0, -8] })) ;;
@@ -125,7 +128,8 @@
       ;; (.log js/console popup-content)
       (.setContent popup (marker-popup-content path-fn location-sites location-site-click-handler-keys))
       (.bindPopup leaflet-marker popup)
-      (.addTo leaflet-marker leaflet-map)
+      ;; (.addTo leaflet-marker leaflet-map)
+      (.addLayer leaflet-marker-cluster-group leaflet-marker)
       {:leaflet-marker leaflet-marker
        :click-handler-keys (vals location-site-click-handler-keys)})
     (.log js/console (str "missing location: " (with-out-str (pr location-sites))))))
@@ -137,7 +141,7 @@
       (remove-event-handler chk)))
 
 (defn update-marker
-  [path-fn leaflet-map {:keys [leaflet-marker click-handler-key click-handler-keys] :as marker} location {:keys [marker-click-fn]}]
+  [path-fn leaflet-map leaflet-marker-cluster-group {:keys [leaflet-marker click-handler-key click-handler-keys] :as marker} location {:keys [marker-click-fn]}]
   (let [popup (js/L.popup (clj->js {:autoPan false}))
         location-site-click-handler-keys (when marker-click-fn
                                            (->> location
@@ -152,13 +156,16 @@
         (assoc :click-handler-keys (vals location-site-click-handler-keys)))))
 
 (defn remove-marker
-  [leaflet-map {:keys [leaflet-marker click-handler-key click-handler-keys] :as marker}]
+  "remove a marker from a cluster group or directly from the map"
+  [leaflet-map leaflet-marker-cluster-group {:keys [leaflet-marker click-handler-key click-handler-keys] :as marker}]
   (remove-marker-event-handlers marker)
-  (.removeLayer leaflet-map leaflet-marker)
+  (if leaflet-marker-cluster-group
+    (.removeLayer leaflet-marker-cluster-group leaflet-marker)
+    (.removeLayer leaflet-map leaflet-marker))
   nil)
 
 (defn update-markers
-  [path-fn leaflet-map markers-atom show-points new-locations {:keys [marker-click-fn] :as opts}]
+  [path-fn leaflet-map leaflet-marker-cluster-group markers-atom show-points new-locations {:keys [marker-click-fn] :as opts}]
   (let [markers @markers-atom
         marker-keys (-> markers keys set)
         location-keys (when show-points (-> new-locations keys set))
@@ -170,14 +177,14 @@
         remove-marker-keys (set/difference marker-keys location-keys)
 
         new-markers (->> new-marker-keys
-                         (map (fn [k] [k (create-marker path-fn leaflet-map (get-in new-locations [k :records]) opts)]))
+                         (map (fn [k] [k (create-marker path-fn leaflet-map leaflet-marker-cluster-group (get-in new-locations [k :records]) opts)]))
                          (into {}))
 
         updated-markers (->> update-marker-keys
-                             (map (fn [k] [k (update-marker path-fn leaflet-map (get markers k) (get-in new-locations [k :records]) opts)]))
+                             (map (fn [k] [k (update-marker path-fn leaflet-map leaflet-marker-cluster-group (get markers k) (get-in new-locations [k :records]) opts)]))
                              (into {}))
 
-        _ (doseq [k remove-marker-keys] (remove-marker leaflet-map (get markers k)))]
+        _ (doseq [k remove-marker-keys] (remove-marker leaflet-map leaflet-marker-cluster-group (get markers k)))]
 
     (reset! markers-atom (merge updated-markers new-markers))))
 
@@ -250,7 +257,7 @@
                              (map (fn [k] [k (update-geotag-marker leaflet-map geotag-agg-spec (get markers k) (get geotags-by-tag k) (get geotag-aggs-by-tag k))]))
                              (into {}))
 
-        _ (doseq [k remove-marker-keys] (remove-marker leaflet-map (get markers k)))]
+        _ (doseq [k remove-marker-keys] (remove-marker leaflet-map nil (get markers k)))]
 
 
     (reset! geotag-markers-atom (merge updated-markers new-markers))
@@ -626,7 +633,7 @@
                     }]
 
       (let [{:keys [comm fetch-boundarylines-fn point-in-boundarylines-fn]} (om/get-shared owner)
-            {{:keys [leaflet-map markers paths path-selections]} :map
+            {{:keys [leaflet-map leaflet-marker-cluster-group markers paths path-selections]} :map
              pan-pending :pan-pending
              path-highlights :path-highlights} (om/get-state owner)]
 
@@ -719,7 +726,7 @@
         (when (or (not= next-show-points show-points)
                   (not= next-point-data point-data))
 
-          (update-markers link-render-fn leaflet-map next-markers next-show-points (:records next-point-data) {:marker-click-fn link-click-fn}))
+          (update-markers link-render-fn leaflet-map leaflet-marker-cluster-group next-markers next-show-points (:records next-point-data) {:marker-click-fn link-click-fn}))
 
         (when (or (not= (:geotag-data next-geotag-aggs) (:geotag-data geotag-aggs))
                   (not= (:geotag-agg-data next-geotag-aggs) (:geotag-agg-data geotag-aggs)))
