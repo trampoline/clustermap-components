@@ -115,7 +115,7 @@
   [path-fn leaflet-map location-sites {:keys [marker-click-fn]}]
   ;; extract the location-sites from the first record... they are all the same
   (if-let [latlong (some-> location-sites first :location reverse clj->js)]
-    (let [icon (js/L.divIcon (clj->js {:className "map-marker" :iconSize [24,28] :iconAnchor [12 14] :popupAnchor [0, -8] })) ;;
+    (let [icon (js/L.divIcon (clj->js {:className "icon-marker-single" :iconSize [20,32] :iconAnchor [10 16] :popupAnchor [0, -8] })) ;;
           leaflet-marker (js/L.marker latlong (clj->js {:icon icon}) ) ;;
           popup (js/L.popup (clj->js {:autoPan false}))
           location-site-click-handler-keys (when marker-click-fn
