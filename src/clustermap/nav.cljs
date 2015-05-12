@@ -15,29 +15,6 @@
       $
       .tooltip))
 
-(defn- handle-hide-show-map-report
-  []
-  (events/listen! (css/sel "#map-report > a")
-                  :click
-                  (fn [e]
-                    (let [target (events/target e)
-                          mr (css/sel "#map-report")]
-
-                      (events/prevent-default e)
-                      (cond
-
-                       (dom/has-class? mr "open")
-                       (do
-                         (dom/remove-class! mr "open")
-                         (-> mr dom/nodes first $ (jayq/anim {"right" "-300px"} 400)))
-
-                       true
-                       (do
-                         (dom/add-class! mr "open")
-                         (-> mr dom/nodes first $ (jayq/anim {"right" "0px"} 400))))))))
-
-(def view-class-pattern #"^view-(\S+)$")
-
 (defn change-view
   "do the DOM manip to change the view"
   [view]
@@ -52,6 +29,8 @@
 
     (events/dispatch! "clustermap-change-view" {})))
 
+;;(def view-class-pattern #"^view-(\S+)$")
+;;
 ;; (defn- handle-view-switches
 ;;   "switches views based on nav-link clicks"
 ;;   [nav-fn]
@@ -117,7 +96,6 @@
   (let [navigator-fn (partial set-route history)]
 
     (init-bootstrap-tooltips)
-    (handle-hide-show-map-report)
     ;; (handle-view-switches navigator-fn)
 
     (init-routes filter-rq app-state path default-view)
