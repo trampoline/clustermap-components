@@ -49,14 +49,15 @@
         filter-rq (chan)
         filter-rq-pub (pub filter-rq first) ;; first element defines the filter component
         state (atom initial-state-value)
-        nav-fn (nav/init history* filter-rq state [:view] "map")]
+        nav-fn (nav/init history* filter-rq state [:view] "main")]
 
     (reify
       IAppControl
       (start [this]
         (let [shared (merge (init app-service this) {:comm comm
                                                      :filter-rq-pub filter-rq-pub
-                                                     :history history*})
+                                                     :history history*
+                                                     :app this})
               initial-token (.getToken history*)]
 
           (events/listen history*
