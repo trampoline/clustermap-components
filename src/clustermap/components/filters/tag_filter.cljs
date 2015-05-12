@@ -54,16 +54,17 @@
   (let [select-value (get-current-value components id)]
     (html
      [:ul.filter-items
-      [:select {:value select-value
-                :style {:width "100%"}
-                :onChange (fn [e]
-                            (let [val (-> e .-target .-value)]
+      [:li
+       [:select {:value select-value
+                 :style {:width "100%"}
+                 :onChange (fn [e]
+                             (let [val (-> e .-target .-value)]
 
-                              (om/update! filter-spec
-                                          (set-filters-for-value filter-spec component-spec val))))}
-       (for [{:keys [value label]} tags]
-         [:option {:value value}
-          label])]])))
+                               (om/update! filter-spec
+                                           (set-filters-for-value filter-spec component-spec val))))}
+        (for [{:keys [value label]} tags]
+          [:option {:value value}
+           label])]]])))
 
 (def TagFilterComponentSchema
   {:filter-spec filters/FilterSchema
