@@ -12,6 +12,7 @@
             [clustermap.formats.url :as url]
             [clustermap.components.filters.select-filter :as select-filter]
             [clustermap.components.filters.tag-filter :as tag-filter]
+            [clustermap.components.filters.tag-checkboxes-filter :as tag-checkboxes-filter]
             [clustermap.components.filters.checkboxes-filter :as checkboxes-filter]
             [clustermap.components.filters.external-filter :as external-filter]))
 
@@ -45,6 +46,11 @@
                    {:component-spec component-spec
                     :filter-spec filter-spec}
                    {:opts {:component-filter-rq-chan component-filter-rq-chan}})
+
+    :tag-checkboxes (om/build tag-checkboxes-filter/tag-checkboxes-filter-component
+                              {:component-spec component-spec
+                               :filter-spec filter-spec}
+                              {:opts {:component-filter-rq-chan component-filter-rq-chan}})
 
     :checkboxes (om/build checkboxes-filter/checkboxes-filter-component
                           {:component-spec component-spec
