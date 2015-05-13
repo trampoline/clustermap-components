@@ -8,15 +8,10 @@
 
    (let [current-val (some-> cursor (get-in [key]) name)]
      (html
-      [:div.select-chooser
-       [:div.tbl
-        [:div.tbl-row
-         [:div.tbl-cell title]
-         [:div.tbl-cell
-          [:select {:onChange (fn [e]
-                                (let [val (-> e .-target .-value not-empty)]
-                                  (.log js/console val)
-                                  (om/update! cursor key val)))
-                    :value current-val}
-           (for [[value description] value-descriptions]
-             [:option {:value (name value)} description])]]]]]))))
+      [:select {:onChange (fn [e]
+                            (let [val (-> e .-target .-value not-empty)]
+                              (.log js/console val)
+                              (om/update! cursor key val)))
+                :value current-val}
+       (for [[value description] value-descriptions]
+         [:option {:value (name value)} description])]))))
