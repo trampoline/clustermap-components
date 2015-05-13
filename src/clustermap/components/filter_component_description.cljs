@@ -25,7 +25,7 @@
                   :onClick (fn [e]
                              (.preventDefault e)
                              (.log js/console "clear selection")
-                             (om/update! filter-spec (filters/update-filter-component filter-spec component-key nil nil)))}
+                             (om/update! filter-spec (filters/update-filter-component filter-spec component-key nil nil nil)))}
               "\u00D7"]
        "\u00a0"
        (get-in filter-spec [:component-descrs component-key])]
