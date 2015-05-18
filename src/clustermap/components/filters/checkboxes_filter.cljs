@@ -59,10 +59,11 @@
 
 (defnk ^:private render*
   [[:filter-spec components :as filter-spec]
-   [:component-spec id label options :as component-spec]
+   [:component-spec id label {sorted nil} options :as component-spec]
    :as data]
 
-  (let [options-by-value (get-options-by-value options)
+  (let [options (if sorted (sort-by :label options) options)
+        options-by-value (get-options-by-value options)
         current-option-values (extract-option-values-from-filter options (get components id))]
 
     (.log js/console (clj->js ["SELECT-CHECKBOXES" id current-option-values]))
@@ -89,8 +90,8 @@
                                    (om/update! filter-spec
                                                (set-filters-for-values filter-spec component-spec values))))}]
             label]]
-          [:div
-           [:span.badge 123]]
+          ;; [:div
+          ;;  [:span.badge 123]]
           ]])])))
 
 (def CheckboxesFilterComponentSchema
@@ -98,6 +99,7 @@
    :component-spec {:id s/Keyword
                     :type (s/eq :checkboxes)
                     :label s/Str
+                    (s/optional-key :sorted) s/Bool
                     :options [{:value (s/either s/Keyword s/Str)
                                :label s/Str
                                :filter (s/maybe {s/Keyword s/Any})

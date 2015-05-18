@@ -48,10 +48,20 @@
     (.log js/console (clj->js ["TAG-FILTER" id val f d]))
     (filters/update-filter-component filter-spec id f d value)))
 
+(defn sort-tags
+  [tags]
+  tags
+  (let [empty-tag (->> tags (filter #(= "" (:value %))) (into []))
+        sorted (->> tags (filter #(not= "" (:value %))) (sort-by :label))]
+    ;; (js/console.log (clj->js ["SORT-TAGS" empty-tag sorted]))
+    (into empty-tag sorted))
+  )
+
 (defnk ^:private render*
   [[:filter-spec components :as filter-spec]
-   [:component-spec id label sorted tag-type tags :as component-spec]]
-  (let [select-value (get-current-value components id)]
+   [:component-spec id label {sorted nil} tag-type tags :as component-spec]]
+  (let [tags (if sorted (sort-tags tags) tags)
+        select-value (get-current-value components id)]
     (html
      [:ul.filter-items
       [:li

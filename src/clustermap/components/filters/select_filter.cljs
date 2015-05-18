@@ -50,12 +50,22 @@
     (.log js/console (clj->js ["SELECT-FILTER" id value  f d]))
     (filters/update-filter-component filter-spec id f d value)))
 
+(defn sort-options
+  [options]
+  options
+  (let [empty-option (->> options (filter #(= "" (:value %))) (into []))
+        sorted (->> options (filter #(not= "" (:value %))) (sort-by :label))]
+    ;; (js/console.log (clj->js ["SORT-OPTIONS" empty-option sorted]))
+    (into empty-option sorted))
+  )
+
 (defnk ^:private render*
   [[:filter-spec components :as filter-spec]
-   [:component-spec id label options :as component-spec]
+   [:component-spec id label {sorted nil} options :as component-spec]
    :as data]
 
-  (let [current-option-value (get-option-value data)
+  (let [options (if sorted (sort-options options) options)
+        current-option-value (get-option-value data)
         options-by-value (get-options-by-value options)]
 
     (.log js/console (clj->js ["SELECT-OPTION" id current-option-value]))
@@ -77,6 +87,7 @@
    :component-spec {:id s/Keyword
                     :type (s/eq :select)
                     :label s/Str
+                    (s/optional-key :sorted) s/Bool
                     :options [{:value (s/either s/Keyword s/Str)
                                :label s/Str
                                :filter (s/maybe {s/Keyword s/Any})

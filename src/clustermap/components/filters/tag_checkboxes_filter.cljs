@@ -72,8 +72,9 @@
 
 (defnk ^:private render*
   [[:filter-spec components :as filter-spec]
-   [:component-spec id label sorted tag-type tags :as component-spec]]
-  (let [tags-by-value (get-tags-by-value tags)
+   [:component-spec id label {sorted nil} tag-type tags :as component-spec]]
+  (let [tags (if sorted (sort-by :label tags) tags)
+        tags-by-value (get-tags-by-value tags)
         current-tag-values (extract-tag-values-from-filters components id)]
     (html
      [:ul.filter-items
@@ -96,8 +97,9 @@
                                    (om/update! filter-spec
                                                (set-filters-for-values filter-spec component-spec values))))}]
             label]]
-          [:div
-           [:span.badge 123]]]])])))
+          ;; [:div
+          ;;  [:span.badge 123]]
+          ]])])))
 
 (def TagCheckboxesFilterComponentSchema
   {:filter-spec filters/FilterSchema
