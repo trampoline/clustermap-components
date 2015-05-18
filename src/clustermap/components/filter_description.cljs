@@ -18,7 +18,7 @@
      [:button.close {:type "button"
                      :onClick (fn [e]
                                 (.preventDefault e)
-                                (om/update! filter-spec (filters/update-filter-component filter-spec component-id nil nil)))}
+                                (om/update! filter-spec (filters/update-filter-component filter-spec component-id nil nil nil)))}
       "\u00D7"]]))
 
 (defcomponentk filter-description-component
