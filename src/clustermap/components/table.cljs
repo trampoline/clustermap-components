@@ -10,25 +10,29 @@
   "generate a table-ordering link for table-headers"
   [controls
    {current-sort-spec :sort-spec :as table-data}
-   col-key
-   col-name]
+   {:keys [key sortable label render-fn]} col]
+
   (let [current-sort-spec (if (sequential? current-sort-spec) (first current-sort-spec) current-sort-spec)
         current-sort-key (some-> current-sort-spec keys first)
-        current-sort-dir (some-> current-sort-spec current-sort-key :order)]
+        current-sort-dir (some-> current-sort-spec current-sort-key :order)
+
+        sort-dir (if (= current-sort-key key)
+                   (condp = current-sort-dir
+                     "asc" "sort-asc"
+                     "sort-desc"))]
     (html
-     [:a
-      {:href "#"
-       :onClick (fn [e]
-                  (.preventDefault e)
-                  (condp = current-sort-dir
-                    "asc" (om/update! controls :sort-spec {col-key {:order :desc}})
-                    "desc" (om/update! controls :sort-spec {col-key {:order :asc}})
-                    (om/update! controls :sort-spec {col-key {:order :desc}})))}
-      col-name
-      (if (= current-sort-key col-key)
-        (condp = current-sort-dir
-          "asc" [:i.icon-asc]
-          [:i.icon-desc]))])))
+     [:th {:class sort-dir}
+      (if sortable [:a
+                    {:href "#"
+                     :onClick (fn [e]
+                                (.preventDefault e)
+                                (condp = current-sort-dir
+                                  "asc" (om/update! controls :sort-spec {key {:order :desc}})
+                                  "desc" (om/update! controls :sort-spec {key {:order :asc}})
+                                  (om/update! controls :sort-spec {key {:order :desc}})))}
+                    label
+                    [:i]]
+          [:span label])])))
 
 
 (defn paginate
@@ -40,26 +44,36 @@
      :as table-data} :table-data} owner opts]
   (om/component
    (html
-    [:div.paginate
-     (if (and from (> from 0))
-       [:span.prev
-        [:a {:href "#"
-             :onClick (fn [e]
-                        (.preventDefault e)
-                        (om/update! controls :from (max 0 (- from size))))}
-         [:i.icon-arrow-left]]]
-       [:span.prev [:i.icon-arrow-left]])
-     [:span.page
-      (str (inc from) "-" (min (+ from size) count) " of " count)]
-     (if (< (+ from size) count)
-       [:span.next
-        [:a {:href "#"
-             :onClick (fn [e]
-                        (.preventDefault e)
-                        (om/update! controls :from (+ from size))
-                        )}
-         [:i.icon-arrow-right]]]
-       [:span.next [:i.icon-arrow-right]])])))
+    [:div.table-nav
+     [:div.record-count
+      [:b (inc from)]
+      " to "
+      [:b (min (+ from size) count)]
+      " of "
+      [:b count]]
+
+     [:nav
+      [:button.btn.btn-default.btn-sm {:type "button"
+                                       :onClick (fn [e]
+                                                  (.preventDefault e)
+                                                  (om/update! controls :from 0))}
+       "First"]
+      [:button.btn.btn-default.btn-sm {:type "button"
+                                       :onClick (fn [e]
+                                                  (.preventDefault e)
+                                                  (om/update! controls :from (max 0 (- from size))))}
+       "Previous"]
+      [:button.btn.btn-default.btn-sm {:type "button"
+                                       :onClick (fn [e]
+                                                  (.preventDefault e)
+                                                  (om/update! controls :from (+ from size))
+                                                  )}
+       "Next"]
+      [:button.btn.btn-default.btn-sm {:type "button"
+                                       :onClick (fn [e]
+                                                  (.preventDefault e)
+                                                  (om/update! controls :from (* size (quot count size))))}
+       "Last"]]])))
 
 (defn- render-table-row
   [{:keys [columns record]}]
@@ -68,11 +82,11 @@
     (let [row
           (into [:tr]
                 (for [col columns]
-                  (let [[col-key col-name formatter] col
-                        formatter (or formatter identity)]
+                  (let [{:keys [key label render-fn]} col
+                        render-fn (or render-fn identity)]
                     ;; (.log js/console (clj->js [col-key col-name]))
                     ;; (.log js/console (clj->js ["KEYS" col-key (type col-key) col-name (type col-name) (get record col-key)]))
-                    [:td (formatter (get record col-key) record)])))
+                    [:td (render-fn (get record key) record)])))
           ;; _ (.log js/console (clj->js ["ROW" columns record row]))
           ]
       row))))
@@ -87,17 +101,15 @@
    opts]
   (.log js/console (clj->js ["COLUMNS" columns]))
   (html
-   [:div.full-report-list
+   [:div
     (om/build paginate {:controls controls :table-data table-data})
-     [:div.table-responsive
-      [:table.table
-       [:thead
-        (into [:tr]
-              (for [col columns]
-                       (let [[col-key col-name] col]
-                         ;; (.log js/console (clj->js [col-key col-name]))
-                         [:th (order-col controls table-data col-key col-name)])))]
-       [:tbody
+    [:div.table-responsive
+     [:table.table.table-outlined
+      [:thead
+       (into [:tr]
+             (for [col columns]
+               (order-col controls table-data col)))]
+      [:tbody
         (om/build-all render-table-row (:data table-data) {:key :key :fn (fn [r] {:columns columns
                                                                                   :record r
                                                                                   :key (:?natural_id r )})})
