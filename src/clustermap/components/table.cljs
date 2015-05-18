@@ -10,7 +10,7 @@
   "generate a table-ordering link for table-headers"
   [controls
    {current-sort-spec :sort-spec :as table-data}
-   {:keys [key sortable label render-fn]} col]
+   {:keys [key sortable label render-fn] :as col}]
 
   (let [current-sort-spec (if (sequential? current-sort-spec) (first current-sort-spec) current-sort-spec)
         current-sort-key (some-> current-sort-spec keys first)
