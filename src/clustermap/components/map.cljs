@@ -231,14 +231,17 @@
   marker)
 
 (defn update-geotag-markers
-  [leaflet-map geotag-markers-atom {:keys [icon-render-fn popup-render-fn geotag-data geotag-agg-data] :as geotag-agg-spec}]
+  [leaflet-map
+   geotag-markers-atom
+   {:keys [icon-render-fn popup-render-fn geotag-data geotag-agg-data] :as geotag-agg-spec}
+   points-showing]
   (let [geotags-by-tag (reduce (fn [m t] (assoc m (:tag t) t)) {} geotag-data)
         geotag-aggs-by-tag (reduce (fn [m a] (assoc m (:nested_attr a) a)) {} geotag-agg-data)
 
         markers @geotag-markers-atom
         marker-keys (-> markers keys set)
 
-        latest-marker-keys (-> geotag-aggs-by-tag keys set)
+        latest-marker-keys (if points-showing nil (-> geotag-aggs-by-tag keys set))
         update-marker-keys (set/intersection marker-keys latest-marker-keys)
         new-marker-keys (set/difference latest-marker-keys marker-keys)
         remove-marker-keys (set/difference marker-keys latest-marker-keys)
@@ -729,10 +732,12 @@
           (update-markers link-render-fn leaflet-map leaflet-marker-cluster-group next-markers next-show-points (:records next-point-data) {:marker-click-fn link-click-fn}))
 
         (when (or (not= (:geotag-data next-geotag-aggs) (:geotag-data geotag-aggs))
-                  (not= (:geotag-agg-data next-geotag-aggs) (:geotag-agg-data geotag-aggs)))
+                  (not= (:geotag-agg-data next-geotag-aggs) (:geotag-agg-data geotag-aggs))
+                  (not= next-point-data point-data))
           (update-geotag-markers leaflet-map
                                  next-geotag-markers
-                                 next-geotag-aggs))
+                                 next-geotag-aggs
+                                 (not-empty (:records next-point-data))))
 
         ))
 
