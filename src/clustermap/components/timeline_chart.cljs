@@ -128,5 +128,6 @@
       prev-timeline-data :timeline-data} :timeline-chart
       prev-filter-spec :filter-spec}
     _]
-   (when (not= prev-timeline-data timeline-data)
+   (when (or (not= prev-timeline-data timeline-data)
+             (not= prev-query query))
      (create-chart  (om/get-node owner "chart") query timeline-data opts))))
