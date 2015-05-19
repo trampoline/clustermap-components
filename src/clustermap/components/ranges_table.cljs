@@ -28,7 +28,7 @@
      [:div
       (when title [:h2 title])
       [:div.table-responsive
-       [:table.table-stats
+       [:table.table.table-outlined
         [:thead
          (->> (tc/column-header-rows cols {:insert-blank-col true}))]
         [:tbody
