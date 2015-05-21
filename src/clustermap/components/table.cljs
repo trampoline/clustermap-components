@@ -26,10 +26,13 @@
                     {:href "#"
                      :onClick (fn [e]
                                 (.preventDefault e)
-                                (condp = current-sort-dir
-                                  "asc" (om/update! controls :sort-spec {key {:order :desc}})
-                                  "desc" (om/update! controls :sort-spec {key {:order :asc}})
-                                  (om/update! controls :sort-spec {key {:order :desc}})))}
+                                (if (= key current-sort-key)
+                                  (condp = current-sort-dir
+                                    "asc" (om/update! controls :sort-spec {key {:order :desc}})
+                                    "desc" (om/update! controls :sort-spec {key {:order :asc}})
+                                    (om/update! controls :sort-spec {key {:order :desc}}))
+
+                                  (om/update! controls :sort-spec {key {:order (or current-sort-dir :desc)}})))}
                     label
                     [:i]]
           [:span label])])))
