@@ -24,12 +24,15 @@
     (let [[sig exp] (nform/eng-notation n :sf sf)
           abs-sig (js/Math.abs sig)
           suffix (money-suffix exp)]
-      (apply str (filter identity
-                         [(cond (and plus? (> sig 0)) "+"
-                                (< sig 0) "-")
-                          curr
-                          abs-sig
-                          suffix])))
+      (if (>= exp 0)
+        (apply str (filter identity
+                           [(cond (and plus? (> sig 0)) "+"
+                                  (< sig 0) "-")
+                            curr
+                            abs-sig
+                            suffix]))
+        0 ;; don't display x10^-n type small numbers
+        ))
     default))
 
 (def fmoney readable)
