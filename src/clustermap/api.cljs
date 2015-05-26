@@ -1,5 +1,6 @@
 (ns clustermap.api
   (:require-macros
+   [clustermap.api :refer [def-lastcall-method]]
    [cljs.core.async.macros :refer [go]])
   (:require
    [clojure.string :as str]
@@ -69,6 +70,23 @@
         (let [rseq (if (sequential? r) r [r])
               [rcomm & result-handler-args] rseq]
           (put! ocomm [rcomm result-handler-args]))))))
+
+(defn lastcall-method-impl
+  "implements last-call-wins aync api-call semantics, discarding results from
+   any earlier api calls
+   - in-flight-atom : an atom used to match received results to calls
+   - valch : a single-value channel eventually containing one api-call result"
+  [in-flight-atom valch]
+  (let [rx (chan)]
+    (reset! in-flight-atom valch)
+
+    (go
+      (let [val (<! valch)]
+        (when (= @in-flight-atom valch)
+          (put! rx val))
+        (close! rx)))
+
+    rx))
 
 (defn log-api
   [f & args]
@@ -219,3 +237,7 @@
 (defn geotags-of-type
   [tag-type]
   (GET (str "/api/" api-prefix "/geotags/" tag-type)))
+
+(def-lastcall-method company-search
+  [query]
+  (GET (str "/api/" api-prefix "/companies/v2/name-id-search?q=" query)))
