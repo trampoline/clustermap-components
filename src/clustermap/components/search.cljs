@@ -15,6 +15,12 @@
 (def RIGHT_ARROW 39)
 (def DOWN_ARROW 40)
 
+(defn make-sequential
+  [x]
+  (cond (nil? x) nil
+        (sequential? x) x
+        :else [x]))
+
 (defn search-for
   [state search-cursor search-fn query]
   (om/update! search-cursor :query query)
@@ -69,7 +75,7 @@
     nil))
 
 (defnk render*
-  [[:data [:search [:controls search-fn render-fn click-fn]
+  [[:data [:search [:controls search-fn col-headers render-fn click-fn]
            query
            results
            :as search]]
@@ -91,17 +97,20 @@
     (when (and (:open @state)
                (not-empty results))
       [:div.search-results
-       [:ul
-        (for [r results]
-          [:li {:class (when (= (:active @state) r) "active")}
-           [:a {:href "#"
-                :on-click (fn [e]
-                            (.preventDefault e)
-                            (when click-fn (click-fn r)))}
-            (when render-fn (render-fn r))]])]])]))
+       (into [:ul]
+             (concat (when (not-empty col-headers)
+                       [[:li.header (for [h col-headers] [:div h])]])
+                     (for [r results]
+                       [:li {:class (when (= (:active @state) r) "active")}
+                        (into [:a {:href "#"
+                                   :on-click (fn [e]
+                                               (.preventDefault e)
+                                               (when click-fn (click-fn r)))}]
+                              (when render-fn (make-sequential (render-fn r))))])))])]))
 
 (def SearchComponentSchema
   {:controls {:search-fn s/Any ;; function of query string, returns list of results
+              :col-headers (s/maybe [s/Str]) ;; row of column headers for results
               :render-fn s/Any ;; function of result record to render
               :click-fn s/Any} ;; function of result record clicked
    :query (s/maybe s/Str)
