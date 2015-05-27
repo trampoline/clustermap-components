@@ -82,8 +82,10 @@
 
     (go
       (let [val (<! valch)]
-        (when (= @in-flight-atom valch)
+        (when (and val
+                   (= @in-flight-atom valch))
           (put! rx val))
+        (close! valch)
         (close! rx)))
 
     rx))
