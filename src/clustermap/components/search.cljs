@@ -101,8 +101,9 @@
              (concat (when (not-empty col-headers)
                        [[:li.header (for [h col-headers] [:div h])]])
                      (for [r results]
-                       [:li {:class (when (= (:active @state) r) "active")}
-                        (into [:a {:href "#"
+                       [:li
+                        (into [:a {:class (when (= (:active @state) r) "active")
+                                   :href "#"
                                    :on-click (fn [e]
                                                (.preventDefault e)
                                                (when click-fn (click-fn r)))}]
