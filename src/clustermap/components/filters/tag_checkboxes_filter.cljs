@@ -106,6 +106,7 @@
    :component-spec {:id s/Keyword
                     :type (s/eq :tag-checkboxes)
                     :label s/Str
+                    (s/optional-key :visible) s/Bool
                     (s/optional-key :sorted) s/Bool
                     :tag-type s/Str
                     :tags [{:value s/Str

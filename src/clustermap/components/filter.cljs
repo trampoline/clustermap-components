@@ -1,7 +1,8 @@
 (ns clustermap.components.filter
   (:require-macros
    [cljs.core.async.macros :refer [go]])
-  (:require [clojure.set :refer [difference intersection union]]
+  (:require [clojure.string :as str]
+            [clojure.set :refer [difference intersection union]]
             [om.core :as om :include-macros true]
             [om-tools.core :refer-macros [defcomponentk]]
             [plumbing.core :refer-macros [defnk]]
@@ -64,14 +65,15 @@
 
 (defn ^:private render-filter-row
   [filter-spec
-   {:keys [id label skip-label] :as component-spec}
+   {:keys [id label skip-label visible] :as component-spec}
    component-filter-rq-chan]
 
-  [:div.filter-group {:class (:id filter-spec)}
+  [:div.filter-group {:class (str/join " " [(name id) (when visible "active")])}
    [:div.filter-header
     [:i.icon-toggle-filter]
     (when-not skip-label [:span label])]
-   (render-filter-control filter-spec component-spec component-filter-rq-chan)])
+   (when visible
+     (render-filter-control filter-spec component-spec component-filter-rq-chan))])
 
 (defn update-component-filter-rq-chans
   [component-filter-rq-chans component-ids]

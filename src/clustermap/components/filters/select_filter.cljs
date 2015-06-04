@@ -87,6 +87,7 @@
    :component-spec {:id s/Keyword
                     :type (s/eq :select)
                     :label s/Str
+                    (s/optional-key :visible) s/Bool
                     (s/optional-key :sorted) s/Bool
                     :options [{:value (s/either s/Keyword s/Str)
                                :label s/Str

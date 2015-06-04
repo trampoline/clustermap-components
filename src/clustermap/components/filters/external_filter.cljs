@@ -37,6 +37,7 @@
    :component-spec {:id s/Keyword
                     :type (s/eq :external)
                     :label s/Str
+                    (s/optional-key :visible) s/Bool
                     (s/optional-key :skip-label) s/Bool
                     (s/optional-key :formatter) (s/pred fn?)
                     :default-text s/Str
