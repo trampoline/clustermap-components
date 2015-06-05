@@ -443,19 +443,6 @@
        first
        last))
 
-(defn request-aggregation-data
-  [resource index index-type blcoll variable filter bounds scale-attr post-scale-factor]
-  (ordered-resource/api-call resource
-                             api/boundaryline-aggregation
-                             index
-                             index-type
-                             blcoll
-                             variable
-                             filter
-                             bounds
-                             scale-attr
-                             post-scale-factor))
-
 (defn request-point-data
   [resource index index-type filter bounds]
   (ordered-resource/api-call resource
@@ -571,9 +558,7 @@
                                      (when handler
                                        (handler e))))))
 
-        (let [adr (ordered-resource/make-discard-stale-resource "aggregation-data-resource")]
-          (om/set-state! owner :aggregation-data-resource adr)
-          (ordered-resource/retrieve-responses adr (fn [data] (om/update! cursor [:data] data))))
+        (om/set-state! owner :fetch-aggregation-data-fn (api/boundaryline-aggregation-factory))
 
         (let [pdr (ordered-resource/make-discard-stale-resource "point-data-resource")]
           (om/set-state! owner :point-data-resource pdr)
@@ -611,7 +596,7 @@
                     next-paths :paths
                     next-path-selections :path-selections} :map
                     next-path-highlights :path-highlights
-                    next-aggregation-data-resource :aggregation-data-resource
+                    fetch-aggregation-data-fn :fetch-aggregation-data-fn
                     next-point-data-resource :point-data-resource
                     fetch-geotag-data-fn :fetch-geotag-data-fn
                     fetch-geotag-agg-data-fn :fetch-geotag-agg-data-fn
@@ -645,15 +630,16 @@
                        (not= next-filter filter)
                        (not= next-bounds bounds)))
           ;; time for some new data !
-          (request-aggregation-data next-aggregation-data-resource
-                                    (:index next-boundaryline-agg)
-                                    (:index-type next-boundaryline-agg)
-                                    (choose-boundaryline-collection next-boundaryline-collections (.getZoom leaflet-map))
-                                    (:variable next-boundaryline-agg)
-                                    (om/-value next-filter)
-                                    (bounds-array (.getBounds leaflet-map))
-                                    (:scale-attr next-boundaryline-agg)
-                                    (:post-scale-factor next-boundaryline-agg))
+          (go
+            (when-let [aggregation-data (<! (fetch-aggregation-data-fn (:index next-boundaryline-agg)
+                                                                       (:index-type next-boundaryline-agg)
+                                                                       (choose-boundaryline-collection next-boundaryline-collections (.getZoom leaflet-map))
+                                                                       (:variable next-boundaryline-agg)
+                                                                       (om/-value next-filter)
+                                                                       (bounds-array (.getBounds leaflet-map))
+                                                                       (:scale-attr next-boundaryline-agg)
+                                                                       (:post-scale-factor next-boundaryline-agg)))]
+              (om/update! cursor [:data] aggregation-data)))
 
           (request-point-data next-point-data-resource
                               (:index next-boundaryline-agg)

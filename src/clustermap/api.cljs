@@ -140,7 +140,7 @@
 
 ;; aggregation over boundarylines
 
-(defn boundaryline-aggregation
+(def-lastcall-method-factory boundaryline-aggregation-factory
   [index type blcoll attr filter bounds scale-attr post-scale-factor & [type-ids]]
   (POST (str "/api/" api-prefix "/boundaryline-agg/" index "/" type "/" blcoll "/" attr "?" (map-json-params type-ids))
       {:filter filter
