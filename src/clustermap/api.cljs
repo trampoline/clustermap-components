@@ -223,7 +223,7 @@
        :index-type index-type
        :filter filter-spec}))
 
-(defn records
+(def-lastcall-method-factory records-factory
   [index index-type filter-spec sort-spec size]
   (POST (str "/api/" api-prefix "/records")
       {:index-name index
