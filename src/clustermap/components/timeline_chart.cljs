@@ -1,13 +1,14 @@
 (ns clustermap.components.timeline-chart
-  (:require-macros [hiccups.core :as hiccups])
+  (:require-macros [hiccups.core :as hiccups]
+                   [cljs.core.async.macros :refer [go]])
   (:require
    [om.core :as om :include-macros true]
    [om-tools.core :refer-macros [defcomponent]]
    [domina.events :as events]
+   [cljs.core.async :refer [<!]]
    [jayq.core :refer [$]]
    [sablono.core :as html :refer-macros [html]]
-   [clustermap.api :as api]
-   [clustermap.ordered-resource :as ordered-resource]
+   [clustermap.api :as api :include-macros true]
    [clustermap.formats.number :as num]
    [clustermap.formats.money :as money]))
 
@@ -55,13 +56,6 @@
                       :yAxis 0
                       :data (:records y)})})))))
 
-(defn- request-timeline-data
-  [resource query filter-spec]
-  (ordered-resource/api-call resource
-                             api/timeline
-                             query
-                             filter-spec))
-
 (defcomponent timeline-chart
   [{{query :query
      timeline-data :timeline-data
@@ -77,7 +71,6 @@
   (did-mount
    [_]
    (let [node (om/get-node owner)
-         tdr (ordered-resource/make-discard-stale-resource "timeline-data-resource")
          last-dims (atom nil)
          w (.-offsetWidth node)
          h (.-offsetHeight node)]
@@ -87,10 +80,8 @@
      (when (and (> w 0) (> h 0))
        (reset! last-dims [w h]))
 
-     (om/set-state! owner :timeline-data-resource tdr)
-     (ordered-resource/retrieve-responses tdr (fn [{records :records :as response}]
-                                                (.log js/console (clj->js ["TIMELINE RESPONSE: " response]))
-                                                (om/update! timeline-chart [:timeline-data] records)))
+     ;; this fetch function discards data corresponding to superceded calls
+     (om/set-state! owner :fetch-data-fn (api/lastcall-method fetch-data [q fspec] (api/timeline q fspec)))
 
      (events/listen! "clustermap-change-view" (fn [e]
                                                 ;; only reflow charts when they are visible
@@ -111,16 +102,17 @@
     {{next-query :query
       next-timeline-data :timeline-data} :timeline-chart
       next-filter-spec :filter-spec}
-    {next-timeline-data-resource :timeline-data-resource}]
+    {fetch-data-fn :fetch-data-fn}]
 
    (.log js/console (clj->js ["FILTER_SPEC: " next-filter-spec]))
    (when (or (not next-timeline-data)
              (not= next-query query)
              (not= next-filter-spec filter-spec))
 
-     (request-timeline-data next-timeline-data-resource
-                            next-query
-                            next-filter-spec)))
+     (go
+       (when-let [response (<! (fetch-data-fn next-query next-filter-spec))]
+         (js/console.log (clj->js ["TIMELINE DATA" response]))
+         (om/update! timeline-chart [:timeline-data] (:records response))))))
 
   (did-update
    [_
