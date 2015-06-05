@@ -9,7 +9,6 @@
    [jayq.core :refer [$]]
    [sablono.core :as html :refer-macros [html]]
    [clustermap.api :as api]
-   [clustermap.ordered-resource :as ordered-resource]
    [clustermap.formats.number :as num]
    [clustermap.formats.money :as money]))
 

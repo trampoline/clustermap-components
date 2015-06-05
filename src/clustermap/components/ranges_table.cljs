@@ -6,7 +6,6 @@
    [om.core :as om :include-macros true]
    [sablono.core :as html :refer-macros [html]]
    [clustermap.api :as api]
-   [clustermap.ordered-resource :as ordered-resource]
    [clustermap.formats.html :as htmlf]
    [clustermap.components.table-common :as tc]))
 
