@@ -81,7 +81,7 @@
        (reset! last-dims [w h]))
 
      ;; this fetch function discards data corresponding to superceded calls
-     (om/set-state! owner :fetch-data-fn (api/lastcall-method fetch-data [q fspec] (api/timeline q fspec)))
+     (om/set-state! owner :fetch-data-fn (api/timeline-factory))
 
      (events/listen! "clustermap-change-view" (fn [e]
                                                 ;; only reflow charts when they are visible

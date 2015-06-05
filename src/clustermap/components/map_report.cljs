@@ -49,8 +49,7 @@
 
     om/IDidMount
     (did-mount [_]
-      (om/set-state! owner :fetch-data-fn (api/lastcall-method fetch-data [idx idx-type vars filt]
-                                                               (api/summary-stats idx idx-type vars filt nil))))
+      (om/set-state! owner :fetch-data-fn (api/summary-stats-factory)))
 
     om/IRenderState
     (render-state [_ state]
@@ -76,5 +75,5 @@
                 (not= next-controls controls)
                 (not= next-filt filt))
         (go
-          (when-let [stats (<! (fetch-data-fn next-index next-index-type (map :key next-variables) next-filt))]
+          (when-let [stats (<! (fetch-data-fn next-index next-index-type (map :key next-variables) next-filt nil))]
             (om/update! map-report [:summary-stats-data] stats)))))))
