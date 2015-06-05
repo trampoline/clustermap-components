@@ -4,6 +4,27 @@
    [goog.string :as gstring]
    [goog.string.format]))
 
+(defn div!
+  "a nil-safe /"
+  [num & args]
+  (when-not (some nil? args)
+    (apply / num args)))
+
+(defn *!
+  [& args]
+  (when-not (some nil? args)
+    (apply * args)))
+
+(defn +!
+  [& args]
+  (when-not (some nil? args)
+    (apply + args)))
+
+(defn -!
+  [num & args]
+  (when-not (some nil? args)
+    (apply - num args)))
+
 (defn round-decimal
   [n dec-places]
   (if dec-places
