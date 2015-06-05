@@ -1,9 +1,11 @@
 (ns clustermap.components.geo-sponsors
-  (:require [om.core :as om :include-macros true]
+  (:require-macros
+   [cljs.core.async.macros :refer [go]])
+  (:require [cljs.core.async :refer [<!]]
+            [om.core :as om :include-macros true]
             [om-tools.core :refer-macros [defcomponentk]]
             [schema.core :as s :refer-macros [defschema]]
             [sablono.core :as html :refer-macros [html]]
-            [clustermap.ordered-resource :as ordered-resource]
             [clustermap.api :as api]))
 
 (defn render*
@@ -17,10 +19,6 @@
           [:img {:src image_url}]]])])))
 
 
-(defn request-geo-sponsors-data
-  [resource bounds]
-  (ordered-resource/api-call resource api/geo-sponsors bounds))
-
 (defcomponentk geo-sponsors-component
   [[:data bounds geo-sponsors]
    owner]
@@ -31,20 +29,18 @@
 
   (did-mount
    [_]
-   (let [gsr (ordered-resource/make-discard-stale-resource "geo-sponsors-data-resource")]
-     (om/set-state! owner :geo-sponsors-data-resource gsr)
-     (ordered-resource/retrieve-responses gsr (fn [response]
-                                                (.log js/console (clj->js ["GEO-SPONSORS : " response]))
-                                                (om/update! geo-sponsors [:data] response)))))
+   (om/set-state! owner :fetch-geo-sponsors-data-fn (api/geo-sponsors-factory)))
 
   (will-update [_
                 {next-bounds :bounds
                  {next-data :data
                   :as next-geo-sponsors} :geo-sponsors}
-                {next-geo-sponsors-data-resource :geo-sponsors-data-resource}]
+                {fetch-geo-sponsors-data-fn :fetch-geo-sponsors-data-fn}]
 
                (when (or (not next-data)
                          (not= next-bounds bounds))
 
-                 (request-geo-sponsors-data next-geo-sponsors-data-resource
-                                            next-bounds))))
+                 (go
+                   (when-let [geo-sponsors-data (<! (fetch-geo-sponsors-data-fn next-bounds))]
+                     (.log js/console (clj->js ["GEO-SPONSORS : " geo-sponsors-data]))
+                     (om/update! geo-sponsors [:data] geo-sponsors-data))))))

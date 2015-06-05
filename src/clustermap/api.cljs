@@ -186,7 +186,7 @@
       {:query query
        :filter-spec filter-spec}))
 
-(defn geo-sponsors
+(def-lastcall-method-factory geo-sponsors-factory
   [bounds]
   (GET (str "/api/" api-prefix "/geo-sponsors?" (map-json-params {:bounds bounds}))))
 
