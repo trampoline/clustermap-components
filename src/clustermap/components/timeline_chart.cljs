@@ -8,7 +8,7 @@
    [cljs.core.async :refer [<!]]
    [jayq.core :refer [$]]
    [sablono.core :as html :refer-macros [html]]
-   [clustermap.api :as api :include-macros true]
+   [clustermap.api :as api]
    [clustermap.formats.number :as num]
    [clustermap.formats.money :as money]))
 
