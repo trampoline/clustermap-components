@@ -1,9 +1,11 @@
 (ns clustermap.components.rankings-table
+  (:require-macros
+   [cljs.core.async.macros :refer [go]])
   (:require
+   [cljs.core.async :refer [<!]]
    [om.core :as om :include-macros true]
    [sablono.core :as html :refer-macros [html]]
    [clustermap.api :as api]
-   [clustermap.ordered-resource :as ordered-resource]
    [clustermap.formats.html :as htmlf]
    [clustermap.components.table-common :as tc]))
 
@@ -78,11 +80,7 @@
   (reify
     om/IDidMount
     (did-mount [_]
-      (let [tdr (ordered-resource/make-discard-stale-resource "table-data-resource")]
-        (om/set-state! owner :table-data-resource tdr)
-        (ordered-resource/retrieve-responses tdr (fn [data]
-                                                   (.log js/console (clj->js ["RANKINGS-TABLE-DATA" data]))
-                                                   (om/update! table-state [:table-data] data)))))
+      (om/set-state! owner :fetch-table-data-fn (api/rankings-factory)))
 
     om/IRender
     (render [_]
@@ -104,21 +102,21 @@
                     :as next-table-state} :table-state
                     next-filter-spec :filter-spec
                    :as next-props}
-                  {table-data-resource :table-data-resource
-                   :as next-state}]
+                  {fetch-table-data-fn :fetch-table-data-fn}]
 
       (when (or (not next-table-data)
                 (not= next-controls controls)
                 (not= next-filter-spec filter-spec))
 
-        (ordered-resource/api-call table-data-resource
-                                   api/rankings
-                                   next-index
-                                   next-index-type
-                                   next-filter-spec
-                                   next-sort-spec
-                                   next-periods
-                                   next-metric-variables
-                                   next-merge-key
-                                   next-fields
-                                   next-size)))))
+        (go
+          (when-let [table-data (<! (fetch-table-data-fn next-index
+                                                         next-index-type
+                                                         next-filter-spec
+                                                         next-sort-spec
+                                                         next-periods
+                                                         next-metric-variables
+                                                         next-merge-key
+                                                         next-fields
+                                                         next-size))]
+            (.log js/console (clj->js ["RANKINGS-TABLE-DATA" table-data]))
+            (om/update! table-state [:table-data] table-data)))))))

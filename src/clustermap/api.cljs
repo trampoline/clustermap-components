@@ -190,7 +190,7 @@
   [bounds]
   (GET (str "/api/" api-prefix "/geo-sponsors?" (map-json-params {:bounds bounds}))))
 
-(defn rankings
+(def-lastcall-method-factory rankings-factory
   [index index-type filter-spec sort-spec periods metric-variables merge-key fields size]
   (POST (str "/api/" api-prefix "/rankings")
       {:index-name index
