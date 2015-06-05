@@ -1,6 +1,9 @@
 (ns clustermap.components.map-report
+  (:require-macros
+   [cljs.core.async.macros :refer [go]])
   (:require [om.core :as om :include-macros true]
             [sablono.core :as html :refer-macros [html]]
+            [cljs.core.async :refer [<!]]
             [clustermap.api :as api]
             [clustermap.ordered-resource :as ordered-resource]
             [clustermap.formats.number :as nf :refer [fnum]]
@@ -15,28 +18,23 @@
    {data :data}]
   (.log js/console (clj->js ["SUMMARY-STATS-VARIABLES" variables]))
   (.log js/console (clj->js ["SUMMARY-STATS-DATA" data]))
-  (html (into [:div.row.headline-stats]
-              (for [row-variables (partition-all 2 variables)]
-                [:div.col-md-6
-                 (into [:div.row]
-                       (for [{:keys [key metric label render-fn] :or {render-fn identity}} row-variables]
-                         [:div.col-sm-6
-                          [:h4.stat-title label]
-                          [:div.stat-amount (render-fn (get-in data [key metric]))]
-                          ;; [:div.stat-change
-                          ;;  [:i.icon-positive]
-                          ;;  [:span 12345]]
-                          ]))]))))
-
-(defn request-summary-stats
-  [resource index index-type variables filt bounds]
-  (ordered-resource/api-call resource
-                             api/summary-stats
-                             index
-                             index-type
-                             (map :key variables)
-                             filt
-                             bounds))
+  (let [belongs-to-vars (->> variables (filter :belongs-to) (group-by :belongs-to))]
+    (html (into [:div.row.headline-stats]
+                (for [row-variables (partition-all 2 (filter (complement :belongs-to) variables))]
+                  [:div.col-md-6
+                   (into [:div.row]
+                         (for [{:keys [key metric label render-fn] :or {render-fn identity}} row-variables]
+                           [:div.col-sm-6
+                            [:h4.stat-title label]
+                            [:div.stat-amount (render-fn (get-in data [key metric]))]
+                            (when-let [{ch-key :key ch-metric :metric ch-value-fn :value-fn ch-render-fn :render-fn
+                                        :or {ch-render-fn identity}}
+                                       (first (not-empty (get belongs-to-vars key)))]
+                              (let [p-v (get-in data [key metric])
+                                    ch-v (get-in data [ch-key ch-metric])
+                                    v (if ch-value-fn (ch-value-fn p-v ch-v) ch-v)]
+                                (ch-render-fn v)))
+                            ]))])))))
 
 (defn map-report-component
   [{filt :filter
@@ -49,17 +47,17 @@
    owner]
 
   (reify
+
     om/IDidMount
     (did-mount [_]
-      (let [ssr (ordered-resource/make-discard-stale-resource "summary-stats")]
-        (om/set-state! owner :summary-stats-resource ssr)
-        (ordered-resource/retrieve-responses ssr (fn [ss] (om/update! map-report [:summary-stats-data] ss)))))
+      (go
+        (when-let [stats (<! (api/summary-stats index index-type (map :key variables) filt nil))]
+          (om/update! map-report [:summary-stats-data] stats))))
 
     om/IRenderState
     (render-state [_ state]
       (let [{:keys [comm]} (om/get-shared owner)]
-        (summary-stats-report map-report comm summary-stats-data))
-      )
+        (summary-stats-report map-report comm summary-stats-data)))
 
     om/IWillUpdate
     (will-update [_
@@ -75,16 +73,11 @@
                   {:keys [summary-stats-resource]
                    :as next-state}]
 
+      (js/console.log "SUMMARY-STATS-I-WILL-UPDATE")
+
       (when (or (not next-summary-stats-data)
                 (not= next-controls controls)
                 (not= next-filt filt))
-        (.log js/console (clj->js ["MAP-REPORT-FILTER" next-filt]))
-        (request-summary-stats summary-stats-resource
-                               next-index
-                               next-index-type
-                               next-variables
-                               next-filt
-                               nil)))
-
-    )
-  )
+        (go
+          (when-let [stats (<! (api/summary-stats next-index next-index-type (map :key next-variables) next-filt nil))]
+            (om/update! map-report [:summary-stats-data] stats)))))))

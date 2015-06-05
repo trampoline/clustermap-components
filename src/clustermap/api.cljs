@@ -154,7 +154,7 @@
       q))
 
 ;; summary stats
-(defn summary-stats
+(def-lastcall-method summary-stats
   [index type statsattrs filter bounds & [type-ids]]
   (POST (str "/api/" api-prefix "/summary-stats/" index "/" type "?" (map-json-params type-ids))
       {:statsattrs statsattrs
