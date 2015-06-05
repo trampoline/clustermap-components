@@ -236,7 +236,7 @@
   [tag-type]
   (GET (str "/api/" api-prefix "/tags/" tag-type)))
 
-(defn geotags-of-type
+(def-lastcall-method-factory geotags-of-type-factory
   [tag-type]
   (GET (str "/api/" api-prefix "/geotags/" tag-type)))
 

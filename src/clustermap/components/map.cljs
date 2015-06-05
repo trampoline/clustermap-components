@@ -468,12 +468,6 @@
                              filter
                              bounds))
 
-(defn request-geotag-data
-  [resource tag-type]
-  (ordered-resource/api-call resource
-                             api/geotags-of-type
-                             tag-type))
-
 (defn map-component
   "put the leaflet map as state in the om component"
   [{{data :data
@@ -585,11 +579,7 @@
           (om/set-state! owner :point-data-resource pdr)
           (ordered-resource/retrieve-responses pdr (fn [point-data] (om/update! cursor [:point-data] point-data))))
 
-        (let [gtdr (ordered-resource/make-discard-stale-resource "geotag-data-resource")]
-          (om/set-state! owner :geotag-data-resource gtdr)
-          (ordered-resource/retrieve-responses gtdr (fn [geotag-data] (om/update! cursor [:controls :geotag-aggs :geotag-data] geotag-data)))
-          )
-
+        (om/set-state! owner :fetch-geotag-data-fn (api/geotags-of-type-factory))
         (om/set-state! owner :fetch-geotag-agg-data-fn (api/nested-aggregation-factory))
 
         ))
@@ -623,7 +613,7 @@
                     next-path-highlights :path-highlights
                     next-aggregation-data-resource :aggregation-data-resource
                     next-point-data-resource :point-data-resource
-                    next-geotag-data-resource :geotag-data-resource
+                    fetch-geotag-data-fn :fetch-geotag-data-fn
                     fetch-geotag-agg-data-fn :fetch-geotag-agg-data-fn
                     }]
 
@@ -673,8 +663,9 @@
 
         (when (and next-geotag-aggs
                    (or (not (:geotag-data next-geotag-aggs))))
-          (request-geotag-data next-geotag-data-resource
-                                (:tag-type next-geotag-aggs)))
+          (go
+            (when-let [geotag-data (<! (fetch-geotag-data-fn (:tag-type next-geotag-aggs)))]
+              (om/update! cursor [:controls :geotag-aggs :geotag-data] geotag-data))))
 
         (when (and next-geotag-aggs
                    (or (not (:geotag-agg-data next-geotag-aggs))
