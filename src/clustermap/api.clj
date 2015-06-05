@@ -1,7 +1,7 @@
 (ns clustermap.api
   (:require [clojure.tools.macro :refer [name-with-attributes]]))
 
-(defmacro def-lastcall-method
+(defn ^:private lastcall-method*
   "defines an API method with last-call-wins semantics : returns a
    channel of a single-value, the response
 
@@ -16,11 +16,11 @@
    an additional no-args version of the function is defined which
    discards any pending responses and ensures any outstanding takes
    return nil"
-  [name & params-body]
+  [def-sym name params-body]
   (let [[name [params & body]] (name-with-attributes name params-body)]
 
     `(let [in-flight-atom# (atom nil)]
-       (defn ~name
+       (~def-sym ~name
          ([]
           (let [emptych# (cljs.core.async/chan)]
             (cljs.core.async/close! emptych#)
@@ -28,3 +28,11 @@
          (~params
           (let [valch# ~@body]
             (clustermap.api/lastcall-method-impl in-flight-atom# valch#)))))))
+
+(defmacro def-lastcall-method
+  [name & params-body]
+  (lastcall-method* 'defn name params-body))
+
+(defmacro lastcall-method
+  [name & params-body]
+  (lastcall-method* 'fn name params-body))
