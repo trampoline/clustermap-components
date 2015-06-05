@@ -1,11 +1,12 @@
 (ns clustermap.api
   (:require-macros
-   [clustermap.api :refer [def-lastcall-method def-lastcall-method-factory]]
+   [clustermap.lastcall-method :refer [def-lastcall-method def-lastcall-method-factory]]
    [cljs.core.async.macros :refer [go]])
   (:require
    [clojure.string :as str]
    [cljs.core.async :as async :refer [<! chan close! put! sliding-buffer to-chan]]
-   [goog.net.XhrIo :as xhr]))
+   [goog.net.XhrIo :as xhr]
+   [clustermap.lastcall-method]))
 
 (defn AJAX [url & {:keys [raw method content] :as opts}]
   "send a GET request, returning a channel with a single result value"
@@ -35,25 +36,6 @@
 
 (defn PUT [url content & {:as opts}]
   (apply AJAX url (apply concat (merge opts {:method "PUT" :content content}))))
-
-(defn lastcall-method-impl
-  "implements last-call-wins aync api-call semantics, discarding results from
-   any earlier api calls
-   - in-flight-atom : an atom used to match received results to calls
-   - valch : a single-value channel eventually containing one api-call result"
-  [in-flight-atom valch]
-  (let [rx (chan)]
-    (reset! in-flight-atom valch)
-
-    (go
-      (let [val (<! valch)]
-        (when (and val
-                   (= @in-flight-atom valch))
-          (put! rx val))
-        (close! valch)
-        (close! rx)))
-
-    rx))
 
 (defn log-api
   [f & args]
