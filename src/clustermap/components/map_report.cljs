@@ -4,8 +4,7 @@
   (:require [om.core :as om :include-macros true]
             [sablono.core :as html :refer-macros [html]]
             [cljs.core.async :refer [<!]]
-            [clustermap.api :as api]
-            [clustermap.ordered-resource :as ordered-resource]
+            [clustermap.api :as api :include-macros true]
             [clustermap.formats.number :as nf :refer [fnum]]
             [clustermap.formats.money :as mf :refer [fmoney]]
             [clustermap.formats.string :as sf :refer [pluralize]]))
@@ -50,9 +49,8 @@
 
     om/IDidMount
     (did-mount [_]
-      (go
-        (when-let [stats (<! (api/summary-stats index index-type (map :key variables) filt nil))]
-          (om/update! map-report [:summary-stats-data] stats))))
+      (om/set-state! owner :fetch-data-fn (api/lastcall-method fetch-data [idx idx-type vars filt]
+                                                               (api/summary-stats idx idx-type vars filt nil))))
 
     om/IRenderState
     (render-state [_ state]
@@ -70,8 +68,7 @@
                       next-summary-stats-data :summary-stats-data
                       :as next-map-report} :map-report
                    :as next-data}
-                  {:keys [summary-stats-resource]
-                   :as next-state}]
+                  {fetch-data-fn :fetch-data-fn}]
 
       (js/console.log "SUMMARY-STATS-I-WILL-UPDATE")
 
@@ -79,5 +76,5 @@
                 (not= next-controls controls)
                 (not= next-filt filt))
         (go
-          (when-let [stats (<! (api/summary-stats next-index next-index-type (map :key next-variables) next-filt nil))]
+          (when-let [stats (<! (fetch-data-fn next-index next-index-type (map :key next-variables) next-filt))]
             (om/update! map-report [:summary-stats-data] stats)))))))
