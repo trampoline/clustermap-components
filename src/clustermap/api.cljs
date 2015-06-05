@@ -216,7 +216,7 @@
        :metric-path metric-path
        :metric-aggs metric-aggs}))
 
-(defn count-matching
+(def-lastcall-method-factory count-matching-factory
   [index index-type filter-spec]
   (POST (str "/api/" api-prefix "/count-matching")
       {:index-name index
