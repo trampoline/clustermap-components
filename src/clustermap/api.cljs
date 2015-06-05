@@ -203,7 +203,7 @@
        :fields fields
        :size size}))
 
-(defn ranges
+(def-lastcall-method-factory ranges-factory
   [index index-type filter-spec row-path row-aggs col-path col-aggs metric-path metric-aggs]
   (POST (str "/api/" api-prefix "/ranges")
       {:index-name index

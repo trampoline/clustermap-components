@@ -1,5 +1,8 @@
 (ns clustermap.components.ranges-table
+  (:require-macros
+   [cljs.core.async.macros :refer [go]])
   (:require
+   [cljs.core.async :refer [<!]]
    [om.core :as om :include-macros true]
    [sablono.core :as html :refer-macros [html]]
    [clustermap.api :as api]
@@ -71,12 +74,7 @@
   (reify
     om/IDidMount
     (did-mount [_]
-      (let [tdr (ordered-resource/make-discard-stale-resource "table-data-resource")]
-        (om/set-state! owner :table-data-resource tdr)
-        (ordered-resource/retrieve-responses tdr (fn [data]
-                                                   (.log js/console (clj->js ["RANGES-TABLE-DATA" data]))
-                                                   (om/update! table-state [:table-data] data))))
-      )
+      (om/set-state! owner :fetch-data-fn (api/ranges-factory)))
 
     om/IRender
     (render [_]
@@ -100,21 +98,22 @@
                     :as next-table-state} :table-state
                     next-filter-spec :filter-spec
                    :as next-props}
-                  {table-data-resource :table-data-resource
-                   :as next-state}]
+                  {fetch-data-fn :fetch-data-fn}]
 
       (when (or (not next-table-data)
                 (not= next-controls controls)
                 (not= next-filter-spec filter-spec))
 
-        (ordered-resource/api-call table-data-resource
-                                   api/ranges
-                                   next-index
-                                   next-index-type
-                                   next-filter-spec
-                                   next-row-path
-                                   next-row-aggs
-                                   next-col-path
-                                   next-col-aggs
-                                   next-metric-path
-                                   next-metric-aggs)))))
+        (go
+          (when-let [ranges (<! (fetch-data-fn next-index
+                                               next-index-type
+                                               next-filter-spec
+                                               next-row-path
+                                               next-row-aggs
+                                               next-col-path
+                                               next-col-aggs
+                                               next-metric-path
+                                               next-metric-aggs))]
+            (.log js/console (clj->js ["RANGES-TABLE-DATA" ranges]))
+            (om/update! table-state [:table-data] ranges)))
+        ))))
