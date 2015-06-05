@@ -148,7 +148,7 @@
        :scale-attr scale-attr
        :post-scale-factor post-scale-factor}))
 
-(defn nested-aggregation
+(def-lastcall-method-factory nested-aggregation-factory
   [{:keys [index-name index-type filter-spec sort-spec nested-path nested-filter nested-attr stats-attr] :as q}]
   (POST (str "/api/" api-prefix "/nested-agg")
       q))
@@ -232,7 +232,7 @@
        :sort sort-spec
        :size size}))
 
-(defn tags-of-type
+(def-lastcall-method-factory tags-of-type-factory
   [tag-type]
   (GET (str "/api/" api-prefix "/tags/" tag-type)))
 

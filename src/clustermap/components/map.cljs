@@ -474,12 +474,6 @@
                              api/geotags-of-type
                              tag-type))
 
-(defn request-geotag-agg-data
-  [resource query]
-  (ordered-resource/api-call resource
-                             api/nested-aggregation
-                             query))
-
 (defn map-component
   "put the leaflet map as state in the om component"
   [{{data :data
@@ -596,10 +590,8 @@
           (ordered-resource/retrieve-responses gtdr (fn [geotag-data] (om/update! cursor [:controls :geotag-aggs :geotag-data] geotag-data)))
           )
 
-        (let [gtadr (ordered-resource/make-discard-stale-resource "geotag-agg-data-resource")]
-          (om/set-state! owner :geotag-agg-data-resource gtadr)
-          (ordered-resource/retrieve-responses gtadr (fn [geotag-agg-data] (om/update! cursor [:controls :geotag-aggs :geotag-agg-data] (:records geotag-agg-data))))
-          )
+        (om/set-state! owner :fetch-geotag-agg-data-fn (api/nested-aggregation-factory))
+
         ))
 
 
@@ -632,7 +624,7 @@
                     next-aggregation-data-resource :aggregation-data-resource
                     next-point-data-resource :point-data-resource
                     next-geotag-data-resource :geotag-data-resource
-                    next-geotag-agg-data-resource :geotag-agg-data-resource
+                    fetch-geotag-agg-data-fn :fetch-geotag-agg-data-fn
                     }]
 
       (let [{:keys [comm fetch-boundarylines-fn point-in-boundarylines-fn]} (om/get-shared owner)
@@ -688,8 +680,10 @@
                    (or (not (:geotag-agg-data next-geotag-aggs))
                        (not= next-filter filter)
                        (not= next-bounds bounds)))
-          (request-geotag-agg-data next-geotag-agg-data-resource
-                                   (merge (:query next-geotag-aggs) {:filter-spec next-filter})))
+          (go
+            (when-let [geotag-agg-data (<! (fetch-geotag-agg-data-fn
+                                            (merge (:query next-geotag-aggs) {:filter-spec next-filter})))]
+              (om/update! cursor [:controls :geotag-aggs :geotag-agg-data] (:records geotag-agg-data)))))
 
         (when (and next-colorchooser
                    next-data

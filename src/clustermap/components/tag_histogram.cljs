@@ -1,6 +1,8 @@
 (ns clustermap.components.tag-histogram
-  (:require-macros [hiccups.core :as hiccups])
+  (:require-macros [hiccups.core :as hiccups]
+                   [cljs.core.async.macros :refer [go]])
   (:require
+   [cljs.core.async :refer [<!]]
    [om.core :as om :include-macros true]
    [om-tools.core :refer-macros [defcomponent]]
    [domina.events :as events]
@@ -73,18 +75,6 @@
                       :data (:records y)})})))
     ))
 
-(defn request-tag-data
-  [resource tag-type]
-  (ordered-resource/api-call resource
-                             api/tags-of-type
-                             tag-type))
-
-(defn request-tag-agg-data
-  [resource query]
-  (ordered-resource/api-call resource
-                             api/nested-aggregation
-                             query))
-
 (defcomponent tag-histogram
   [{{query :query
      metrics :metrics
@@ -103,8 +93,6 @@
   (did-mount
    [_]
    (let [node (om/get-node owner)
-         tdr (ordered-resource/make-discard-stale-resource "tag-data-resource")
-         tadr (ordered-resource/make-discard-stale-resource "tag-agg-data-resource")
          last-dims (atom nil)
          w (.-offsetWidth node)
          h (.-offsetHeight node)]
@@ -114,15 +102,8 @@
      (when (and (> w 0) (> h 0))
        (reset! last-dims [w h]))
 
-     (om/set-state! owner :tag-data-resource tdr)
-     (ordered-resource/retrieve-responses tdr (fn [response]
-                                                (.log js/console (clj->js ["HISTOGRAM TAGS: " response]))
-                                                (om/update! tag-histogram [:tag-data] response)))
-
-     (om/set-state! owner :tag-agg-data-resource tadr)
-     (ordered-resource/retrieve-responses tadr (fn [{:keys [records] :as response}]
-                                                 (.log js/console (clj->js ["HISTOGRAM TAG AGGS: " response]))
-                                                 (om/update! tag-histogram [:tag-agg-data] records)))
+     (om/set-state! owner :fetch-tag-data-fn (api/tags-of-type-factory))
+     (om/set-state! owner :fetch-tag-agg-data-fn (api/nested-aggregation-factory))
 
      (events/listen! "clustermap-change-view" (fn [e]
                                                 ;; only reflow charts when they are visible
@@ -146,21 +127,27 @@
       next-tag-data :tag-data
       next-tag-agg-data :tag-agg-data} :tag-histogram
       next-filter-spec :filter-spec}
-    {next-tag-data-resource :tag-data-resource
-     next-tag-agg-data-resource :tag-agg-data-resource}]
+    {fetch-tag-data-fn :fetch-tag-data-fn
+     fetch-tag-agg-data-fn :fetch-tag-agg-data-fn}]
 
-   (.log js/console (clj->js ["FILTER_SPEC: " next-filter-spec]))
    (when (or (not next-tag-data)
              (not= next-tag-type tag-type))
 
-     (request-tag-data next-tag-data-resource next-tag-type))
+     (go
+       (when-let [tag-data (<! (fetch-tag-data-fn next-tag-type))]
+         (.log js/console (clj->js ["HISTOGRAM TAGS: " tag-data]))
+         (om/update! tag-histogram [:tag-data] tag-data))))
 
    (when (or (not next-tag-agg-data)
              (not= next-query query)
              (not= next-metrics metrics)
              (not= next-filter-spec filter-spec))
 
-     (request-tag-agg-data next-tag-agg-data-resource (merge next-query {:filter-spec next-filter-spec}))))
+     (go
+       (when-let [tag-agg-data (<! (fetch-tag-agg-data-fn
+                                   (merge next-query {:filter-spec next-filter-spec})))]
+         (.log js/console (clj->js ["HISTOGRAM TAG AGGS: " tag-agg-data]))
+         (om/update! tag-histogram [:tag-agg-data] (:records tag-agg-data))))))
 
   (did-update
    [_
