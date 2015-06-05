@@ -57,9 +57,21 @@
     (.log js/console (clj->js ["CHECBOXES-FILTER" id val f]))
     (filters/update-filter-component filter-spec id f d u)))
 
+(defn ^:private set-all
+  "returns an updated filter-spec value with all checkboxes selected (doesn't update cursor)"
+  [filter-spec
+   {:keys [id tags] :as component-spec}]
+  (set-filters-for-values filter-spec component-spec (map :value tags)))
+
+(defn ^:private clear-all
+  "returns an updated filter-spec value with all checkboxes cleared (doesn't update cursor)"
+  [filter-spec
+   {:keys [id tags] :as component-spec}]
+  (set-filters-for-values filter-spec component-spec nil))
+
 (defnk ^:private render*
   [[:filter-spec components :as filter-spec]
-   [:component-spec id label {sorted nil} options :as component-spec]
+   [:component-spec id label {sorted nil} {controls nil} options :as component-spec]
    :as data]
 
   (let [options (if sorted (sort-by :label options) options)
@@ -69,30 +81,41 @@
     (.log js/console (clj->js ["SELECT-CHECKBOXES" id current-option-values]))
 
     (html
-     [:ul.filter-items
-      (for [{:keys [value label filter]} options]
-        [:li
-         [:label
-          [:div
-           [:span.label
-            [:input {:type "checkbox"
-                     :name id
-                     :value value
-                     :checked (current-option-values value)
-                     :onChange (fn [e]
-                                 (let [val (-> e .-target .-value)
-                                       checked (-> e .-target .-checked)
+     [:div.filter-body
+      (when controls
+        [:div.filter-controls
+         [:button.btn.btn-default.btn-sm
+          {:onClick (fn [e] (om/update! filter-spec
+                                        (set-all filter-spec component-spec)))}
+          "Select all"]
+         [:button.btn.btn-default.btn-sm
+          {:onClick (fn [e] (om/update! filter-spec
+                                        (clear-all filter-spec component-spec)))}
+          "Clear"]])
+      [:ul.filter-items
+       (for [{:keys [value label filter]} options]
+         [:li
+          [:label
+           [:div
+            [:span.label
+             [:input {:type "checkbox"
+                      :name id
+                      :value value
+                      :checked (current-option-values value)
+                      :onChange (fn [e]
+                                  (let [val (-> e .-target .-value)
+                                        checked (-> e .-target .-checked)
 
-                                       values (if checked
-                                                (conj current-option-values value)
-                                                (disj current-option-values value))]
+                                        values (if checked
+                                                 (conj current-option-values value)
+                                                 (disj current-option-values value))]
 
-                                   (om/update! filter-spec
-                                               (set-filters-for-values filter-spec component-spec values))))}]
-            label]]
-          ;; [:div
-          ;;  [:span.badge 123]]
-          ]])])))
+                                    (om/update! filter-spec
+                                                (set-filters-for-values filter-spec component-spec values))))}]
+             label]]
+           ;; [:div
+           ;;  [:span.badge 123]]
+           ]])]])))
 
 (def CheckboxesFilterComponentSchema
   {:filter-spec filters/FilterSchema
@@ -101,6 +124,7 @@
                     :label s/Str
                     (s/optional-key :visible) s/Bool
                     (s/optional-key :sorted) s/Bool
+                    (s/optional-key :controls) s/Bool
                     :options [{:value (s/either s/Keyword s/Str)
                                :label s/Str
                                :filter (s/maybe {s/Keyword s/Any})

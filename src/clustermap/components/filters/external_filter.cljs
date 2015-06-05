@@ -18,19 +18,20 @@
    :as data]
 
   (html
-   [:ul.filter-items
-    [:li
-     (formatter
-      (if (not-empty (get-in filter-spec [:components id]))
-        [:span [:a {:href "#"
-                    :onClick (fn [e]
-                               (.preventDefault e)
-                               (.log js/console "clear selection")
-                               (om/update! filter-spec (filters/update-filter-component filter-spec id nil nil nil)))}
-                "\u00D7"]
-         "\u00a0"
-         (get-in filter-spec [:component-descrs id])]
-        [:span (or default-text "")]))]]))
+   [:div.filter-body
+    [:ul.filter-items
+     [:li
+      (formatter
+       (if (not-empty (get-in filter-spec [:components id]))
+         [:span [:a {:href "#"
+                     :onClick (fn [e]
+                                (.preventDefault e)
+                                (.log js/console "clear selection")
+                                (om/update! filter-spec (filters/update-filter-component filter-spec id nil nil nil)))}
+                 "\u00D7"]
+          "\u00a0"
+          (get-in filter-spec [:component-descrs id])]
+         [:span (or default-text "")]))]]]))
 
 (def ExternalFilterComponentSchema
   {:filter-spec filters/FilterSchema
