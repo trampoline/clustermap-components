@@ -11,7 +11,6 @@
    [sablono.core :as html :refer-macros [html]]
    [hiccups.runtime :as hiccupsrt]
    [clustermap.api :as api]
-   [clustermap.ordered-resource :as ordered-resource]
    [clustermap.boundarylines :as bl]
    [clustermap.data.colorchooser :as colorchooser]))
 
@@ -443,18 +442,6 @@
        first
        last))
 
-(defn request-point-data
-  [resource index index-type filter bounds]
-  (ordered-resource/api-call resource
-                             api/location-lists
-                             index
-                             index-type
-                             "!postcode"
-                             ["?natural_id" "!name" "!location" "!latest_employee_count" "!latest_turnover"]
-                             1000
-                             filter
-                             bounds))
-
 (defn map-component
   "put the leaflet map as state in the om component"
   [{{data :data
@@ -559,11 +546,7 @@
                                        (handler e))))))
 
         (om/set-state! owner :fetch-aggregation-data-fn (api/boundaryline-aggregation-factory))
-
-        (let [pdr (ordered-resource/make-discard-stale-resource "point-data-resource")]
-          (om/set-state! owner :point-data-resource pdr)
-          (ordered-resource/retrieve-responses pdr (fn [point-data] (om/update! cursor [:point-data] point-data))))
-
+        (om/set-state! owner :fetch-point-data-fn (api/location-lists-factory))
         (om/set-state! owner :fetch-geotag-data-fn (api/geotags-of-type-factory))
         (om/set-state! owner :fetch-geotag-agg-data-fn (api/nested-aggregation-factory))
 
@@ -597,7 +580,7 @@
                     next-path-selections :path-selections} :map
                     next-path-highlights :path-highlights
                     fetch-aggregation-data-fn :fetch-aggregation-data-fn
-                    next-point-data-resource :point-data-resource
+                    fetch-point-data-fn :fetch-point-data-fn
                     fetch-geotag-data-fn :fetch-geotag-data-fn
                     fetch-geotag-agg-data-fn :fetch-geotag-agg-data-fn
                     }]
@@ -641,11 +624,15 @@
                                                                        (:post-scale-factor next-boundaryline-agg)))]
               (om/update! cursor [:data] aggregation-data)))
 
-          (request-point-data next-point-data-resource
-                              (:index next-boundaryline-agg)
-                              (:index-type next-boundaryline-agg)
-                              (om/-value next-filter)
-                              (bounds-array (.getBounds leaflet-map))))
+          (go
+            (when-let [point-data (<! (fetch-point-data-fn (:index next-boundaryline-agg)
+                                                           (:index-type next-boundaryline-agg)
+                                                           "!postcode"
+                                                           ["?natural_id" "!name" "!location" "!latest_employee_count" "!latest_turnover"]
+                                                           1000
+                                                           (om/-value next-filter)
+                                                           (bounds-array (.getBounds leaflet-map))))]
+              (om/update! cursor [:point-data] point-data))))
 
         (when (and next-geotag-aggs
                    (or (not (:geotag-data next-geotag-aggs))))
@@ -719,11 +706,6 @@
         (events/unlisten! node)
         (events/unlisten! "clustermap-change-view")
 
-        (let [{{:keys [leaflet-map markers paths path-selections]} :map
-               :keys [aggregation-data-resource point-data-resource]} (om/get-state owner)]
-          (ordered-resource/close aggregation-data-resource)
-          (ordered-resource/close point-data-resource)
-
+        (let [{{:keys [leaflet-map markers paths path-selections]} :map} (om/get-state owner)]
           (.remove leaflet-map))))
-
     ))

@@ -162,7 +162,7 @@
        :bounds bounds}))
 
 ;; points in view
-(defn location-lists
+(def-lastcall-method-factory location-lists-factory
   [index type location-attr attrs max-count filter bounds & [type-ids]]
   (POST (str "/api/" api-prefix "/location-lists/" index "/" type "/" location-attr "?" (map-json-params type-ids))
       {:max-count max-count
