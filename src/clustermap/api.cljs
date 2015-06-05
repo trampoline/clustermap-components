@@ -1,6 +1,6 @@
 (ns clustermap.api
   (:require-macros
-   [clustermap.api :refer [def-lastcall-method]]
+   [clustermap.api :refer [def-lastcall-method def-lastcall-method-factory]]
    [cljs.core.async.macros :refer [go]])
   (:require
    [clojure.string :as str]
@@ -154,7 +154,7 @@
       q))
 
 ;; summary stats
-(defn summary-stats
+(def-lastcall-method-factory summary-stats-factory
   [index type statsattrs filter bounds & [type-ids]]
   (POST (str "/api/" api-prefix "/summary-stats/" index "/" type "?" (map-json-params type-ids))
       {:statsattrs statsattrs
@@ -180,7 +180,7 @@
        :from from
        :size size}))
 
-(defn timeline
+(def-lastcall-method-factory timeline-factory
   [query filter-spec]
   (POST (str "/api/" api-prefix "/timeline")
       {:query query

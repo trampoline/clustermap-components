@@ -30,9 +30,22 @@
             (clustermap.api/lastcall-method-impl in-flight-atom# valch#)))))))
 
 (defmacro def-lastcall-method
+  "defn a lastcall method"
   [name & params-body]
   (lastcall-method* 'defn name params-body))
 
+(defmacro def-lastcall-method-factory
+  "defn a zero-args factory for a lastcall method, which returns an instance
+   of the method when called"
+  [name & params-body]
+  (let [[name [params & body]] (name-with-attributes name params-body)
+        method-name (gensym name)
+        method-fn (lastcall-method* 'fn method-name params-body)]
+    `(defn ~name
+       []
+       ~method-fn)))
+
 (defmacro lastcall-method
+  "return an anonymous instance of a lastcall method"
   [name & params-body]
   (lastcall-method* 'fn name params-body))
