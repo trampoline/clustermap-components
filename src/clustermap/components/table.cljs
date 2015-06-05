@@ -1,10 +1,11 @@
 (ns clustermap.components.table
+  (:require-macros
+   [cljs.core.async.macros :refer [go]])
   (:require
+   [cljs.core.async :refer [<!]]
    [om.core :as om :include-macros true]
    [sablono.core :as html :refer-macros [html]]
-   [clustermap.api :as api]
-   [clustermap.ordered-resource :as ordered-resource]
-))
+   [clustermap.api :as api]))
 
 (defn order-col
   "generate a table-ordering link for table-headers"
@@ -121,18 +122,6 @@
      ])
   )
 
-(defn- request-table-data
-  [resource index index-type filter-spec _ sort-spec from size]
-  (ordered-resource/api-call resource
-                             api/simple-table
-                             index
-                             index-type
-                             filter-spec
-                             nil
-                             sort-spec
-                             from
-                             size))
-
 (defn table-component
   [{{table-data :table-data
      {index :index
@@ -149,10 +138,7 @@
   (reify
     om/IDidMount
     (did-mount [_]
-      (let [tdr (ordered-resource/make-discard-stale-resource "table-data-resource")]
-        (om/set-state! owner :table-data-resource tdr)
-        (ordered-resource/retrieve-responses tdr (fn [data] (om/update! table-state [:table-data] data))))
-      )
+      (om/set-state! owner :fetch-table-data-fn (api/simple-table-factory)))
 
     om/IRender
     (render [_]
@@ -170,19 +156,19 @@
                     :as next-table-state} :table-state
                     next-filter-spec :filter-spec
                    :as next-props}
-                  {table-data-resource :table-data-resource
-                   :as next-state}]
+                  {fetch-table-data-fn :fetch-table-data-fn}]
 
       (when (or (not next-table-data)
                 (not= next-controls controls)
                 (not= next-filter-spec filter-spec))
 
-        (request-table-data table-data-resource
-                            next-index
-                            next-index-type
-                            next-filter-spec
-                            nil
-                            next-sort-spec
-                            next-from
-                            next-size))
+        (go
+          (when-let [table-data (<! (fetch-table-data-fn next-index
+                                                         next-index-type
+                                                         next-filter-spec
+                                                         nil
+                                                         next-sort-spec
+                                                         next-from
+                                                         next-size))]
+            (om/update! table-state [:table-data] table-data))))
       )))

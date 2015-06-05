@@ -171,7 +171,7 @@
        :bounds bounds}))
 
 ;; tabular data
-(defn simple-table
+(def-lastcall-method-factory simple-table-factory
   [index type filter-spec bounds sort-spec from size & [type-ids]]
   (POST (str "/api/" api-prefix "/simple-table/" index "/" type "?" (map-json-params type-ids))
       {:filter filter-spec
