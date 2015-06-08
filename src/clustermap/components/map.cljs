@@ -232,7 +232,7 @@
 (defn update-geotag-markers
   [leaflet-map
    geotag-markers-atom
-   {:keys [icon-render-fn popup-render-fn geotag-data geotag-agg-data] :as geotag-agg-spec}
+   {:keys [show-at-zoom-fn icon-render-fn popup-render-fn geotag-data geotag-agg-data] :as geotag-agg-spec}
    points-showing]
   (let [geotags-by-tag (reduce (fn [m t] (assoc m (:tag t) t)) {} geotag-data)
         geotag-aggs-by-tag (reduce (fn [m a] (assoc m (:nested_attr a) a)) {} geotag-agg-data)
@@ -240,7 +240,13 @@
         markers @geotag-markers-atom
         marker-keys (-> markers keys set)
 
-        latest-marker-keys (if points-showing nil (-> geotag-aggs-by-tag keys set))
+        show-at-zoom-fn (or show-at-zoom-fn (constantly true))
+        zoom (.getZoom leaflet-map)
+
+        latest-marker-keys (if (or points-showing (not (show-at-zoom-fn zoom)))
+                             nil
+                             (-> geotag-aggs-by-tag keys set))
+
         update-marker-keys (set/intersection marker-keys latest-marker-keys)
         new-marker-keys (set/difference latest-marker-keys marker-keys)
         remove-marker-keys (set/difference marker-keys latest-marker-keys)
@@ -588,7 +594,9 @@
       (let [{:keys [comm fetch-boundarylines-fn point-in-boundarylines-fn]} (om/get-shared owner)
             {{:keys [leaflet-map leaflet-marker-cluster-group markers paths path-selections]} :map
              pan-pending :pan-pending
-             path-highlights :path-highlights} (om/get-state owner)]
+             path-highlights :path-highlights} (om/get-state owner)
+
+             zoom-changed (not= next-zoom zoom)]
 
         ;; apply any requested but not-yet-applied zoom
         (when (and leaflet-map next-zoom (not= next-zoom zoom) (not= next-zoom (.getZoom leaflet-map)))
@@ -691,6 +699,7 @@
 
         (when (or (not= (:geotag-data next-geotag-aggs) (:geotag-data geotag-aggs))
                   (not= (:geotag-agg-data next-geotag-aggs) (:geotag-agg-data geotag-aggs))
+                  zoom-changed
                   (not= next-point-data point-data))
           (update-geotag-markers leaflet-map
                                  next-geotag-markers
