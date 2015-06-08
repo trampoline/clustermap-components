@@ -1,6 +1,5 @@
 (ns clustermap.components.tag-histogram
-  (:require-macros [hiccups.core :as hiccups]
-                   [cljs.core.async.macros :refer [go]])
+  (:require-macros [cljs.core.async.macros :refer [go]])
   (:require
    [cljs.core.async :refer [<!]]
    [om.core :as om :include-macros true]
