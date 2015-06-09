@@ -5,7 +5,7 @@
    [clojure.string :as str]
    [goog.events :as events]
    [cljs.core.async :refer [pub chan <! put! sliding-buffer]]
-   [secretary.core :as secretary :include-macros true :refer [defroute]]
+   [secretary.core :as secretary :include-macros true]
    [om.core :as om :include-macros true]
    [om.dom :as dom :include-macros true]
    [schema.core :as s :refer-macros [with-fn-validation]]
