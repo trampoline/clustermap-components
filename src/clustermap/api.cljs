@@ -163,6 +163,14 @@
        :metric-path metric-path
        :metric-aggs metric-aggs}))
 
+(def-lastcall-method-factory geohash-grid-factory
+  [index-name index-type filter-spec bounds]
+  (POST (str "/api/" api-prefix "/geohash-grid")
+        {:index-name index-name
+         :index-type index-type
+         :filter-spec filter-spec
+         :bounds bounds}))
+
 (def-lastcall-method-factory count-matching-factory
   [index index-type filter-spec]
   (POST (str "/api/" api-prefix "/count-matching")
