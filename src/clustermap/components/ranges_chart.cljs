@@ -12,55 +12,13 @@
    [clustermap.formats.html :as htmlf]
    [clustermap.components.table-common :as tc]))
 
-(defn- render-table
-  [{{query :query
-     results :results
-     :as table-data} :table-data
-     {title :title
-      rows :rows
-      cols :cols
-      render-fn :render-fn
-      :as controls} :controls}
-   owner
-   opts]
-  (let [rowcol (->> results
-                    (map (fn [r] [[(:row r) (:col r)] r]))
-                    (into {}))
-        render-fn (or render-fn identity)]
-    ;; (.log js/console (clj->js ["ROWCOL" rowcol]))
-    (html
-
-     [:div
-      (when title [:h2 title])
-      [:div.table-responsive
-       [:table.table.table-outlined
-        [:thead
-         (->> (tc/column-header-rows cols {:insert-blank-col true}))]
-        [:tbody
-         (for [[row-i row] (map vector (iterate inc 1) rows)]
-           [:tr {:class (str "row-" row-i)}
-            [:td {:class "col-1"} (:label row)]
-            (for [[col-i col] (map vector (iterate inc 2) cols)]
-              (do
-                ;; (.log js/console (clj->js (get rowcol [(:key row-range) (:key col-range)])))
-                [:td {:class (htmlf/combine-classes (str "col-" col-i) (:class col))}
-                 (when (and (:key row) (:key col))
-                   (some->> [(:key row) (:key col)]
-                            (get rowcol)
-                            :metric
-                            render-fn))])
-              )])]
-        ]]])
-
-    ))
-
-
 (defn create-chart
   [node
    {{query :query
      results :results
      :as table-data} :table-data
      {title :title
+      color :color
       x-axis :cols
       y-axis :rows
       render-fn :render-fn
@@ -86,6 +44,7 @@
 
                :series (for [[ya i] (map vector  y-axis (iterate inc 0))]
                          {:name (:label ya)
+                          :color color
                           :yAxis i
                           :data (get x-series-by-y (:key ya))})
                }]
@@ -148,9 +107,7 @@
 
   (render
    [_]
-   (html [:div {:ref "ranges-chart"}])
-   ;; (render-table table-state owner {})
-   )
+   (html [:div {:ref "ranges-chart"}]))
 
   (will-update
    [_

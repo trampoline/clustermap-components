@@ -19,7 +19,7 @@
         :else [x]))
 
 (defn create-chart
-  [node {:keys [metrics]} records {:keys [y0-title y1-title] :as opts}]
+  [node {{:keys [metrics]} :query color :color records :timeline-data} {:keys [y0-title y1-title] :as opts}]
   (.log js/console (clj->js ["TIMELINE: " records]))
   (let [x-labels (->> records (map :timeline) (map #(js/Date. %)) (map #(.getYear %)) (map #(+ 1900 %)))
 
@@ -53,6 +53,7 @@
            :series (for [y ys]
                      {:name (:title y)
                       :type (or (:type y) "line")
+                      :color color
                       :yAxis 0
                       :data (:records y)})})))))
 
@@ -122,4 +123,4 @@
     _]
    (when (or (not= prev-timeline-data timeline-data)
              (not= prev-query query))
-     (create-chart  (om/get-node owner "chart") query timeline-data opts))))
+     (create-chart  (om/get-node owner "chart") timeline-chart opts))))

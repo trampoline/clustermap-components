@@ -18,7 +18,7 @@
         :else [x]))
 
 (defn create-chart
-  [node {:keys [] :as query} metrics tag-data tag-agg-data {:keys [y0-title y1-title] :as opts}]
+  [node {:keys [query metrics bar-width bar-color tag-data tag-agg-data]} {:keys [y0-title y1-title] :as opts}]
   (.log js/console (clj->js ["TAG-HISTOGRAM-TAG-DATA: " tag-data]))
   (.log js/console (clj->js ["TAG-HISTOGRAM-TAG-AGG-DATA: " tag-agg-data]))
   (let [tags-by-tag (group-by :tag tag-data)
@@ -56,7 +56,8 @@
          (clj->js
           {:chart {:type "bar"
                    :width nil
-                   :height 300}
+                   :height nil
+                   }
            :title {:text nil}
 
            :xAxis {:categories x-labels
@@ -70,6 +71,8 @@
            :series (for [[y i] (map vector ys (iterate inc 0))]
                      {:name (:title y)
                       :yAxis i
+                      :color bar-color
+                      :pointWidth (or bar-width 10)
                       :data (:records y)})})))
     ))
 
@@ -158,4 +161,4 @@
    (when (or (not= prev-metrics metrics)
              (not= prev-tag-data tag-data)
              (not= prev-tag-agg-data tag-agg-data))
-     (create-chart  (om/get-node owner "chart") query metrics tag-data tag-agg-data opts))))
+     (create-chart  (om/get-node owner "chart") tag-histogram opts))))
