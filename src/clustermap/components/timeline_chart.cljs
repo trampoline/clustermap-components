@@ -50,6 +50,8 @@
                     :labels {:formatter (fn [] (this-as this (money/readable (.-value this) :sf 3 :curr "")))}
                     }]
 
+           :tooltip {:valueDecimals 0}
+
            :series (for [y ys]
                      {:name (:title y)
                       :type (or (:type y) "line")

@@ -42,6 +42,8 @@
                :yAxis (for [[ya i] (map vector y-axis (iterate inc 0))]
                         {:title (:label ya)})
 
+               :tooltip {:valueDecimals 0}
+
                :series (for [[ya i] (map vector  y-axis (iterate inc 0))]
                          {:name (:label ya)
                           :color color
