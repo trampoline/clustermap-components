@@ -17,7 +17,7 @@
 (defn stand-out-color
   [col]
   (let [[r g b] (rgb col)
-        lightness (js/Math.ceil (js/Math.pow js/Math.E (/ (js/Math.log (* r g b)) 3.0)))
-        standout (- 255 lightness)
-        hex (if (< standout 16) (str "0" (.toString standout 16)) (.toString standout 16))]
-    (str "#" hex hex hex)))
+        lightness (js/Math.ceil (js/Math.pow js/Math.E (/ (js/Math.log (* r g b)) 3.0)))]
+    (if (>= lightness 128)
+      "#000000"
+      "#ffffff")))
