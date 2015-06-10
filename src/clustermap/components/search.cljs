@@ -59,6 +59,7 @@
     (when-let [r (some #{cr} results)]
       (js/console.log (clj->js r))
       (when click-fn
+        (swap! state assoc :open false)
         (click-fn r)))))
 
 (defnk key-down [[:data [:search [:controls search-fn render-fn click-fn]
@@ -72,7 +73,7 @@
     ENTER_KEY (choose-result m)
     UP_ARROW (select-prev-result m)
     DOWN_ARROW (select-next-result m)
-    nil))
+    (swap! state assoc :open true)))
 
 (defnk render*
   [[:data [:search [:controls search-fn col-headers render-fn click-fn]
@@ -94,6 +95,7 @@
                             nil)
              :on-change (fn [e] (let [v (.. e -target -value)]
                                   (search-for state search search-fn v)))}]
+
     (when (and (:open @state)
                (not-empty results))
       [:div.search-results
@@ -106,7 +108,9 @@
                                    :href "#"
                                    :on-click (fn [e]
                                                (.preventDefault e)
-                                               (when click-fn (click-fn r)))}]
+                                               (when click-fn
+                                                 (swap! state assoc :open false)
+                                                 (click-fn r)))}]
                               (when render-fn (make-sequential (render-fn r))))])))])]))
 
 (def SearchComponentSchema
