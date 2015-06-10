@@ -86,11 +86,11 @@
     (let [row
           (into [:tr]
                 (for [col columns]
-                  (let [{:keys [key label render-fn]} col
+                  (let [{:keys [key label right-align render-fn]} col
                         render-fn (or render-fn identity)]
                     ;; (.log js/console (clj->js [col-key col-name]))
                     ;; (.log js/console (clj->js ["KEYS" col-key (type col-key) col-name (type col-name) (get record col-key)]))
-                    [:td (render-fn (get record key) record)])))
+                    [:td {:class (when right-align "text-right")} (render-fn (get record key) record)])))
           ;; _ (.log js/console (clj->js ["ROW" columns record row]))
           ]
       row))))
