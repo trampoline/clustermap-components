@@ -88,16 +88,78 @@
   "format a human readable number, with commas between groups of thousands
    :dec - number of decimal places
    :plus? - include a leading + for positive numbers
-   :default - default result when (nil? n)"
-  [n & {:keys [dec plus? default]}]
-  (if (and (number? n) (not (js/isNaN n)))
-    (let [abs-n (js/Math.abs n)
-          round-n (round-decimal abs-n dec)
-          round-n-str (str round-n)
-          [i-str d-str] (str/split round-n-str #"\.")
-          t-str (split-thousands i-str)
-          t-dec-str (str/join "." (filter identity [t-str d-str]))]
-      (prefix-sign t-dec-str n plus?))
-    default))
+   :curr - optional currency symbol
+  :default - default result when (nil? n)"
+  ([n] (readable n nil))
+  ([n {:keys [dec plus? curr default] :or {dec 0 plus? false curr "" default ""}}]
+   (if (and (number? n) (not (js/isNaN n)))
+     (let [abs-n (js/Math.abs n)
+           round-n (round-decimal abs-n dec)
+           round-n-str (str round-n)
+           [i-str d-str] (str/split round-n-str #"\.")
+           t-str (split-thousands i-str)
+           t-dec-str (str/join "." (filter identity [t-str d-str]))]
+       (apply str (filter identity
+                          [(cond (and plus? (> n 0)) "+"
+                                 (< n 0) "-")
+                           curr
+                           t-dec-str])))
+     default)))
 
 (def fnum readable)
+
+(def ^:private eng-suffixes
+  {0 ""
+   3 "k"
+   6 "m"
+   9 "bn"
+   12 "tn"})
+
+(defn- eng-suffix
+  "take an exponent and return a suffix"
+  [exp]
+  (or (eng-suffixes exp) (str "x10^" exp)))
+
+(defn eng-readable
+  ([n] (eng-readable n nil))
+  ([n {:keys [default plus? curr sf] :or {default "" plus? false curr "" sf 3}}]
+   (if (and (number? n) (not (js/isNaN n)))
+
+     (let [[sig exp] (eng-notation n :sf sf)
+           abs-sig (js/Math.abs sig)
+           suffix (eng-suffix exp)]
+       (apply str (filter identity
+                          [(cond (and plus? (> sig 0)) "+"
+                                 (< sig 0) "-")
+                           curr
+                           abs-sig
+                           suffix])))
+
+     default)))
+
+
+(defn mixed
+  "format a number with mixed format, showing decimal places below threshold and eng notation after
+   :default - default result when (nil? n) or NaN
+
+   :plus? - use a plus prefix for +ve amounts
+   :curr - optional currency symbol
+
+   :dec - number of decimal places (below threshold)
+   :threshold - default 1000000
+
+   :sf - number of significant figures (above threshold)"
+  ([n] (mixed n nil))
+  ([n {:keys [default plus? curr dec threshold sf] :or {default "" plus? false curr "" dec 0 threshold 1000000 sf 3} :as opts}]
+   (if (and (number? n) (not (js/isNaN n)))
+
+     (if (< n threshold)
+       (readable n opts)
+       (eng-readable n opts))
+
+     default)))
+
+(defn compact
+  ([n] (compact n nil))
+  ([n opts]
+   (mixed n (merge {:sf 3 :threshold 100} opts ))))
