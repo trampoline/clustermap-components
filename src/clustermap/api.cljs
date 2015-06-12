@@ -1,7 +1,8 @@
 (ns clustermap.api
   (:require-macros
-   [clustermap.lastcall-method :refer [def-lastcall-method def-lastcall-method-factory]]
-   [cljs.core.async.macros :refer [go]])
+   [clustermap.lastcall-method :refer [def-lastcall-method def-lastcall-method-factory defnk-lastcall-method-factory]]
+   [cljs.core.async.macros :refer [go]]
+   plumbing.core)
   (:require
    [clojure.string :as str]
    [cljs.core.async :as async :refer [<! chan close! put! sliding-buffer to-chan]]
@@ -163,13 +164,12 @@
        :metric-path metric-path
        :metric-aggs metric-aggs}))
 
-(def-lastcall-method-factory geohash-grid-factory
-  [index-name index-type filter-spec bounds]
+(defnk-lastcall-method-factory geohash-grid-factory
+  "LOOK AT ME : this is the way to do it, with defnk... check out the server-side too
+   clustermap.datasets.companies.web-geohash"
+  [index-name index-type filter-spec bounds geo-point-field precision :as args]
   (POST (str "/api/" api-prefix "/geohash-grid")
-        {:index-name index-name
-         :index-type index-type
-         :filter-spec filter-spec
-         :bounds bounds}))
+        args))
 
 (def-lastcall-method-factory count-matching-factory
   [index index-type filter-spec]
