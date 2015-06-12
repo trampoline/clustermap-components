@@ -88,6 +88,7 @@
      :leaflet-marker-cluster-group lmcg
      :markers (atom {})
      :geotag-markers (atom {})
+     :geohash-markers (atom {})
      :paths (atom {})
      :path-selections (atom #{})}))
 
@@ -189,7 +190,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn render-popup-content
+(defn render-geotag-marker-popup-content
   [click-handler-key content]
   (hiccups/html
    (if click-handler-key
@@ -207,7 +208,7 @@
         leaflet-marker (js/L.marker latlong (clj->js {:icon icon}) )
         popup (js/L.popup (clj->js {:autoPan false}))
         click-handler-key (when click-fn (register-event-handler (partial click-fn geotag geotag-agg)))]
-    (.setContent popup (render-popup-content click-handler-key (popup-render-fn geotag geotag-agg)))
+    (.setContent popup (render-geotag-marker-popup-content click-handler-key (popup-render-fn geotag geotag-agg)))
     (.bindPopup leaflet-marker popup)
     (.addTo leaflet-marker leaflet-map)
     {:leaflet-marker leaflet-marker
@@ -224,7 +225,7 @@
         new-click-handler-key (when click-fn (register-event-handler (partial click-fn geotag geotag-agg)))]
     (when click-handler-key (remove-event-handler click-handler-key))
     (.setIcon leaflet-marker icon)
-    (.setContent popup (render-popup-content new-click-handler-key (popup-render-fn geotag geotag-agg)))
+    (.setContent popup (render-geotag-marker-popup-content new-click-handler-key (popup-render-fn geotag geotag-agg)))
     (.bindPopup leaflet-marker popup)
     (assoc marker :click-handler-key new-click-handler-key))
   marker)
@@ -233,7 +234,7 @@
   [leaflet-map
    geotag-markers-atom
    {:keys [show-at-zoom-fn icon-render-fn popup-render-fn geotag-data geotag-agg-data] :as geotag-agg-spec}
-   points-showing]
+   points-showing?]
   (let [geotags-by-tag (reduce (fn [m t] (assoc m (:tag t) t)) {} geotag-data)
         geotag-aggs-by-tag (reduce (fn [m a] (assoc m (:nested_attr a) a)) {} geotag-agg-data)
 
@@ -243,7 +244,7 @@
         show-at-zoom-fn (or show-at-zoom-fn (constantly true))
         zoom (.getZoom leaflet-map)
 
-        latest-marker-keys (if (or points-showing (not (show-at-zoom-fn zoom)))
+        latest-marker-keys (if (or points-showing? (not (show-at-zoom-fn zoom)))
                              nil
                              (-> geotag-aggs-by-tag keys set))
 
@@ -251,11 +252,11 @@
         new-marker-keys (set/difference latest-marker-keys marker-keys)
         remove-marker-keys (set/difference marker-keys latest-marker-keys)
 
-        _ (.log js/console (clj->js {:geotag-aggs geotag-agg-spec
-                                     :latest-marker-keys latest-marker-keys
-                                     :update-marker-keys update-marker-keys
-                                     :new-marker-keys new-marker-keys
-                                     :remove-marker-keys remove-marker-keys}))
+        ;; _ (.log js/console (clj->js {:geotag-aggs geotag-agg-spec
+        ;;                              :latest-marker-keys latest-marker-keys
+        ;;                              :update-marker-keys update-marker-keys
+        ;;                              :new-marker-keys new-marker-keys
+        ;;                              :remove-marker-keys remove-marker-keys}))
 
         new-markers (->> new-marker-keys
                          (map (fn [k] [k (create-geotag-marker leaflet-map geotag-agg-spec (get geotags-by-tag k) (get geotag-aggs-by-tag k))]))
@@ -269,6 +270,86 @@
 
 
     (reset! geotag-markers-atom (merge updated-markers new-markers))
+    ))
+
+
+(defn render-geohash-marker-popup-content
+  [click-handler-key content]
+  (hiccups/html
+   (if click-handler-key
+     [:div {:data-onclick-id click-handler-key} content]
+     content)))
+
+(defn geohash-center-point
+  "we get bounds for the points contained in the geohash area, so take the
+   center point as the marker point"
+  [{:keys [bounds] :as geohash-agg}]
+  (let [[[south west] [north east]] bounds]
+   [(/ (+ south north) 2) (/ (+ west east) 2)]))
+
+(defn create-geohash-marker
+  [leaflet-map {:keys [icon-render-fn popup-render-fn click-fn] :as geohash-agg-spec} geohash-agg]
+  (let [latlong (clj->js (geohash-center-point geohash-agg))
+        icon (js/L.divIcon (clj->js {:className "icon-marker-multiple"
+                                     :iconSize [24,32]
+                                     :iconAnchor [12 16]
+                                     :popupAnchor [0, -8]
+                                     :html (hiccups/html (icon-render-fn geohash-agg))}))
+        leaflet-marker (js/L.marker latlong (clj->js {:icon icon}) )
+        popup (js/L.popup (clj->js {:autoPan false}))
+        click-handler-key (when click-fn (register-event-handler (partial click-fn geohash-agg)))]
+    (.setContent popup (render-geohash-marker-popup-content click-handler-key (popup-render-fn geohash-agg)))
+    (.bindPopup leaflet-marker popup)
+    (.addTo leaflet-marker leaflet-map)
+    {:leaflet-marker leaflet-marker
+     :click-handler-key click-handler-key}))
+
+(defn update-geohash-marker
+  [leaflet-map {:keys [icon-render-fn popup-render-fn click-fn] :as geohash-agg-spec} {:keys [leaflet-marker click-handler-key] :as marker} geohash-agg]
+  (let [icon (js/L.divIcon (clj->js {:className "icon-marker-multiple"
+                                     :iconSize [24,32]
+                                     :iconAnchor [12 16]
+                                     :popupAnchor [0, -8]
+                                     :html (hiccups/html (icon-render-fn geohash-agg ))}))
+        popup (js/L.popup (clj->js {:autoPan false}))
+        new-click-handler-key (when click-fn (register-event-handler (partial click-fn geohash-agg)))]
+    (when click-handler-key (remove-event-handler click-handler-key))
+    (.setIcon leaflet-marker icon)
+    (.setContent popup (render-geohash-marker-popup-content new-click-handler-key (popup-render-fn geohash-agg)))
+    (.bindPopup leaflet-marker popup)
+    (assoc marker :click-handler-key new-click-handler-key))
+  marker)
+
+(defn update-geohash-markers
+  [leaflet-map
+   geohash-markers-atom
+   {:keys [show-at-zoom-fn icon-render-fn geohash-agg-data]:as geohash-agg-spec}
+   points-showing?]
+  (let [geohash-aggs-by-geohash (into {} (map (fn [gha] [(:geohash-grid gha) gha]) geohash-agg-data))
+
+        markers @geohash-markers-atom
+        marker-keys (-> markers keys set)
+
+        show-at-zoom-fn (or show-at-zoom-fn (constantly true))
+        zoom (.getZoom leaflet-map)
+
+        latest-marker-keys (when (or (not points-showing?) (show-at-zoom-fn zoom))
+                             (-> geohash-aggs-by-geohash keys set))
+
+        update-marker-keys (set/intersection marker-keys latest-marker-keys)
+        new-marker-keys (set/difference latest-marker-keys marker-keys)
+        remove-marker-keys (set/difference marker-keys latest-marker-keys)
+
+        new-markers (->> new-marker-keys
+                         (map (fn [k] [k (create-geohash-marker leaflet-map geohash-agg-spec (get geohash-aggs-by-geohash k))]))
+                         (into {}))
+        updated-markers (->> update-marker-keys
+                             (map (fn [k] [k (update-geohash-marker leaflet-map geohash-agg-spec (get markers k) (get geohash-aggs-by-geohash k))]))
+                             (into {}))
+
+        _ (doseq [k remove-marker-keys] (remove-marker leaflet-map nil (get markers k)))        ]
+
+    (reset! geohash-markers-atom (merge updated-markers new-markers))
     ))
 
 ;; path-utilities
@@ -462,7 +543,8 @@
              colorchooser
              boundaryline-agg
              threshold-colors
-             geotag-aggs] :as controls} :controls :as cursor} :map-state
+             geotag-aggs
+             geohash-aggs] :as controls} :controls :as cursor} :map-state
      filter-spec :filter-spec
      filter :filter
      :as cursor-data}
@@ -555,6 +637,7 @@
         (om/set-state! owner :fetch-point-data-fn (api/location-lists-factory))
         (om/set-state! owner :fetch-geotag-data-fn (api/geotags-of-type-factory))
         (om/set-state! owner :fetch-geotag-agg-data-fn (api/nested-aggregation-factory))
+        (om/set-state! owner :fetch-geohash-agg-data-fn (api/geohash-grid-factory))
 
         ))
 
@@ -574,7 +657,8 @@
                      next-colorchooser :colorchooser
                      next-boundaryline-agg :boundaryline-agg
                      next-threshold-colors :threshold-colors
-                     next-geotag-aggs :geotag-aggs} :controls
+                     next-geotag-aggs :geotag-aggs
+                     next-geohash-aggs :geohash-aggs} :controls
                     :as next-cursor
                     } :map-state
                       next-filter :filter
@@ -582,6 +666,7 @@
                       :as next-cursor-data}
                   {{next-markers :markers
                     next-geotag-markers :geotag-markers
+                    next-geohash-markers :geohash-markers
                     next-paths :paths
                     next-path-selections :path-selections} :map
                     next-path-highlights :path-highlights
@@ -589,6 +674,7 @@
                     fetch-point-data-fn :fetch-point-data-fn
                     fetch-geotag-data-fn :fetch-geotag-data-fn
                     fetch-geotag-agg-data-fn :fetch-geotag-agg-data-fn
+                    fetch-geohash-agg-data-fn :fetch-geohash-agg-data-fn
                     }]
 
       (let [{:keys [comm fetch-boundarylines-fn point-in-boundarylines-fn]} (om/get-shared owner)
@@ -657,6 +743,19 @@
                                             (merge (:query next-geotag-aggs) {:filter-spec next-filter})))]
               (om/update! cursor [:controls :geotag-aggs :geotag-agg-data] (:records geotag-agg-data)))))
 
+        (when (and next-bounds
+                   next-geohash-aggs
+                   (or (not (:geohash-agg-data next-geohash-aggs))
+                       (not= next-filter filter)
+                       (not= next-bounds bounds)))
+          (go
+            (when-let [geohash-agg-data (<! (fetch-geohash-agg-data-fn
+                                             (merge (:query next-geohash-aggs)
+                                                    {:filter-spec next-filter
+                                                     :bounds next-bounds
+                                                     :precision ((:precision-fn next-geohash-aggs) next-zoom)})))]
+              (om/update! cursor [:controls :geohash-aggs :geohash-agg-data] (:records geohash-agg-data)))))
+
         (when (and next-colorchooser
                    next-data
                    (or (not= next-data data)
@@ -705,6 +804,14 @@
                                  next-geotag-markers
                                  next-geotag-aggs
                                  (not-empty (:records next-point-data))))
+
+        (when (or (not= (:geohash-agg-data next-geohash-aggs) (:geohash-agg-data geohash-aggs))
+                  zoom-changed
+                  (not= next-point-data point-data))
+          (update-geohash-markers leaflet-map
+                                  next-geohash-markers
+                                  next-geohash-aggs
+                                  (not-empty (:records next-point-data))))
 
         ))
 
