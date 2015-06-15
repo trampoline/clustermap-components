@@ -338,10 +338,12 @@
 
 (defn update-geohash-marker
   [leaflet-map {:keys [icon-render-fn popup-render-fn click-fn] :as geohash-agg-spec} {:keys [leaflet-marker click-handler-key] :as marker} geohash-agg]
-  (let [icon (render-geohash-icon geohash-agg-spec geohash-agg)
+  (let [latlong (clj->js (geohash-center-point geohash-agg))
+        icon (render-geohash-icon geohash-agg-spec geohash-agg)
         ;; popup (js/L.popup (clj->js {:autoPan false}))
         new-click-handler-key (when click-fn (register-event-handler (partial click-fn geohash-agg)))]
     (when click-handler-key (remove-event-handler click-handler-key))
+    (.setLatLng leaflet-marker latlong)
     (.setIcon leaflet-marker icon)
     ;; (.setContent popup (render-geohash-marker-popup-content new-click-handler-key (popup-render-fn geohash-agg)))
     ;; (.bindPopup leaflet-marker popup)
@@ -408,7 +410,7 @@
         true                       (.setStyle leaflet-path (clj->js {:color "#8c2d04" :fillColor fill-color :weight 1 :opacity 0 :fill false :fillOpacity 0}))))
 
 (defn create-path
-  [comm leaflet-map boundaryline-id js-boundaryline {:keys [selected] :as path-attrs} & [{:keys [filter-spec] :as opts}]]
+  [comm leaflet-map boundaryline-id js-boundaryline {:keys [selected] :as path-attrs} & [{:keys [filter-spec path-marker-click-fn] :as opts}]]
   (let [tolerance (aget js-boundaryline "tolerance")
         bounds (postgis-envelope->latlngbounds (aget js-boundaryline "envelope"))
         leaflet-path (js/L.geoJson (aget js-boundaryline "geojson"))
@@ -416,14 +418,10 @@
     (style-leaflet-path leaflet-path path-attrs)
     (.addTo leaflet-path leaflet-map)
     (.bindPopup leaflet-path popup-content)
-    (.on leaflet-path "click" (fn [e]
-                                (when filter-spec
-                                  (om/update! filter-spec [:components :boundaryline]
-                                              {:nested {:path "?boundarylines"
-                                                        :filter {:term {"boundaryline_id" boundaryline-id}}}}))
 
-                                (put! comm {:type :clustermap.components.map/path-click
-                                            :id boundaryline-id})))
+    (.on leaflet-path "dblclick" (fn [e]
+                                   (when path-marker-click-fn
+                                     (path-marker-click-fn boundaryline-id))))
 
     {:id boundaryline-id
      :tolerance tolerance
@@ -459,7 +457,7 @@
   (.removeLayer leaflet-map (:leaflet-path path)))
 
 (defn update-paths
-  [comm fetch-boundarylines-fn leaflet-map paths-atom path-selections-atom new-path-highlights new-selection-paths & [{:keys [filter-spec] :as opts}]]
+  [comm fetch-boundarylines-fn leaflet-map paths-atom path-selections-atom new-path-highlights new-selection-paths & [{:keys [filter-spec path-marker-click-fn] :as opts}]]
   (let [paths @paths-atom
         path-keys (-> paths keys set)
 
@@ -705,7 +703,7 @@
                     fetch-geohash-agg-data-fn :fetch-geohash-agg-data-fn
                     }]
 
-      (let [{:keys [comm fetch-boundarylines-fn point-in-boundarylines-fn]} (om/get-shared owner)
+      (let [{:keys [comm fetch-boundarylines-fn point-in-boundarylines-fn path-marker-click-fn]} (om/get-shared owner)
             {{:keys [leaflet-map leaflet-marker-cluster-group markers paths path-selections]} :map
              pan-pending :pan-pending
              path-highlights :path-highlights} (om/get-state owner)
@@ -811,7 +809,8 @@
                                                              next-path-selections
                                                              next-path-highlights
                                                              selection-path-colours
-                                                             {:filter-spec next-filter-spec}))]
+                                                             {:filter-spec next-filter-spec
+                                                              :path-marker-click-fn path-marker-click-fn}))]
 
             (when (not= new-threshold-colors next-threshold-colors)
               (om/update! cursor [:controls :threshold-colors] new-threshold-colors))
