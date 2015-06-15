@@ -420,6 +420,7 @@
     (.bindPopup leaflet-path popup-content)
 
     (.on leaflet-path "dblclick" (fn [e]
+                                   (.fitBounds leaflet-map (.getBounds leaflet-path))
                                    (when path-marker-click-fn
                                      (path-marker-click-fn boundaryline-id))))
 
