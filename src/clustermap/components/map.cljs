@@ -11,6 +11,7 @@
    [sablono.core :as html :refer-macros [html]]
    [hiccups.runtime :as hiccupsrt]
    [clustermap.api :as api]
+   [clustermap.formats.number :as num :refer [div! *! -! +!]]
    [clustermap.boundarylines :as bl]
    [clustermap.data.colorchooser :as colorchooser]))
 
@@ -102,6 +103,20 @@
                                (rest all-bounds))]
       (.fitBounds m super-bounds))))
 
+(defn render-marker-icon
+  [location-sites]
+  (if (> (count location-sites) 1)
+    (js/L.divIcon (clj->js {:className "icon-marker-multiple"
+                            :iconSize [26,32]
+                            :iconAnchor [13 16]
+                            :popupAnchor [0, -8]
+                            :html (hiccups/html
+                                   [:div [:p (num/compact (count location-sites) {:sf 2})]])}))
+    (js/L.divIcon (clj->js {:className "icon-marker-single"
+                            :iconSize [20,32]
+                            :iconAnchor [10 16]
+                            :popupAnchor [0, -8] }))))
+
 (defn marker-popup-content
   [path-fn location-sites location-site-click-handler-keys]
   (hiccups/html
@@ -118,7 +133,7 @@
   [path-fn leaflet-map leaflet-marker-cluster-group location-sites {:keys [marker-click-fn]}]
   ;; extract the location-sites from the first record... they are all the same
   (if-let [latlong (some-> location-sites first :location reverse clj->js)]
-    (let [icon (js/L.divIcon (clj->js {:className "icon-marker-single" :iconSize [20,32] :iconAnchor [10 16] :popupAnchor [0, -8] })) ;;
+    (let [icon (render-marker-icon location-sites) ;;
           leaflet-marker (js/L.marker latlong (clj->js {:icon icon}) ) ;;
           popup (js/L.popup (clj->js {:autoPan false}))
           location-site-click-handler-keys (when marker-click-fn
@@ -141,15 +156,17 @@
       (remove-event-handler chk)))
 
 (defn update-marker
-  [path-fn leaflet-map leaflet-marker-cluster-group {:keys [leaflet-marker click-handler-key click-handler-keys] :as marker} location {:keys [marker-click-fn]}]
-  (let [popup (js/L.popup (clj->js {:autoPan false}))
+  [path-fn leaflet-map leaflet-marker-cluster-group {:keys [leaflet-marker click-handler-key click-handler-keys] :as marker} location-sites {:keys [marker-click-fn]}]
+  (let [icon (render-marker-icon location-sites)
+        popup (js/L.popup (clj->js {:autoPan false}))
         location-site-click-handler-keys (when marker-click-fn
-                                           (->> location
+                                           (->> location-sites
                                                 (map (fn [ls] [ls (register-event-handler (partial marker-click-fn ls))]))
                                                 (into {})))]
     (remove-marker-event-handlers marker)
 
-    (.setContent popup (marker-popup-content path-fn location location-site-click-handler-keys))
+    (.setIcon leaflet-marker icon)
+    (.setContent popup (marker-popup-content path-fn location-sites location-site-click-handler-keys))
     (.bindPopup leaflet-marker popup)
     (-> marker
         (dissoc :click-handler-key)
@@ -190,6 +207,17 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn render-geotag-icon
+  [{:keys [icon-render-fn] :as geotag-agg-spec} geotag geotag-agg]
+  (js/L.divIcon (clj->js {:className "agg-cluster"
+                          :iconSize [40,40]
+                          ;; :iconAnchor [20 20]
+                          :popupAnchor [0, -8]
+                          :html (hiccups/html
+                                 [:div.marker-cluster.marker-cluster-large
+                                  [:div (icon-render-fn geotag geotag-agg)]]
+                                 )})))
+
 (defn render-geotag-marker-popup-content
   [click-handler-key content]
   (hiccups/html
@@ -200,33 +228,25 @@
 (defn create-geotag-marker
   [leaflet-map {:keys [icon-render-fn popup-render-fn click-fn] :as geotag-agg-spec} geotag geotag-agg]
   (let [latlong (clj->js [(:latitude geotag) (:longitude geotag)])
-        icon (js/L.divIcon (clj->js {:className "icon-marker-multiple"
-                                     :iconSize [24,32]
-                                     :iconAnchor [12 16]
-                                     :popupAnchor [0, -8]
-                                     :html (hiccups/html (icon-render-fn geotag geotag-agg ))}))
+        icon (render-geotag-icon geotag-agg-spec geotag geotag-agg)
         leaflet-marker (js/L.marker latlong (clj->js {:icon icon}) )
-        popup (js/L.popup (clj->js {:autoPan false}))
+        ;; popup (js/L.popup (clj->js {:autoPan false}))
         click-handler-key (when click-fn (register-event-handler (partial click-fn geotag geotag-agg)))]
-    (.setContent popup (render-geotag-marker-popup-content click-handler-key (popup-render-fn geotag geotag-agg)))
-    (.bindPopup leaflet-marker popup)
+    ;; (.setContent popup (render-geotag-marker-popup-content click-handler-key (popup-render-fn geotag geotag-agg)))
+    ;; (.bindPopup leaflet-marker popup)
     (.addTo leaflet-marker leaflet-map)
     {:leaflet-marker leaflet-marker
      :click-handler-key click-handler-key}))
 
 (defn update-geotag-marker
-  [leaflet-map {:keys [icon-render-fn popup-render-fn click-fn] :as geotag-aggs} {:keys [leaflet-marker click-handler-key] :as marker} geotag geotag-agg]
-  (let [icon (js/L.divIcon (clj->js {:className "icon-marker-multiple"
-                                     :iconSize [24,32]
-                                     :iconAnchor [12 16]
-                                     :popupAnchor [0, -8]
-                                     :html (hiccups/html (icon-render-fn geotag geotag-agg ))}))
-        popup (js/L.popup (clj->js {:autoPan false}))
+  [leaflet-map {:keys [icon-render-fn popup-render-fn click-fn] :as geotag-agg-spec} {:keys [leaflet-marker click-handler-key] :as marker} geotag geotag-agg]
+  (let [icon (render-geotag-icon geotag-agg-spec geotag geotag-agg)
+        ;; popup (js/L.popup (clj->js {:autoPan false}))
         new-click-handler-key (when click-fn (register-event-handler (partial click-fn geotag geotag-agg)))]
     (when click-handler-key (remove-event-handler click-handler-key))
     (.setIcon leaflet-marker icon)
-    (.setContent popup (render-geotag-marker-popup-content new-click-handler-key (popup-render-fn geotag geotag-agg)))
-    (.bindPopup leaflet-marker popup)
+    ;; (.setContent popup (render-geotag-marker-popup-content new-click-handler-key (popup-render-fn geotag geotag-agg)))
+    ;; (.bindPopup leaflet-marker popup)
     (assoc marker :click-handler-key new-click-handler-key))
   marker)
 
@@ -272,13 +292,22 @@
     (reset! geotag-markers-atom (merge updated-markers new-markers))
     ))
 
+(defn render-geohash-icon
+  [{:keys [icon-render-fn] :as geohash-agg-spec} geohash-agg]
+  (js/L.divIcon (clj->js {:className "agg-cluster"
+                          :iconSize [40,40]
+                          ;; :iconAnchor [20 20]
+                          :popupAnchor [0, -8]
+                          :html (hiccups/html
+                                 [:div.marker-cluster.marker-cluster-large
+                                  [:div (icon-render-fn geohash-agg)]])})))
 
 (defn render-geohash-marker-popup-content
   [click-handler-key content]
   (hiccups/html
    (if click-handler-key
      [:div {:data-onclick-id click-handler-key} content]
-     content)))
+     [:div content])))
 
 (defn geohash-center-point
   "we get bounds for the points contained in the geohash area, so take the
@@ -290,33 +319,25 @@
 (defn create-geohash-marker
   [leaflet-map {:keys [icon-render-fn popup-render-fn click-fn] :as geohash-agg-spec} geohash-agg]
   (let [latlong (clj->js (geohash-center-point geohash-agg))
-        icon (js/L.divIcon (clj->js {:className "icon-marker-multiple"
-                                     :iconSize [24,32]
-                                     :iconAnchor [12 16]
-                                     :popupAnchor [0, -8]
-                                     :html (hiccups/html (icon-render-fn geohash-agg))}))
+        icon (render-geohash-icon geohash-agg-spec geohash-agg)
         leaflet-marker (js/L.marker latlong (clj->js {:icon icon}) )
-        popup (js/L.popup (clj->js {:autoPan false}))
+        ;; popup (js/L.popup (clj->js {:autoPan false}))
         click-handler-key (when click-fn (register-event-handler (partial click-fn geohash-agg)))]
-    (.setContent popup (render-geohash-marker-popup-content click-handler-key (popup-render-fn geohash-agg)))
-    (.bindPopup leaflet-marker popup)
+    ;; (.setContent popup (render-geohash-marker-popup-content click-handler-key (popup-render-fn geohash-agg)))
+    ;; (.bindPopup leaflet-marker popup)
     (.addTo leaflet-marker leaflet-map)
     {:leaflet-marker leaflet-marker
      :click-handler-key click-handler-key}))
 
 (defn update-geohash-marker
   [leaflet-map {:keys [icon-render-fn popup-render-fn click-fn] :as geohash-agg-spec} {:keys [leaflet-marker click-handler-key] :as marker} geohash-agg]
-  (let [icon (js/L.divIcon (clj->js {:className "icon-marker-multiple"
-                                     :iconSize [24,32]
-                                     :iconAnchor [12 16]
-                                     :popupAnchor [0, -8]
-                                     :html (hiccups/html (icon-render-fn geohash-agg ))}))
-        popup (js/L.popup (clj->js {:autoPan false}))
+  (let [icon (render-geohash-icon geohash-agg-spec geohash-agg)
+        ;; popup (js/L.popup (clj->js {:autoPan false}))
         new-click-handler-key (when click-fn (register-event-handler (partial click-fn geohash-agg)))]
     (when click-handler-key (remove-event-handler click-handler-key))
     (.setIcon leaflet-marker icon)
-    (.setContent popup (render-geohash-marker-popup-content new-click-handler-key (popup-render-fn geohash-agg)))
-    (.bindPopup leaflet-marker popup)
+    ;; (.setContent popup (render-geohash-marker-popup-content new-click-handler-key (popup-render-fn geohash-agg)))
+    ;; (.bindPopup leaflet-marker popup)
     (assoc marker :click-handler-key new-click-handler-key))
   marker)
 
@@ -333,7 +354,7 @@
         show-at-zoom-fn (or show-at-zoom-fn (constantly true))
         zoom (.getZoom leaflet-map)
 
-        latest-marker-keys (when (or (not points-showing?) (show-at-zoom-fn zoom))
+        latest-marker-keys (when (and (not points-showing?) (show-at-zoom-fn zoom))
                              (-> geohash-aggs-by-geohash keys set))
 
         update-marker-keys (set/intersection marker-keys latest-marker-keys)
