@@ -756,6 +756,8 @@
               (om/update! cursor [:controls :geotag-aggs :geotag-data] geotag-data))))
 
         (when (and next-geotag-aggs
+                   (:show-at-zoom-fn next-geotag-aggs)
+                   ((:show-at-zoom-fn next-geotag-aggs) next-zoom)
                    (or (not (:geotag-agg-data next-geotag-aggs))
                        (not= next-filter filter)
                        (not= next-bounds bounds)))
@@ -766,6 +768,8 @@
 
         (when (and next-bounds
                    next-geohash-aggs
+                   (:show-at-zoom-fn next-geohash-aggs)
+                   ((:show-at-zoom-fn next-geohash-aggs) next-zoom)
                    (or (not (:geohash-agg-data next-geohash-aggs))
                        (not= next-filter filter)
                        (not= next-bounds bounds)))
