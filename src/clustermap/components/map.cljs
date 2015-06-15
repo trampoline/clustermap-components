@@ -140,6 +140,9 @@
                                              (->> location-sites
                                                   (map (fn [ls] [ls (register-event-handler (partial marker-click-fn ls))]))
                                                   (into {})))]
+
+      (.on leaflet-marker "mouseover" (fn [e] (.openPopup leaflet-marker)))
+
       ;; (.log js/console popup-content)
       (.setContent popup (marker-popup-content path-fn location-sites location-site-click-handler-keys))
       (.bindPopup leaflet-marker popup)
