@@ -237,6 +237,8 @@
         click-handler-key (when click-fn (register-event-handler (partial click-fn geotag geotag-agg)))]
     ;; (.setContent popup (render-geotag-marker-popup-content click-handler-key (popup-render-fn geotag geotag-agg)))
     ;; (.bindPopup leaflet-marker popup)
+    (.on leaflet-marker "click" (fn [e]
+                                  (.setView leaflet-map latlong (inc (.getZoom leaflet-map)))))
     (.addTo leaflet-marker leaflet-map)
     {:leaflet-marker leaflet-marker
      :click-handler-key click-handler-key}))
@@ -328,6 +330,8 @@
         click-handler-key (when click-fn (register-event-handler (partial click-fn geohash-agg)))]
     ;; (.setContent popup (render-geohash-marker-popup-content click-handler-key (popup-render-fn geohash-agg)))
     ;; (.bindPopup leaflet-marker popup)
+    (.on leaflet-marker "click" (fn [e]
+                                  (.setView leaflet-map latlong (inc (.getZoom leaflet-map)))))
     (.addTo leaflet-marker leaflet-map)
     {:leaflet-marker leaflet-marker
      :click-handler-key click-handler-key}))
