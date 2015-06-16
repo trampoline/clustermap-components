@@ -45,6 +45,19 @@
       (js/Math.round (* 100 (/ l logmax))))
     0))
 
+(defn table-percent-scale
+  "return a % representing the size of a number
+   - table a seq of values representing ticks on the scale
+   - n : any number"
+  [table n]
+  (let [cnt (count table)
+        i-table (keep-indexed vector table)
+        i (or (some
+               (fn [[i v]] (when (<= n v) i))
+               i-table)
+              cnt)]
+    (js/Math.round (* 100 (/ i cnt)))))
+
 (defn- prefix-sign
   [n-str n plus?]
   (cond
