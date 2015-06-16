@@ -38,10 +38,12 @@
    - n : any number
    returns an integer in the range 0-100"
   [logmax n]
-  (let [n (max n 0)
-        l (/ (js/Math.log n) (js/Math.log 10))
-        l (min l logmax)]
-    (js/Math.round (* 100 (/ l logmax)))))
+  (if (and n (> n 0))
+    (let [n (max n 0)
+          l (/ (js/Math.log n) (js/Math.log 10))
+          l (min l logmax)]
+      (js/Math.round (* 100 (/ l logmax))))
+    0))
 
 (defn- prefix-sign
   [n-str n plus?]
