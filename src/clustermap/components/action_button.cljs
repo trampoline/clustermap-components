@@ -3,8 +3,7 @@
             [om-tools.core :refer-macros [defcomponentk]]
             [plumbing.core :refer [assoc-when]]
             [schema.core :as s]
-            [sablono.core :as html :refer-macros [html]]
-            [clustermap.app :refer [navigate]]))
+            [sablono.core :as html :refer-macros [html]]))
 
 (def ActionButtonSchema
   {:action-button {:text s/Str
