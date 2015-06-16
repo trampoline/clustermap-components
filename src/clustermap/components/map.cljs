@@ -103,23 +103,19 @@
                                (rest all-bounds))]
       (.fitBounds m super-bounds))))
 
-(defn render-minichart
-  [location-site]
-  )
-
 (defn render-marker-icon
-  [marker-render-fn location-sites]
+  [{:keys [marker-render-fn] :as location-spec} location-sites]
   (if (> (count location-sites) 1)
     (js/L.divIcon (clj->js {:className "icon-marker-multiple"
                             :iconSize [26,32]
                             :iconAnchor [13 16]
                             :popupAnchor [0, -8]
-                            :html (marker-render-fn location-sites)}))
+                            :html (marker-render-fn location-sites location-spec)}))
     (js/L.divIcon (clj->js {:className "icon-marker-single"
                             :iconSize [20,32]
                             :iconAnchor [10 16]
                             :popupAnchor [0, -8]
-                            :html (marker-render-fn location-sites)}))))
+                            :html (marker-render-fn location-sites location-spec)}))))
 
 (defn marker-popup-content
   [item-render-fn location-sites location-site-click-handler-keys]
@@ -137,10 +133,10 @@
    leaflet-map
    leaflet-marker-cluster-group
    location-sites
-   {{:keys [marker-render-fn item-render-fn item-click-fn]} :location}]
+   {{:keys [marker-render-fn item-render-fn item-click-fn] :as location-spec} :location}]
   ;; extract the location-sites from the first record... they are all the same
   (if-let [latlong (some-> location-sites first :location reverse clj->js)]
-    (let [icon (render-marker-icon marker-render-fn location-sites) ;;
+    (let [icon (render-marker-icon location-spec location-sites) ;;
           leaflet-marker (js/L.marker latlong (clj->js {:icon icon}) ) ;;
           popup (js/L.popup (clj->js {:autoPan false}))
           location-site-click-handler-keys (when item-click-fn
@@ -173,8 +169,8 @@
    leaflet-marker-cluster-group
    {:keys [leaflet-marker click-handler-key click-handler-keys] :as marker}
    location-sites
-   {{:keys [marker-render-fn item-render-fn item-click-fn]} :location}]
-  (let [icon (render-marker-icon marker-render-fn location-sites)
+   {{:keys [marker-render-fn item-render-fn item-click-fn] :as location-spec} :location}]
+  (let [icon (render-marker-icon location-spec location-sites)
         popup (js/L.popup (clj->js {:autoPan false}))
         location-site-click-handler-keys (when item-click-fn
                                            (->> location-sites
@@ -586,6 +582,7 @@
              link-render-fn
              link-click-fn
              bounds zoom show-points
+             location
              boundaryline-collection
              colorchooser
              boundaryline-agg
@@ -843,7 +840,8 @@
               )))
 
         (when (or (not= next-show-points show-points)
-                  (not= next-point-data point-data))
+                  (not= next-point-data point-data)
+                  (not= next-location location))
 
           (update-markers link-render-fn
                           leaflet-map
