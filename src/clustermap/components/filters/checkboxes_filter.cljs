@@ -60,13 +60,13 @@
 (defn ^:private set-all
   "returns an updated filter-spec value with all checkboxes selected (doesn't update cursor)"
   [filter-spec
-   {:keys [id tags] :as component-spec}]
-  (set-filters-for-values filter-spec component-spec (map :value tags)))
+   {:keys [id options] :as component-spec}]
+  (set-filters-for-values filter-spec component-spec (map :value options)))
 
 (defn ^:private clear-all
   "returns an updated filter-spec value with all checkboxes cleared (doesn't update cursor)"
   [filter-spec
-   {:keys [id tags] :as component-spec}]
+   {:keys [id options] :as component-spec}]
   (set-filters-for-values filter-spec component-spec nil))
 
 (defnk ^:private render*
