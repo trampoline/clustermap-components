@@ -768,7 +768,7 @@
             (when-let [point-data (<! (fetch-point-data-fn (:index next-boundaryline-agg)
                                                            (:index-type next-boundaryline-agg)
                                                            "!postcode"
-                                                           ["?natural_id" "!name" "!location" "!latest_employee_count" "!latest_turnover"]
+                                                           ["?natural_id" "!name" "!location" "!latest_employee_count" "!latest_turnover" "!total_funding"]
                                                            1000
                                                            (om/-value next-filter)
                                                            (bounds-array (.getBounds leaflet-map))))]
