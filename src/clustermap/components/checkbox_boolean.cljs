@@ -1,5 +1,8 @@
 (ns clustermap.components.checkbox-boolean
   (:require [om.core :as om :include-macros true]
+            [om-tools.core :refer-macros [defcomponentk]]
+            [plumbing.core :refer [assoc-when]]
+            [schema.core :as s]
             [sablono.core :as html :refer-macros [html]]))
 
 (defn checkbox-boolean-component
