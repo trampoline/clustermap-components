@@ -32,6 +32,17 @@
        (js/Math.pow 10 dec-places))
     n))
 
+(defn log-percent-scale
+  "return a % representing the size of a +ve number compared to the scale max
+   - logmax : a power of 10
+   - n : any number
+   returns an integer in the range 0-100"
+  [logmax n]
+  (let [n (max n 0)
+        l (/ (js/Math.log n) (js/Math.log 10))
+        l (min l logmax)]
+    (js/Math.round (* 100 (/ l logmax)))))
+
 (defn- prefix-sign
   [n-str n plus?]
   (cond
