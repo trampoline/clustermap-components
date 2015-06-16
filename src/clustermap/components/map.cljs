@@ -154,7 +154,9 @@
       (.setContent popup (marker-popup-content item-render-fn location-sites location-site-click-handler-keys))
       (.bindPopup leaflet-marker popup)
       ;; (.addTo leaflet-marker leaflet-map)
-      (.addLayer leaflet-marker-cluster-group leaflet-marker)
+      (if leaflet-marker-cluster-group
+        (.addLayer leaflet-marker-cluster-group leaflet-marker)
+        (.addLayer leaflet-map leaflet-marker))
       {:leaflet-marker leaflet-marker
        :click-handler-keys (vals location-site-click-handler-keys)})
     (.log js/console (str "missing location: " (with-out-str (pr location-sites))))))
@@ -845,7 +847,7 @@
 
           (update-markers link-render-fn
                           leaflet-map
-                          leaflet-marker-cluster-group
+                          (when (:cluster next-location) leaflet-marker-cluster-group)
                           next-markers
                           next-show-points
                           (:records next-point-data)
