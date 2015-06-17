@@ -226,16 +226,25 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn marker-color-class
+  [n]
+  (condp = n
+    0 "marker-cluster-small"
+    1 "marker-cluster-medium"
+    2 "marker-cluster-large"
+    "marker-cluster-small"))
+
 (defn render-geotag-icon
-  [{:keys [icon-render-fn] :as geotag-agg-spec} geotag geotag-agg]
-  (js/L.divIcon (clj->js {:className "agg-cluster"
-                          :iconSize [40,40]
-                          ;; :iconAnchor [20 20]
-                          :popupAnchor [0, -8]
-                          :html (hiccups/html
-                                 [:div.marker-cluster.marker-cluster-large
-                                  [:div (icon-render-fn geotag geotag-agg)]]
-                                 )})))
+  [{:keys [icon-render-fn colorchooser-fn] :as geotag-agg-spec} geotag geotag-agg]
+  (let [color-value (colorchooser-fn geotag-agg)]
+    (js/L.divIcon (clj->js {:className "agg-cluster"
+                            :iconSize [40,40]
+                            ;; :iconAnchor [20 20]
+                            :popupAnchor [0, -8]
+                            :html (hiccups/html
+                                   [:div {:class (str "marker-cluster " (marker-color-class color-value))}
+                                    [:div (icon-render-fn geotag geotag-agg)]]
+                                   )}))))
 
 (defn render-geotag-marker-popup-content
   [click-handler-key content]
@@ -274,9 +283,14 @@
 (defn update-geotag-markers
   [leaflet-map
    geotag-markers-atom
-   {:keys [show-at-zoom-fn icon-render-fn popup-render-fn geotag-data geotag-agg-data] :as geotag-agg-spec}
+   {:keys [show-at-zoom-fn colorchooser-factory-fn icon-render-fn popup-render-fn geotag-data geotag-agg-data] :as geotag-agg-spec}
    points-showing?]
-  (let [geotags-by-tag (reduce (fn [m t] (assoc m (:tag t) t)) {} geotag-data)
+  (let [colorchooser-fn (if colorchooser-factory-fn
+                          (colorchooser-factory-fn geotag-agg-data)
+                          (constantly 1))
+        geotag-agg-spec (assoc geotag-agg-spec :colorchooser-fn colorchooser-fn)
+
+        geotags-by-tag (reduce (fn [m t] (assoc m (:tag t) t)) {} geotag-data)
         geotag-aggs-by-tag (reduce (fn [m a] (assoc m (:nested_attr a) a)) {} geotag-agg-data)
 
         markers @geotag-markers-atom
@@ -314,14 +328,15 @@
     ))
 
 (defn render-geohash-icon
-  [{:keys [icon-render-fn] :as geohash-agg-spec} geohash-agg]
-  (js/L.divIcon (clj->js {:className "agg-cluster"
-                          :iconSize [40,40]
-                          ;; :iconAnchor [20 20]
-                          :popupAnchor [0, -8]
-                          :html (hiccups/html
-                                 [:div.marker-cluster.marker-cluster-large
-                                  [:div (icon-render-fn geohash-agg)]])})))
+  [{:keys [icon-render-fn colorchooser-fn] :as geohash-agg-spec} geohash-agg]
+  (let [color-value (colorchooser-fn geohash-agg)]
+    (js/L.divIcon (clj->js {:className "agg-cluster"
+                            :iconSize [40,40]
+                            ;; :iconAnchor [20 20]
+                            :popupAnchor [0, -8]
+                            :html (hiccups/html
+                                   [:div {:class (str "marker-cluster " (marker-color-class color-value))}
+                                    [:div (icon-render-fn geohash-agg)]])}))))
 
 (defn render-geohash-marker-popup-content
   [click-handler-key content]
@@ -369,9 +384,14 @@
 (defn update-geohash-markers
   [leaflet-map
    geohash-markers-atom
-   {:keys [show-at-zoom-fn icon-render-fn geohash-agg-data]:as geohash-agg-spec}
+   {:keys [show-at-zoom-fn colorchooser-factory-fn icon-render-fn geohash-agg-data]:as geohash-agg-spec}
    points-showing?]
-  (let [geohash-aggs-by-geohash (into {} (map (fn [gha] [(:geohash-grid gha) gha]) geohash-agg-data))
+  (let [colorchooser-fn (if colorchooser-factory-fn
+                          (colorchooser-factory-fn geohash-agg-data)
+                          (constantly 1))
+        geohash-agg-spec (assoc geohash-agg-spec :colorchooser-fn colorchooser-fn)
+
+        geohash-aggs-by-geohash (into {} (map (fn [gha] [(:geohash-grid gha) gha]) geohash-agg-data))
 
         markers @geohash-markers-atom
         marker-keys (-> markers keys set)
