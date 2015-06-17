@@ -58,6 +58,25 @@
               cnt)]
     (js/Math.round (* 100 (/ i cnt)))))
 
+(defn table-chooser-fn
+  "returns a function which chooses a value for it's argument based on a table and sample values
+   - table of proportions 0 < p < 1 which will be used to choose output thresholds
+   - vals : sample values which will be sorted and representative threshold values chosen according to table
+  returns a number 0 <= (count table)"
+  ([table vals] (table-chooser-fn table vals {:default 0}))
+  ([table vals {:keys [default]}]
+   (let [vals (into [] (sort vals))
+         c (count vals)
+         idxs (->> table sort (map (fn [tv] (int (* tv c)))))
+         ts (map (fn [idx] (get vals idx)) idxs)
+         i-ts (keep-indexed vector ts)]
+
+     (fn [val]
+       (if val
+         (or (some (fn [[i t]] (when (< val t) i)) i-ts)
+             (count table))
+         default)))))
+
 (defn- prefix-sign
   [n-str n plus?]
   (cond
