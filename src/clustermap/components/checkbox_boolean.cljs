@@ -10,7 +10,9 @@
   (om/component
    (html
     [:input {:type "checkbox"
+             :name (gensym "checkbox-boolean-component")
+             :value "true"
              :checked (get cursor key)
              :onChange (fn [e]
                          (let [val (-> e .-target .-checked)]
-                           (om/update! cursor key val)))}])))
+                           (om/update! cursor key (boolean val))))}])))
