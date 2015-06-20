@@ -439,9 +439,9 @@
       [:span.map-marker-js-boundaryline-name {:data-boundaryline-id bl-id} bl-name]])))
 
 (defn style-leaflet-path
-  [leaflet-path {:keys [selected highlighted fill-color]}]
-  (cond (and selected highlighted) (.setStyle leaflet-path (clj->js {:color "#000000" :fillColor fill-color :weight 2 :opacity 1 :fill true :fillOpacity 0.6}))
-        selected                   (.setStyle leaflet-path (clj->js {:color "#8c2d04" :fillColor fill-color :weight 1 :opacity 1 :fill true :fillOpacity 0.6}))
+  [leaflet-path {:keys [selected highlighted fill-color]} {:keys [boundaryline-fill-opacity] :or {boundaryline-fill-opacity 0.4}}]
+  (cond (and selected highlighted) (.setStyle leaflet-path (clj->js {:color "#000000" :fillColor fill-color :weight 2 :opacity 1 :fill true :fillOpacity boundaryline-fill-opacity}))
+        selected                   (.setStyle leaflet-path (clj->js {:color "#8c2d04" :fillColor fill-color :weight 1 :opacity 1 :fill true :fillOpacity boundaryline-fill-opacity}))
         highlighted                (.setStyle leaflet-path (clj->js {:color "#000000" :fillColor fill-color :weight 2 :opacity 1 :fill false}))
         true                       (.setStyle leaflet-path (clj->js {:color "#8c2d04" :fillColor fill-color :weight 1 :opacity 0 :fill false :fillOpacity 0}))))
 
@@ -451,7 +451,7 @@
         bounds (postgis-envelope->latlngbounds (aget js-boundaryline "envelope"))
         leaflet-path (js/L.geoJson (aget js-boundaryline "geojson"))
         popup-content (boundary-marker-popup-content nil js-boundaryline)]
-    (style-leaflet-path leaflet-path path-attrs)
+    (style-leaflet-path leaflet-path path-attrs opts)
     (.addTo leaflet-path leaflet-map)
     (.bindPopup leaflet-path popup-content)
 
@@ -485,7 +485,7 @@
   ;; (.log js/console (clj->js ["update-path" boundaryline-id path tolerance js-boundaryline path-attrs]))
   (if (not= tolerance (:tolerance path))
     (replace-path comm leaflet-map boundaryline-id path js-boundaryline path-attrs opts)
-    (do (style-leaflet-path (:leaflet-path path) path-attrs)
+    (do (style-leaflet-path (:leaflet-path path) path-attrs opts)
         path)))
 
 (defn delete-path
@@ -718,6 +718,7 @@
                      next-location :location
                      next-boundaryline-collection :boundaryline-collection
                      next-colorchooser :colorchooser
+                     next-boundaryline-fill-opacity :boundaryline-fill-opacity
                      next-boundaryline-agg :boundaryline-agg
                      next-threshold-colors :threshold-colors
                      next-geotag-aggs :geotag-aggs
@@ -847,7 +848,8 @@
                                                              next-path-highlights
                                                              selection-path-colours
                                                              {:filter-spec next-filter-spec
-                                                              :path-marker-click-fn path-marker-click-fn}))]
+                                                              :path-marker-click-fn path-marker-click-fn
+                                                              :boundaryline-fill-opacity next-boundaryline-fill-opacity}))]
 
             (when (not= new-threshold-colors next-threshold-colors)
               (om/update! cursor [:controls :threshold-colors] new-threshold-colors))
