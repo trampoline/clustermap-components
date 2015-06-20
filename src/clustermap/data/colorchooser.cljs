@@ -53,7 +53,7 @@
   [scheme thresholds value]
   (let [scheme-thresholds (map vector thresholds scheme)
         chosen (->> scheme-thresholds
-                    (filter (fn [[t i]] (< value t)))
+                    (filter (fn [[t i]] (<= value t)))
                     first
                     last)]
     (or chosen
