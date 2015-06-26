@@ -118,6 +118,12 @@
        :filter filter
        :bounds bounds}))
 
+(defnk-lastcall-method-factory location-lists-2-factory
+  "saner version"
+  [index-name index-type filter-spec bounds location-attr attrs sort-spec max-count :as args]
+  (POST (str "/api/" api-prefix "/location-lists/" index-name "/" index-type "/" location-attr) args))
+
+
 ;; tabular data
 (def-lastcall-method-factory simple-table-factory
   [index type filter-spec bounds sort-spec from size & [type-ids]]

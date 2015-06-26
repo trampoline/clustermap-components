@@ -206,7 +206,7 @@
         marker-keys (-> markers keys set)
         location-keys (when show-points (-> new-locations keys set))
 
-        _ (.log js/console (clj->js [(count location-keys) location-keys]))
+        ;; _ (.log js/console (clj->js [(count location-keys) location-keys new-locations]))
 
         update-marker-keys (set/intersection marker-keys location-keys)
         new-marker-keys (set/difference location-keys marker-keys)
@@ -698,7 +698,7 @@
                                        (handler e))))))
 
         (om/set-state! owner :fetch-aggregation-data-fn (api/boundaryline-aggregation-factory))
-        (om/set-state! owner :fetch-point-data-fn (api/location-lists-factory))
+        (om/set-state! owner :fetch-point-data-fn (api/location-lists-2-factory))
         (om/set-state! owner :fetch-geotag-data-fn (api/geotags-of-type-factory))
         (om/set-state! owner :fetch-geotag-agg-data-fn (api/nested-aggregation-factory))
         (om/set-state! owner :fetch-geohash-agg-data-fn (api/geohash-grid-factory))
@@ -783,13 +783,14 @@
               (om/update! cursor [:data] aggregation-data)))
 
           (go
-            (when-let [point-data (<! (fetch-point-data-fn (:index next-boundaryline-agg)
-                                                           (:index-type next-boundaryline-agg)
-                                                           "!postcode"
-                                                           ["?natural_id" "!name" "!location" "!latest_employee_count" "!latest_turnover" "!total_funding"]
-                                                           1000
-                                                           (om/-value next-filter)
-                                                           (bounds-array (.getBounds leaflet-map))))]
+            (when-let [point-data (<! (fetch-point-data-fn {:index-name (:index next-boundaryline-agg)
+                                                            :index-type (:index-type next-boundaryline-agg)
+                                                            :filter-spec (om/-value next-filter)
+                                                            :bounds (bounds-array (.getBounds leaflet-map))
+                                                            :location-attr "!location"
+                                                            :attrs ["?natural_id" "!name" "!location" "!latest_employee_count" "!latest_turnover" "!total_funding"]
+                                                            :sort-spec [{"!total_funding" {:order "desc"}}]
+                                                            :max-count 1000}))]
               (om/update! cursor [:point-data] point-data))))
 
         (when (and next-geotag-aggs
