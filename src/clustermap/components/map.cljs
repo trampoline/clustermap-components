@@ -787,9 +787,11 @@
                                                             :index-type (:index-type next-boundaryline-agg)
                                                             :filter-spec (om/-value next-filter)
                                                             :bounds (bounds-array (.getBounds leaflet-map))
-                                                            :location-attr "!location"
-                                                            :attrs ["?natural_id" "!name" "!location" "!latest_employee_count" "!latest_turnover" "!total_funding"]
-                                                            :sort-spec [{"!total_funding" {:order "desc"}}]
+                                                            :location-attr (or (:location-attr next-location) "!location")
+                                                            :attrs (or (:attrs next-location)
+                                                                       ["?natural_id" "!name" "!location" "!latest_employee_count" "!latest_turnover" "!total_funding"])
+                                                            :sort-spec (or (:sort-spec next-location)
+                                                                           [{"!latest_turnvoer" {:order "desc"}}])
                                                             :max-count 1000}))]
               (om/update! cursor [:point-data] point-data))))
 
