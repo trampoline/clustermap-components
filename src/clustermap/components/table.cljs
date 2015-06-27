@@ -5,7 +5,8 @@
    [cljs.core.async :refer [<!]]
    [om.core :as om :include-macros true]
    [sablono.core :as html :refer-macros [html]]
-   [clustermap.api :as api]))
+   [clustermap.api :as api]
+   [clustermap.formats.number :as num]))
 
 (defn order-col
   "generate a table-ordering link for table-headers"
@@ -50,11 +51,11 @@
    (html
     [:div.table-nav
      [:div.record-count
-      [:b (inc from)]
+      [:b (num/readable (inc from))]
       " to "
-      [:b (min (+ from size) count)]
+      [:b (num/readable (min (+ from size) count))]
       " of "
-      [:b count]]
+      [:b (num/readable count)]]
 
      [:nav
       [:button.btn.btn-default.btn-sm {:type "button"
