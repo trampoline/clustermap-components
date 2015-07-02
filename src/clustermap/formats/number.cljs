@@ -25,6 +25,13 @@
   (when-not (some nil? args)
     (apply - num args)))
 
+(defn actually-really-number?
+  [n]
+  (and (number? n)
+       (not (js/isNaN n))
+       (< n js/Number.POSITIVE_INFINITY)
+       (> n js/Number.NEGATIVE_INFINITY)))
+
 (defn round-decimal
   [n dec-places]
   (if dec-places
@@ -137,7 +144,7 @@
   :default - default result when (nil? n)"
   ([n] (readable n nil))
   ([n {:keys [dec plus? curr default] :or {dec 0 plus? false curr "" default ""}}]
-   (if (and (number? n) (not (js/isNaN n)))
+   (if (actually-really-number? n)
      (let [abs-n (js/Math.abs n)
            round-n (round-decimal abs-n dec)
            round-n-str (str round-n)
@@ -168,7 +175,7 @@
 (defn eng-readable
   ([n] (eng-readable n nil))
   ([n {:keys [default plus? curr sf] :or {default "" plus? false curr "" sf 3}}]
-   (if (and (number? n) (not (js/isNaN n)))
+   (if (actually-really-number? n)
 
      (let [[sig exp] (eng-notation n :sf sf)
            abs-sig (js/Math.abs sig)
@@ -196,7 +203,7 @@
    :sf - number of significant figures (above threshold)"
   ([n] (mixed n nil))
   ([n {:keys [default plus? curr dec threshold sf] :or {default "" plus? false curr "" dec 0 threshold 1000000 sf 3} :as opts}]
-   (if (and (number? n) (not (js/isNaN n)))
+   (if (actually-really-number? n)
 
      (if (< n threshold)
        (readable n opts)
