@@ -39,12 +39,12 @@
                                                          (swap! state update-in [:open] not)
                                                          true)}
        (if (:open @state)
-         "Close Filter"
-         "Open Filter")]
+         "Close filter"
+         "Open filter")]
       [:button.btn.btn-default#filter-reset {:type "button"
                                              :onClick (fn [e]
                                                         (om/update! filter-spec (filters/reset-filter filter-spec)))}
-       "Reset"]]
+       "Clear filter"]]
 
      (into  [:ul.filter-selected-items]
             (some->> components
