@@ -70,7 +70,7 @@
 
   [:div.filter-group {:class (str/join " " [(name id) (when visible "active")])}
    [:div.filter-header
-    [:i.icon-toggle-filter]
+    [:i.icon-toggle-filter {:on-click (fn [e] (om/update! component-spec [:visible] (not visible)))}]
     (when-not skip-label [:span label])]
    (when visible
      (render-filter-control filter-spec component-spec component-filter-rq-chan))])
