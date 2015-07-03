@@ -35,7 +35,7 @@
                                     (om/update! controls :sort-spec {key {:order :desc}}))
 
                                   (om/update! controls :sort-spec {key {:order (or current-sort-dir :desc)}})))}
-                    label
+                    (if (fn? label) (label) label)
                     [:i]]
           [:span label])])))
 
