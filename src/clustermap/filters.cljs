@@ -3,6 +3,7 @@
 
 (def FilterSchema
   {:id s/Keyword
+   (s/optional-key :open) s/Bool
    :component-specs [{:id s/Keyword
                       :type s/Keyword
                       :label s/Str
