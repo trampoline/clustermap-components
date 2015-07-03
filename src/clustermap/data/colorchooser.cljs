@@ -2,14 +2,25 @@
   (:require [clustermap.data.picker :as picker]
             [clustermap.data.colorbrewer :as colorbrewer]))
 
+(defn ensure-unique-thresholds
+  [thresholds]
+  (js/console.log (clj->js ["THRESHOLDS" thresholds]))
+  (reduce (fn [s t] (conj s
+                          (if (empty? s)
+                            t
+                            (max (inc (last s)) t))))
+          []
+          thresholds))
+
 (defn auto-scale
   "chooses scale points based on the data itself... i.e. n-tile points"
   [steps data]
   (let [sorted-data (->> data (filter identity) sort vec)
         point-count (count sorted-data)]
 
-    (->> (range 1 steps)
-         (map (fn [i] (get sorted-data (int (/ (* point-count i) steps))))))))
+    (->> (range 0 steps)
+         (map (fn [i] (get sorted-data (int (/ (* point-count i) steps)))))
+         ensure-unique-thresholds)))
 
 (defn auto-no-outliers-scale
   "chooses scale points based on the data with outliers filtered by interquartile range
@@ -26,14 +37,15 @@
                            vec)
         filtered-point-count (count filtered-data)]
 
-    (->> (range 1 steps)
-         (map (fn [i] (get filtered-data (int (/ (* filtered-point-count i) steps))))))))
+    (->> (range 0 steps)
+         (map (fn [i] (get filtered-data (int (/ (* filtered-point-count i) steps)))))
+         ensure-unique-thresholds)))
 
 (defn linear-scale
   "returns a list of linear-scale thresholds"
   [min max steps]
   (let [step (/ (- max min) steps)]
-    (->> (range 1 steps)
+    (->> (range 0 steps)
          (map (fn [i] (+ min (* i step)))))))
 
 (defn log-scale
@@ -84,5 +96,6 @@
                           (map (fn [r]
                                  [(get r key) (chooser (get r variable))]))
                           (into {}))
-        threshold-colors (map vector (concat [min-value] thresholds) color-scheme)]
+        threshold-colors (map vector thresholds color-scheme)]
+
     [threshold-colors value-colors]))
