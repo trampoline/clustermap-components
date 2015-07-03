@@ -24,7 +24,7 @@
                    (into [:div.row]
                          (for [{:keys [key metric label render-fn] :or {render-fn identity}} row-variables]
                            [:div.col-sm-6
-                            [:h4.stat-title label]
+                            [:h4.stat-title (if (fn? label) (label) label)]
                             [:div.stat-amount (render-fn (get-in data [key metric]))]
                             (when-let [{ch-key :key ch-metric :metric ch-value-fn :value-fn ch-render-fn :render-fn
                                         :or {ch-render-fn identity}}
