@@ -1,5 +1,7 @@
 (ns clustermap.components.filter-description
   (:require [clojure.string :as str]
+            [domina :as dom]
+            [domina.css :as css]
             [om.core :as om :include-macros true]
             [om-tools.core :refer-macros [defcomponentk]]
             [schema.core :as s]
@@ -35,15 +37,19 @@
 
      [:div.filter-buttons
       [:button.btn.btn-primary#filter-toggle {:type "button"
-                                              :onClick (fn [e]
-                                                         (swap! state update-in [:open] not)
-                                                         true)}
-       (if (:open @state)
+                                              :on-click (fn [e]
+                                                          (let [new-open (not (:open filter-spec))]
+                                                            (om/update! filter-spec [:open] (not (:open filter-spec)))
+                                                            ;; (if new-open
+                                                            ;;   (css/add-class! (css/sel "#data-container") "show-filters")
+                                                            ;;   (css/remove-class! (css/sel "#data-container") "show-filters"))
+                                                            ))}
+       (if (:open filter-spec)
          "Close filter"
          "Open filter")]
       [:button.btn.btn-default#filter-reset {:type "button"
-                                             :onClick (fn [e]
-                                                        (om/update! filter-spec (filters/reset-filter filter-spec)))}
+                                             :on-click (fn [e]
+                                                         (om/update! filter-spec (filters/reset-filter filter-spec)))}
        "Clear filter"]]
 
      (into  [:ul.filter-selected-items]
