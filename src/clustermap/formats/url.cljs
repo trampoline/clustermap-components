@@ -45,3 +45,27 @@
   [t new-path]
   (let [[path params] (parse-token t)]
     (set-token new-path params)))
+
+(defn prefix-url
+  "prefix a url with http:// if no protocol is given"
+  [url]
+  (if (re-find #"^.*?://" url)
+    url
+    (str "http://" url)))
+
+(defn strip-trailing-slash
+  [s]
+  (if (re-find #".*/+$" s)
+    (last (re-matches #"(.*[^/]+)/+$" s))
+    s))
+
+(defn clean-http-url
+  "remove trailing / from a url, and prefix with http:// if no protocol is given"
+  [url]
+  (if (and url
+           (> (count (str/trim url)) 0))
+    (-> url
+        strip-trailing-slash
+        prefix-url
+        str/lower-case)
+    nil))
