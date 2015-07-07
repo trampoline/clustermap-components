@@ -205,7 +205,7 @@
   ([n {:keys [default plus? curr dec threshold sf] :or {default "" plus? false curr "" dec 0 threshold 1000000 sf 3} :as opts}]
    (if (actually-really-number? n)
 
-     (if (< n threshold)
+     (if (< (js/Math.abs n) threshold)
        (readable n opts)
        (eng-readable n opts))
 
