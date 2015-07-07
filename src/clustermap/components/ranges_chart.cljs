@@ -22,7 +22,7 @@
       x-axis :cols
       y-axis :rows
       render-fn :render-fn
-      :as controls} :controls}]
+      :as view} :view}]
 
   (let [y-keys (map :key y-axis)
         x-keys (map :key x-axis)
@@ -60,18 +60,8 @@
 
 (defcomponent ranges-chart-component
   [{{table-data :table-data
-     {index :index
-      index-type :index-type
-      title :title
-      rows :rows
-      row-path :row-path
-      row-aggs :row-aggs
-      cols :cols
-      col-path :col-path
-      col-aggs :col-aggs
-      metric-path :metric-path
-      metric-aggs :metric-aggs
-      :as controls} :controls
+     query :query
+     view :view
      :as table-state} :table-state
      filter-spec :filter-spec
      :as props}
@@ -114,45 +104,28 @@
   (will-update
    [_
     {{next-table-data :table-data
-      {next-index :index
-       next-index-type :index-type
-       next-title :title
-       next-rows :rows
-       next-row-path :row-path
-       next-row-aggs :row-aggs
-       next-cols :cols
-       next-col-path :col-path
-       next-col-aggs :col-aggs
-       next-metric-path :metric-path
-       next-metric-aggs :metric-aggs
-       :as next-controls} :controls
+      next-query :query
+      next-view :view
       :as next-table-state} :table-state
       next-filter-spec :filter-spec
       :as next-props}
     {fetch-data-fn :fetch-data-fn}]
 
    (when (or (not next-table-data)
-             (not= next-controls controls)
+             (not= next-query query)
              (not= next-filter-spec filter-spec))
 
      (go
-       (when-let [ranges (<! (fetch-data-fn next-index
-                                            next-index-type
-                                            next-filter-spec
-                                            next-row-path
-                                            next-row-aggs
-                                            next-col-path
-                                            next-col-aggs
-                                            next-metric-path
-                                            next-metric-aggs))]
+       (when-let [ranges (<! (fetch-data-fn (merge next-query {:filter-spec next-filter-spec})))]
          (.log js/console (clj->js ["RANGES-TABLE-DATA" ranges]))
-         (om/update! table-state [:table-data] ranges)))
-     ))
+         (om/update! table-state [:table-data] ranges)))))
 
   (did-update
    [_
-    {{prev-table-data :table-data} :table-state :as prev-props}
+    {{prev-view :view
+      prev-table-data :table-data} :table-state :as prev-props}
     _]
 
-   (when (not= prev-table-data table-data)
+   (when (or (not= prev-table-data table-data)
+             (not= prev-view view))
      (create-chart (om/get-node owner "ranges-chart") table-state))))
