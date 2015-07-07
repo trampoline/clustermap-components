@@ -157,18 +157,10 @@
        :fields fields
        :size size}))
 
-(def-lastcall-method-factory ranges-factory
-  [index index-type filter-spec row-path row-aggs col-path col-aggs metric-path metric-aggs]
+(defnk-lastcall-method-factory ranges-factory
+  [index-name index-type filter-spec row-path row-aggs col-path col-aggs metric-path metric-aggs :as args]
   (POST (str "/api/" api-prefix "/ranges")
-      {:index-name index
-       :index-type index-type
-       :filter filter-spec
-       :row-path row-path
-       :row-aggs row-aggs
-       :col-path col-path
-       :col-aggs col-aggs
-       :metric-path metric-path
-       :metric-aggs metric-aggs}))
+        args))
 
 (defnk-lastcall-method-factory geohash-grid-factory
   "LOOK AT ME : this is the way to do it, with defnk... check out the server-side too
