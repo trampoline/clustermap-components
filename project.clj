@@ -6,7 +6,7 @@
                  [org.clojure/tools.macro "0.1.5"]
                  [org.clojure/clojurescript "0.0-3196" :scope "provided"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha" :scope "provided"]
-                 [om "0.8.8"]
+                 [org.omcljs/om "0.8.8"]
                  [prismatic/om-tools "0.3.11" :exclusions [org.clojure/clojure]]
                  [domina "1.0.3"]
                  [sablono "0.3.4"]
