@@ -9,20 +9,30 @@
    [goog.net.XhrIo :as xhr]
    [clustermap.lastcall-method]))
 
-(defn AJAX [url & {:keys [raw method content] :as opts}]
-  "send a GET request, returning a channel with a single result value"
+(defn AJAX [url & {:keys [raw method content send-error] :as opts}]
+  "send a GET request, returning a channel with a single result value.
+  If send-error is truthy will put an exception on the chan if there
+  is an error."
   (let [comm (chan 1)]
     (xhr/send url
               (fn [event]
-                (put! comm (-> event
-                               .-target
-                               .getResponseText
-                               js/JSON.parse
-                               (aget "data")
-                               ((fn [d]
-                                  (if raw
-                                    d
-                                    (js->clj d :keywordize-keys true))))))
+                (let [target (.-target event)
+                      error-code (.getLastErrorCode target)
+                      response-text (.getResponseText target)
+                      response (if (= error-code 0)
+                                 (-> response-text
+                                     js/JSON.parse
+                                     (aget "data")
+                                     ((fn [d]
+                                        (if raw
+                                          d
+                                          (js->clj d :keywordize-keys true)))))
+                                 (when send-error
+                                   (ex-info "Ajax error" {:error-code error-code
+                                                          :response-text response-text
+                                                          :status (.getStatus target)})))]
+                  (when response
+                    (put! comm response)))
                 (close! comm))
               (or (some-> method name str/upper-case) "GET")
               (when content (js/JSON.stringify (clj->js content)))
