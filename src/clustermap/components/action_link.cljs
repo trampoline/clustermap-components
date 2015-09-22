@@ -19,7 +19,7 @@
    [_]
    (html
     [:a (-> {:href "#"}
-            (assoc-when :onClick action)
+            (assoc-when :onClick (fn [e] (.preventDefault e) (action)))
             (assoc-when :class class)
             (assoc-when :id id))
      (content)])))
