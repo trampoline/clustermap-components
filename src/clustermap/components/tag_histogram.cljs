@@ -5,7 +5,6 @@
    [om.core :as om :include-macros true]
    [om-tools.core :refer-macros [defcomponent]]
    [domina.events :as events]
-   [jayq.core :refer [$]]
    [sablono.core :as html :refer-macros [html]]
    [clustermap.api :as api]
    [clustermap.formats.number :as num]
@@ -120,9 +119,7 @@
                                                              (> h 0)
                                                              (not= @last-dims [w h]))
 
-                                                    (some-> (om/get-node owner "chart")
-                                                            $
-                                                            .highcharts
+                                                    (some-> (om/get-state owner :chart)
                                                             .reflow)))))))
   (will-update
    [_
@@ -165,4 +162,4 @@
    (when (or (not= prev-metrics metrics)
              (not= prev-tag-data tag-data)
              (not= prev-tag-agg-data tag-agg-data))
-     (create-chart  (om/get-node owner "chart") tag-histogram opts))))
+     (om/set-state! owner :chart (create-chart (om/get-node owner "chart") tag-histogram opts)))))
