@@ -6,7 +6,6 @@
    [om-tools.core :refer-macros [defcomponent]]
    [domina.events :as events]
    [cljs.core.async :refer [<!]]
-   [jayq.core :refer [$]]
    [sablono.core :as html :refer-macros [html]]
    [clustermap.api :as api]
    [clustermap.formats.number :as num]
@@ -34,30 +33,29 @@
                                         :x-labels x-labels
                                         :ys ys}]))
 
-    (-> node
-        $
-        (.highcharts
-         (clj->js
-          {:chart {:width nil
-                   :height 300}
-           :title {:text nil}
+    (js/Highcharts.Chart.
+     (clj->js
+      {:chart {:width nil
+               :height 300
+               :renderTo node}
+       :title {:text nil}
 
-           :xAxis {:categories x-labels
-                   :labels {:rotation 270}}
+       :xAxis {:categories x-labels
+               :labels {:rotation 270}}
 
-           :yAxis [{:title {:text y0-title}
-                    ;; :min 0
-                    :labels {:formatter (fn [] (this-as this (money/readable (.-value this) :sf 3 :curr "")))}
-                    }]
+       :yAxis [{:title {:text y0-title}
+                ;; :min 0
+                :labels {:formatter (fn [] (this-as this (money/readable (.-value this) :sf 3 :curr "")))}
+                }]
 
-           :tooltip {:valueDecimals 0}
+       :tooltip {:valueDecimals 0}
 
-           :series (for [y ys]
-                     {:name (:title y)
-                      :type (or (:type y) "line")
-                      :color color
-                      :yAxis 0
-                      :data (:records y)})})))))
+       :series (for [y ys]
+                 {:name (:title y)
+                  :type (or (:type y) "line")
+                  :color color
+                  :yAxis 0
+                  :data (:records y)})}))))
 
 (defcomponent timeline-chart
   [{{query :query
@@ -96,9 +94,7 @@
                                                              (> h 0)
                                                              (not= @last-dims [w h]))
 
-                                                    (some-> (om/get-node owner "chart")
-                                                            $
-                                                            .highcharts
+                                                    (some-> (om/get-state owner :chart)
                                                             .reflow)))))))
   (will-update
    [_
@@ -125,4 +121,4 @@
     _]
    (when (or (not= prev-timeline-data timeline-data)
              (not= prev-query query))
-     (create-chart  (om/get-node owner "chart") timeline-chart opts))))
+     (om/set-state! owner :chart (create-chart (om/get-node owner "chart") timeline-chart opts)))))
