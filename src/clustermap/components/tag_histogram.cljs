@@ -18,7 +18,9 @@
         :else [x]))
 
 (defn create-chart
-  [node {:keys [query metrics bar-width chart-height point-formatter bar-color tag-data tag-agg-data]} {:keys [y0-title y1-title] :as opts}]
+  [node {:keys [query metrics bar-width chart-height point-formatter bar-color
+                tag-data tag-agg-data] :as params}
+   {:keys [y0-title y1-title] :as opts}]
   (.log js/console (clj->js ["TAG-HISTOGRAM-TAG-DATA: " tag-data]))
   (.log js/console (clj->js ["TAG-HISTOGRAM-TAG-AGG-DATA: " tag-agg-data]))
   (let [tags-by-tag (group-by :tag tag-data)
@@ -50,33 +52,32 @@
     ;;                                     :x-labels x-labels
     ;;                                     :ys ys}]))
 
-    (-> node
-        $
-        (.highcharts
-         (clj->js
-          {:chart {:type "bar"
-                   :width nil
-                   :height chart-height
-                   }
-           :title {:text nil}
+    (js/Highcharts.Chart.
+     (clj->js
+      {:chart {:type (or (:chart-type params) "bar")
+               :width nil
+               :height chart-height
+               :renderTo node}
+       :title {:text nil}
 
-           :xAxis {:categories x-labels
-                   ;;:labels {:rotation 270}
-                   }
+       :xAxis {:categories x-labels
+               ;;:labels {:rotation 270}
+               }
 
-           :yAxis (for [{:keys [title label-formatter]} ys]
-                    {:title title
-                     :labels {:formatter label-formatter}})
+       :yAxis (for [{:keys [title label-formatter]} ys]
+                {:title title
+                 :labels {:formatter label-formatter}})
 
-           :tooltip {:valueDecimals 0
-                     :pointFormatter point-formatter}
+       :tooltip {:valueDecimals 0
+                 :pointFormatter point-formatter}
 
-           :series (for [[y i] (map vector ys (iterate inc 0))]
-                     {:name (:title y)
-                      :yAxis i
-                      :color bar-color
-                      :pointWidth (or bar-width 10)
-                      :data (:records y)})})))
+       :series (for [[y i] (map vector ys (iterate inc 0))]
+                 {:name (:title y)
+                  :yAxis i
+                  :color bar-color
+                  :pointWidth (or bar-width 10)
+                  :data (for [[name v] (zipmap x-labels (:records y))]
+                          {:name name :y v})})}))
     ))
 
 (defcomponent tag-histogram
