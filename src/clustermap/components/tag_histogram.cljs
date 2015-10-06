@@ -75,8 +75,10 @@
                   :yAxis i
                   :color bar-color
                   :pointWidth (or bar-width 10)
-                  :data (for [[name v] (zipmap x-labels (:records y))]
-                          {:name name :y v})})}))
+                  :data (if (= "pie" (:chart-type params))
+                          (for [[name v] (zipmap x-labels (:records y))]
+                            {:name name :y v})
+                          (:records y))})}))
     ))
 
 (defcomponent tag-histogram
