@@ -68,8 +68,10 @@
       (reset! r (<! comm)))
     r))
 
-(def api-prefix js/config.api.prefix)
-
+(def api-prefix
+  (let [config (goog.object.get js/window "config")]
+    (-> (goog.object.get config "api")
+        (goog.object.get "prefix"))))
 ;; boundarylines
 
 (defn boundarylines
