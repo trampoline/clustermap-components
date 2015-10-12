@@ -60,6 +60,7 @@
        :title {:text nil}
 
        :xAxis {:categories x-labels
+               :labels {:formatter (:xlabel-formatter params)}
                ;;:labels {:rotation 270}
                }
 
@@ -68,7 +69,7 @@
                  :labels {:formatter label-formatter}})
 
        :tooltip {:valueDecimals 0
-                 :pointFormatter point-formatter}
+                 :formatter point-formatter}
 
        :series (for [[y i] (map vector ys (iterate inc 0))]
                  {:name (:title y)

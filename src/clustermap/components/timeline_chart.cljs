@@ -18,7 +18,8 @@
         :else [x]))
 
 (defn create-chart
-  [node {{:keys [metrics]} :query color :color records :timeline-data} {:keys [y0-title y1-title] :as opts}]
+  [node {{:keys [metrics]} :query color :color records :timeline-data :as params}
+   {:keys [y0-title y1-title] :as opts}]
   (.log js/console (clj->js ["TIMELINE: " records]))
   (let [x-labels (->> records (map :timeline) (map #(js/Date. %)) (map #(.getYear %)) (map #(+ 1900 %)))
 
@@ -48,7 +49,8 @@
                 :labels {:formatter (fn [] (this-as this (money/readable (.-value this) :sf 3 :curr "")))}
                 }]
 
-       :tooltip {:valueDecimals 0}
+       :tooltip {:valueDecimals 0
+                 :formatter (:point-formatter params)}
 
        :series (for [y ys]
                  {:name (:title y)
