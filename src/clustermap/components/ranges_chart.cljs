@@ -31,6 +31,7 @@
                                  [yk (into [] (for [xk x-keys] (get xy-points [xk yk])))]))
 
         chart {:chart {:type "column"
+                       :renderTo node
                        :width nil
                        :height 300}
                :title {:text nil}
@@ -53,10 +54,9 @@
 
     (js/console.log (clj->js ["RANGES-CHART" chart]))
 
-    (-> node
-        $
-        (.highcharts
-         (clj->js chart)))))
+
+    (js/Highcharts.Chart.
+     (clj->js chart))))
 
 (defcomponent ranges-chart-component
   [{{table-data :table-data
@@ -67,65 +67,61 @@
      :as props}
    owner]
 
-  (did-mount
-   [_]
-   (om/set-state! owner :fetch-data-fn (api/ranges-factory))
-   (let [node (om/get-node owner)
-         last-dims (atom nil)
-         w (.-offsetWidth node)
-         h (.-offsetHeight node)]
+  (did-mount [_]
+    (om/set-state! owner :fetch-data-fn (api/ranges-factory))
+    (let [node (om/get-node owner)
+          last-dims (atom nil)
+          w (.-offsetWidth node)
+          h (.-offsetHeight node)]
 
-     ;; only set last-dims if we are initialised on-screen... later
-     ;; when chart shows, if last-dims is nil, we reflow again
-     (when (and (> w 0) (> h 0))
-       (reset! last-dims [w h]))
+      ;; only set last-dims if we are initialised on-screen... later
+      ;; when chart shows, if last-dims is nil, we reflow again
+      (when (and (> w 0) (> h 0))
+        (reset! last-dims [w h]))
 
-     (events/listen! "clustermap-change-view" (fn [e]
-                                                ;; only reflow charts when they are visible
-                                                ;; they disappear otherwise
-                                                (let [w (.-offsetWidth node)
-                                                      h (.-offsetHeight node)]
+      (events/listen! "clustermap-change-view" (fn [e]
+                                                 ;; only reflow charts when they are visible
+                                                 ;; they disappear otherwise
+                                                 (let [w (.-offsetWidth node)
+                                                       h (.-offsetHeight node)]
 
-                                                  (when (and (> w 0)
-                                                             (> h 0)
-                                                             (not= @last-dims [w h]))
+                                                   (when (and (> w 0)
+                                                              (> h 0)
+                                                              (not= @last-dims [w h]))
 
-                                                    (some-> (om/get-node owner "ranges-chart")
-                                                            $
-                                                            .highcharts
-                                                            .reflow))))))
+                                                     (some-> (om/get-state owner :chart)
+                                                             .reflow))))))
 
-   )
+    )
 
-  (render
-   [_]
-   (html [:div {:ref "ranges-chart"}]))
+  (render [_]
+    (html [:div {:ref "ranges-chart"}]))
 
   (will-update
-   [_
-    {{next-table-data :table-data
-      next-query :query
-      next-view :view
-      :as next-table-state} :table-state
-      next-filter-spec :filter-spec
-      :as next-props}
-    {fetch-data-fn :fetch-data-fn}]
+    [_
+     {{next-table-data :table-data
+       next-query :query
+       next-view :view
+       :as next-table-state} :table-state
+       next-filter-spec :filter-spec
+       :as next-props}
+     {fetch-data-fn :fetch-data-fn}]
 
-   (when (or (not next-table-data)
-             (not= next-query query)
-             (not= next-filter-spec filter-spec))
+    (when (or (not next-table-data)
+              (not= next-query query)
+              (not= next-filter-spec filter-spec))
 
-     (go
-       (when-let [ranges (<! (fetch-data-fn (merge next-query {:filter-spec next-filter-spec})))]
-         (.log js/console (clj->js ["RANGES-TABLE-DATA" ranges]))
-         (om/update! table-state [:table-data] ranges)))))
+      (go
+        (when-let [ranges (<! (fetch-data-fn (merge next-query {:filter-spec next-filter-spec})))]
+          (.log js/console (clj->js ["RANGES-TABLE-DATA" ranges]))
+          (om/update! table-state [:table-data] ranges)))))
 
   (did-update
-   [_
-    {{prev-view :view
-      prev-table-data :table-data} :table-state :as prev-props}
-    _]
+    [_
+     {{prev-view :view
+       prev-table-data :table-data} :table-state :as prev-props}
+     _]
 
-   (when (or (not= prev-table-data table-data)
-             (not= prev-view view))
-     (create-chart (om/get-node owner "ranges-chart") table-state))))
+    (when (or (not= prev-table-data table-data)
+              (not= prev-view view))
+      (om/set-state! owner :chart (create-chart (om/get-node owner "ranges-chart") table-state)))))

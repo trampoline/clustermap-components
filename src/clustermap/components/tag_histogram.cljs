@@ -5,7 +5,6 @@
    [om.core :as om :include-macros true]
    [om-tools.core :refer-macros [defcomponent]]
    [domina.events :as events]
-   [jayq.core :refer [$]]
    [sablono.core :as html :refer-macros [html]]
    [clustermap.api :as api]
    [clustermap.formats.number :as num]
@@ -18,7 +17,9 @@
         :else [x]))
 
 (defn create-chart
-  [node {:keys [query metrics bar-width chart-height point-formatter bar-color tag-data tag-agg-data]} {:keys [y0-title y1-title] :as opts}]
+  [node {:keys [query metrics bar-width chart-height point-formatter bar-color
+                tag-data tag-agg-data] :as params}
+   {:keys [y0-title y1-title] :as opts}]
   (.log js/console (clj->js ["TAG-HISTOGRAM-TAG-DATA: " tag-data]))
   (.log js/console (clj->js ["TAG-HISTOGRAM-TAG-AGG-DATA: " tag-agg-data]))
   (let [tags-by-tag (group-by :tag tag-data)
@@ -50,33 +51,35 @@
     ;;                                     :x-labels x-labels
     ;;                                     :ys ys}]))
 
-    (-> node
-        $
-        (.highcharts
-         (clj->js
-          {:chart {:type "bar"
-                   :width nil
-                   :height chart-height
-                   }
-           :title {:text nil}
+    (js/Highcharts.Chart.
+     (clj->js
+      {:chart {:type (or (:chart-type params) "bar")
+               :width nil
+               :height chart-height
+               :renderTo node}
+       :title {:text nil}
 
-           :xAxis {:categories x-labels
-                   ;;:labels {:rotation 270}
-                   }
+       :xAxis {:categories x-labels
+               :labels {:formatter (:xlabel-formatter params)}
+               ;;:labels {:rotation 270}
+               }
 
-           :yAxis (for [{:keys [title label-formatter]} ys]
-                    {:title title
-                     :labels {:formatter label-formatter}})
+       :yAxis (for [{:keys [title label-formatter]} ys]
+                {:title title
+                 :labels {:formatter label-formatter}})
 
-           :tooltip {:valueDecimals 0
-                     :pointFormatter point-formatter}
+       :tooltip {:valueDecimals 0
+                 :formatter point-formatter}
 
-           :series (for [[y i] (map vector ys (iterate inc 0))]
-                     {:name (:title y)
-                      :yAxis i
-                      :color bar-color
-                      :pointWidth (or bar-width 10)
-                      :data (:records y)})})))
+       :series (for [[y i] (map vector ys (iterate inc 0))]
+                 {:name (:title y)
+                  :yAxis i
+                  :color bar-color
+                  :pointWidth (or bar-width 10)
+                  :data (if (= "pie" (:chart-type params))
+                          (for [[name v] (zipmap x-labels (:records y))]
+                            {:name name :y v})
+                          (:records y))})}))
     ))
 
 (defcomponent tag-histogram
@@ -119,9 +122,7 @@
                                                              (> h 0)
                                                              (not= @last-dims [w h]))
 
-                                                    (some-> (om/get-node owner "chart")
-                                                            $
-                                                            .highcharts
+                                                    (some-> (om/get-state owner :chart)
                                                             .reflow)))))))
   (will-update
    [_
@@ -164,4 +165,4 @@
    (when (or (not= prev-metrics metrics)
              (not= prev-tag-data tag-data)
              (not= prev-tag-agg-data tag-agg-data))
-     (create-chart  (om/get-node owner "chart") tag-histogram opts))))
+     (om/set-state! owner :chart (create-chart (om/get-node owner "chart") tag-histogram opts)))))
