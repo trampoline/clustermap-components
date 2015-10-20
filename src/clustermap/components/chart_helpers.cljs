@@ -1,6 +1,7 @@
 (ns clustermap.components.chart-helpers
   (:require-macros [hiccups.core :as hiccups])
   (:require [clojure.string :as str]
+            goog.object
             [clustermap.formats.number :as num]))
 
 (defn mk-tooltip-point-formatter
@@ -18,7 +19,8 @@
   (fn []
     (this-as this
       (let [key (some-> this .-key key-fmt)
-            pc (some-> this .-percentage (num/mixed {:dec 1}))
+            pc (some-> (goog.object/get this "percentage")
+                       (num/mixed {:dec 1}))
             series-name (some-> this .-series .-name)
             color (some-> this .-series .-color)
             value (some-> this .-y num-fmt)]
