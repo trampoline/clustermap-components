@@ -27,10 +27,11 @@
                                         (if raw
                                           d
                                           (js->clj d :keywordize-keys true)))))
-                                 (when send-error
+                                 (if send-error
                                    (ex-info "Ajax error" {:error-code error-code
                                                           :response-text response-text
-                                                          :status (.getStatus target)})))]
+                                                          :status (.getStatus target)})
+                                   (js/console.warn "Unhandled XHR error, use :send-error to handle:" url)))]
                   (when response
                     (put! comm response)))
                 (close! comm))
