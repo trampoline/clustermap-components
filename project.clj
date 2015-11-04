@@ -5,7 +5,7 @@
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojure/clojurescript "1.7.166" :scope "provided"]
                  [org.clojure/core.async "0.2.371" :scope "provided"]
-                 [om "0.8.0-alpha2"]
+                 [org.omcljs/om "0.9.0"]
                  [prismatic/om-tools "0.4.0" :exclusions [org.clojure/clojure]]
                  [domina "1.0.3"]
                  [sablono "0.3.6"]
