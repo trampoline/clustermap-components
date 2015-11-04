@@ -3,7 +3,7 @@
             [domina.css :as css]
             [domina.xpath :as xpath]
             [domina.events :as events]
-            [secretary.core :as secretary :include-macros true :refer [defroute]]
+            [secretary.core :as secretary :refer-macros [defroute]]
             [jayq.core :as jayq :refer [$]]
             [cljs.core.async :refer [put! chan <!]]))
 
