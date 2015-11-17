@@ -236,9 +236,8 @@
                            #(om/set-state! owner [:record :formation_date] %))
       (dt/add-date-picker! nil (om/get-node owner "accounts_date") {} dt/default-fmt
                            #(om/set-state! owner [:record :accounts_date] %))
-      (om/set-state! owner :fetch-metadata-fn (or (:fetch-metadata-fn opts)
-                                                  (api/records-factory)))
-      (om/set-state! owner :submit-fn (or (:submit-fn opts) submit-company)))
+      (om/set-state! owner :fetch-metadata-fn (om/get-shared owner :fetch-metadata-fn))
+      (om/set-state! owner :submit-fn (om/get-shared owner :submit-company-fn)))
 
     om/IRenderState
     (render-state [_ state]
