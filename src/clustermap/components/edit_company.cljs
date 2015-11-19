@@ -278,3 +278,32 @@
               (om/update! metadata [:record] (when-let [r (some-> metadata-data :records first)]
                                                (extract-values r))))
             ))))))
+
+
+(defn edit-company-render-fn
+  [app-instance make-company-selection name record]
+  [:a {:href "#"
+       :target "_blank"
+       :onClick (fn [e]
+                  (.preventDefault e)
+                  (make-company-selection (:?natural_id record))
+                  (app/navigate @app-instance "edit-company"))}
+   name])
+
+(defn edit-company-fn
+  [app-instance make-company-selection e]
+  (.preventDefault e)
+  (let [state-atom (app/get-state @app-instance)
+        record (get-in @state-atom [:company-info :record])]
+    (make-company-selection (:natural_id record))
+    (swap! state-atom assoc-in [:edit-company :controls :new-company] false)
+    (swap! state-atom assoc-in [:edit-company :record] nil)
+    (app/navigate @app-instance "edit-company")))
+
+(defn edit-new-company-fn
+  [app-instance]
+  (let [state-atom (app/get-state @app-instance)
+        record (get-in @state-atom [:company-info :record])]
+    (swap! state-atom assoc-in [:edit-company :controls :new-company] true)
+    (swap! state-atom assoc-in [:edit-company :record] {})
+    (app/navigate @app-instance "edit-company")))
