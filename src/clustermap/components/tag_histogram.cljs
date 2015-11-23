@@ -7,6 +7,7 @@
    [domina.events :as events]
    [sablono.core :as html :refer-macros [html]]
    [clustermap.api :as api]
+   [clustermap.util :refer [get-node]]
    [clustermap.formats.number :as num]
    [clustermap.formats.money :as money]))
 
@@ -99,7 +100,7 @@
 
   (did-mount
    [_]
-   (let [node (om/get-node owner)
+   (let [node (get-node owner)
          last-dims (atom nil)
          w (.-offsetWidth node)
          h (.-offsetHeight node)]
@@ -165,4 +166,4 @@
    (when (or (not= prev-metrics metrics)
              (not= prev-tag-data tag-data)
              (not= prev-tag-agg-data tag-agg-data))
-     (om/set-state! owner :chart (create-chart (om/get-node owner "chart") tag-histogram opts)))))
+     (om/set-state! owner :chart (create-chart (get-node owner "chart") tag-histogram opts)))))

@@ -9,6 +9,7 @@
    [jayq.core :refer [$]]
    [sablono.core :as html :refer-macros [html]]
    [clustermap.api :as api]
+   [clustermap.util :refer [get-node]]
    [clustermap.formats.html :as htmlf]
    [clustermap.components.table-common :as tc]))
 
@@ -69,7 +70,7 @@
 
   (did-mount [_]
     (om/set-state! owner :fetch-data-fn (api/ranges-factory))
-    (let [node (om/get-node owner)
+    (let [node (get-node owner)
           last-dims (atom nil)
           w (.-offsetWidth node)
           h (.-offsetHeight node)]
@@ -124,4 +125,4 @@
 
     (when (or (not= prev-table-data table-data)
               (not= prev-view view))
-      (om/set-state! owner :chart (create-chart (om/get-node owner "ranges-chart") table-state)))))
+      (om/set-state! owner :chart (create-chart (get-node owner "ranges-chart") table-state)))))
