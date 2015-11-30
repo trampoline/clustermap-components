@@ -5,8 +5,19 @@
      (js/console.info (str (pr-str '~expr) " => " (pr-str result#)))
      result#))
 
-(defmacro inspect [& exprs]
+(defmacro inspect2 [& exprs]
   `(do ~@(map inspect-1 exprs)))
+
+(defn- inspect-2 [expr]
+  `(let [result# ~expr]
+     (js/console.info (pp (symbol (pr-str '~expr)))
+                      (pp (symbol "=>"))
+                      (pp result#))
+     result#))
+
+(defmacro inspect [& exprs]
+  `(do ~@(map inspect-2 exprs)))
+
 
 (defmacro breakpoint []
   '(do (js* "debugger;")

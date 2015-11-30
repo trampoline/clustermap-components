@@ -1,4 +1,16 @@
-(ns clustermap.util)
+(ns clustermap.util
+  (:require [devtools.core :as devtools]))
+
+(defn chrome-canary? []
+  (if-let [v (last (re-find #"Chrom(e|ium)/([0-9]+)\." js/navigator.userAgent))]
+    (<= 48 (int v))
+    false))
+
+(devtools/install!)
+(def pp
+  (if (and (chrome-canary?) (#'devtools/installed?))
+    identity
+    cljs.core/clj->js))
 
 (defn error? [x]
   (instance? js/Error x))

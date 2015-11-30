@@ -14,6 +14,7 @@
    [clustermap.ganalytics :as ga]
    [clustermap.components.mount :as mount]
    [clustermap.boundarylines :as bl]
+   [clustermap.util :as util :refer [pp]]
    [clustermap.data.colorchooser :as colorchooser])
   (:import [goog History]
            [goog.history EventType]))
@@ -69,7 +70,7 @@
           (.setEnabled history* true)
 
           (doseq [{:keys [name f target path paths]} component-defs]
-            (.log js/console (clj->js ["component" name f target paths]))
+            (.log js/console (pp ["component" name f target paths]))
             (if (dev-mode? app-service)
               (s/with-fn-validation
                 (mount/mount name

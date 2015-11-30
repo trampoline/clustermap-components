@@ -12,6 +12,7 @@
                  [sablono "0.3.6"]
                  [hiccups "0.3.0"]
                  [secretary "1.2.3"]
+                 [binaryage/devtools "0.4.1"]
                  [com.andrewmcveigh/cljs-time "0.3.14"]
                  [jayq "2.5.4"]] ;; let's get rid of this soon
 

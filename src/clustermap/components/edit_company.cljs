@@ -9,10 +9,10 @@
             [schema.coerce :as coerce]
             [sablono.core :as html :refer-macros [html]]
             [clustermap.app :as app]
-            [clustermap.util :refer-macros [inspect <?] :refer [display]]
+            [clustermap.util :refer-macros [inspect <?] :refer [display pp]]
             [clustermap.date-util :as dt]
             [clustermap.api :as api :refer [api-prefix POST]]
-            [clustermap.formats.number :as num :refer [div! *! -! +!]]
+            ;; [clustermap.formats.number :as num :refer [div! *! -! +!]]
             [clustermap.formats.money :as money]
             [clustermap.formats.time :as time]))
 
@@ -100,7 +100,7 @@
 
 (defn submit-form [record owner e]
   (.preventDefault e)
-  (js/console.log (clj->js ["SUBMISSION" record]))
+  (js/console.log (pp ["SUBMISSION" record]))
   (let [coerced-data (parse-company-fields record)
         submit-fn (om/get-state owner :submit-fn)]
     (if (instance? schema.utils/ErrorContainer coerced-data)
@@ -111,8 +111,7 @@
           (try
             (let [res (<? (submit-fn coerced-data))]
               (inspect res)
-              (js/console.log (clj->js ["RESPONSE" res]))
-              (app/navigate @clustermap.core/app-instance "main"))
+              (js/console.log (pp ["RESPONSE" res]))
             (catch js/Error e
               (om/set-state! owner :error (-> e .-data))
               (inspect e))))))))
@@ -279,7 +278,7 @@
                                           next-filter-spec
                                           next-sort-spec
                                           next-size))]
-              (.log js/console (clj->js ["EDIT-COMPANY-DATA" metadata-data]))
+              (.log js/console (pp ["EDIT-COMPANY-DATA" metadata-data]))
               (om/update! metadata [:record] (when-let [r (some-> metadata-data :records first)]
                                                (extract-values r))))
             ))))))

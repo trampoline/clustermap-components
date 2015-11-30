@@ -1,5 +1,6 @@
 (ns clustermap.components.mount
-  (:require [om.core :as om :include-macros true]))
+  (:require [om.core :as om :include-macros true]
+            [clustermap.util :as util :refer [pp]]))
 
 (defn- make-sequential
   [v]
@@ -35,9 +36,9 @@
   [cname path paths cursor]
   (let [x (extract-paths* path paths cursor)]
     (cond
-     x x
-     true (do (.log js/console (clj->js ["WARNING: nil cursor" cname path paths]))
-              nil))))
+      x x
+      true (do (.warn js/console (pp ["WARNING: nil cursor" cname path paths]))
+               nil))))
 
 (defn mount
   "mount a component, with some decoration
