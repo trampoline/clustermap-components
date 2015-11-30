@@ -29,8 +29,8 @@
    "Munich" "nuts_3__DE212"})
 
 (defn submit-company
-  [record]
-  (POST (str "/api/" api-prefix "/eustartuphubs/submit-company")
+  [endpath record]
+  (POST (str "/api/" api-prefix endpath)
         record :send-error true))
 
 
