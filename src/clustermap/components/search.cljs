@@ -106,11 +106,11 @@
                        [:li
                         (into [:a {:class (when (= (:active @state) r) "active")
                                    :href "#"
-                                   :on-click (fn [e]
-                                               (.preventDefault e)
-                                               (when click-fn
-                                                 (swap! state assoc :open false)
-                                                 (click-fn r)))}]
+                                   :on-mouse-down (fn [e]
+                                                    (.preventDefault e)
+                                                    (when click-fn
+                                                      (swap! state assoc :open false)
+                                                      (click-fn r)))}]
                               (when render-fn (make-sequential (render-fn r))))])))])]))
 
 (def SearchComponentSchema
