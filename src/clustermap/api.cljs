@@ -13,7 +13,7 @@
   "send a GET request, returning a channel with a single result value.
   If send-error is truthy will put an exception on the chan if there
   is an error."
-  (let [comm (chan 1)]
+  (let [comm (async/promise-chan)]
     (xhr/send url
               (fn [event]
                 (let [target (.-target event)
