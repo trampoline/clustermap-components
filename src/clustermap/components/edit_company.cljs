@@ -212,7 +212,9 @@
              "Cancel"]
             [:button.btn.btn-primary {:type "submit"} "Save"]
             [:span {:style (display validation)} (str "Invalid fields: " (prn-str validation))]
-            [:span {:style (display error)} (str "Submission error: " (prn-str (:status error)))]
+            (when error
+              [:div.has-error {:style (display error)}
+               [:span.help-block (format-error error)]])
             ]]]]]]]]]))
 
 (defn edit-company-component
