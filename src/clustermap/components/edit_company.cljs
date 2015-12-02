@@ -112,8 +112,9 @@
             (let [res (<? (submit-fn coerced-data))]
               (inspect res)
               (js/console.log (pp ["RESPONSE" res]))
+              (app/navigate @clustermap.core/app-instance "main"))
             (catch js/Error e
-              (om/set-state! owner :error (-> e .-data))
+              (om/set-state! owner :error (or (-> e .-data) e))
               (inspect e))))))))
 
 
