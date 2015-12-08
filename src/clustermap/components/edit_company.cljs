@@ -35,13 +35,13 @@
 
 
 (defschema NEmptyStr
-  (s/pred #(not (str/blank? %)) "Non-empty string"))
+  (s/constrained s/Str #(not (str/blank? %)) "Non-empty string"))
 
 
 (defschema Company
   {:name NEmptyStr
    :registry_id NEmptyStr
-   :direct_contact_email NEmptyStr
+   :direct_contact_email (s/maybe s/Str)
    :boundaryline_id (apply s/enum (vals hub->boundaryline-id))
    (s/optional-key :formation_date) s/Inst
    (s/optional-key :accounts_date) s/Inst
@@ -199,7 +199,7 @@
            [:li
             [:h4 "Contact email"]
             [:input {:type "email" :ref "direct_contact_email" :value (:direct_contact_email record)
-                     :required true
+                     ;; :required true
                      :on-change #(handle-change % owner :direct_contact_email)}]]
            [:li
             [:h4 "Company description"]
