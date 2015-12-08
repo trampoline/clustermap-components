@@ -90,7 +90,7 @@
                     :label s/Str
                     (s/optional-key :visible) s/Bool
                     (s/optional-key :sorted) s/Bool
-                    :options [{:value (s/either s/Keyword s/Str)
+                    :options [{:value (s/cond-pre s/Keyword s/Str)
                                :label s/Str
                                :filter (s/maybe {s/Keyword s/Any})
                                (s/optional-key :omit-description) (s/maybe s/Bool)}]}})
