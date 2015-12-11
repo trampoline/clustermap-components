@@ -112,7 +112,7 @@
             (let [res (<? (submit-fn coerced-data))]
               (inspect res)
               (js/console.log (pp ["RESPONSE" res]))
-              (app/navigate @clustermap.core/app-instance "main"))
+              ((om/get-state owner :navigate-fn) "main"))
             (catch js/Error e
               (om/set-state! owner :error (or (-> e .-data) e))
               (inspect e))))))))
@@ -207,7 +207,7 @@
                         :on-change #(handle-change % owner :description)}]]
            [:li
             [:button.btn
-             {:on-click (fn [e] (app/navigate @clustermap.core/app-instance "main"))
+             {:on-click (fn [e] ((om/get-state owner :navigate-fn) "main"))
               :type "button"}
              "Cancel"]
             [:button.btn.btn-primary {:type "submit"} "Save"]
@@ -238,9 +238,11 @@
                            #(om/set-state! owner [:record :formation_date] %))
       (dt/add-date-picker! nil (om/get-node owner "accounts_date") {} dt/default-fmt
                            #(om/set-state! owner [:record :accounts_date] %))
-      (let [{:keys [fetch-metadata-factory submit-company-fn]} (om/get-shared owner)]
+      (let [{:keys [fetch-metadata-factory submit-company-fn navigate-fn]} (om/get-shared owner)]
         (assert (fn? fetch-metadata-factory))
         (assert (fn? submit-company-fn))
+        (assert (fn? navigate-fn))
+        (om/set-state! owner :navigate-fn navigate-fn)
         (om/set-state! owner :fetch-metadata-fn (fetch-metadata-factory))
         (om/set-state! owner :submit-fn submit-company-fn)))
 
