@@ -154,8 +154,8 @@
                      :on-change #(handle-change % owner :name) }]]
            [:li
             [:h4 "Formation date"]
-            [:input {:type "text" :ref "formation_date" :value (dt/display-date (:formation_date record))
-                     :required true}]]
+            [:input {:type "text" :ref "formation_date"
+                     :value (some-> (:formation_date record) dt/display-date)}]]
            [:li
             [:h4 "Accounts date"]
             [:input {:type "text" :ref "accounts_date"
