@@ -7,7 +7,7 @@
 
 (def TextComponentSchema
   {:source s/Any
-   :controls {:path (s/either s/Keyword [s/Keyword])}})
+   :controls {:path (s/cond-pre s/Keyword [s/Keyword])}})
 
 (defn make-sequential
   [x]
