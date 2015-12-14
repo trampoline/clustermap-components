@@ -28,29 +28,31 @@
    "Berlin" "nuts_1__DE3"
    "Munich" "nuts_3__DE212"})
 
+(def boundaryline-id->hub
+  (clojure.set/map-invert hub->boundaryline-id))
+
 (defn submit-company
   [endpath record]
   (POST (str "/api/" api-prefix endpath)
-        record :send-error true))
+      record :send-error true))
 
 
 (defschema NEmptyStr
   (s/constrained s/Str #(not (str/blank? %)) "Non-empty string"))
-
 
 (defschema Company
   {:name NEmptyStr
    :registry_id NEmptyStr
    :direct_contact_email (s/maybe s/Str)
    :boundaryline_id (apply s/enum (vals hub->boundaryline-id))
-   (s/optional-key :formation_date) s/Inst
-   (s/optional-key :accounts_date) s/Inst
+   :country_code NEmptyStr
+   (s/optional-key :formation_date) (s/maybe s/Inst)
+   (s/optional-key :accounts_date) (s/maybe s/Inst)
    (s/optional-key :turnover) (s/maybe s/Num)
    (s/optional-key :employment) (s/maybe s/Int)
-   (s/optional-key :address) s/Str
+   (s/optional-key :address) (s/maybe s/Str)
    (s/optional-key :postcode) (s/maybe s/Str)
-   :country_code NEmptyStr
-   (s/optional-key :angellist_url)  (s/maybe s/Str)
+   (s/optional-key :angellist_url) (s/maybe s/Str)
    (s/optional-key :crunchbase_url) (s/maybe s/Str)
    (s/optional-key :dealroom_url) (s/maybe s/Str)
    (s/optional-key :description) (s/maybe s/Str)})
