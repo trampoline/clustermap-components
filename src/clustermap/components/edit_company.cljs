@@ -43,9 +43,11 @@
 (defschema Company
   {:name NEmptyStr
    :registry_id NEmptyStr
-   :direct_contact_email (s/maybe s/Str)
    :boundaryline_id (apply s/enum (vals hub->boundaryline-id))
    :country_code NEmptyStr
+   :latitude s/Num
+   :longitude s/Num
+   :direct_contact_email (s/maybe s/Str)
    (s/optional-key :formation_date) (s/maybe s/Inst)
    (s/optional-key :accounts_date) (s/maybe s/Inst)
    (s/optional-key :turnover) (s/maybe s/Num)
@@ -79,6 +81,8 @@
                                   dt/goog-date->js-date)
           :formation_date #(some-> (:formation_date %)
                                    dt/goog-date->js-date)
+          :longitude (comp first :location)
+          :latitude (comp second :location)
           :turnover :latest_turnover
           :employment :latest_employee_count}))
 
