@@ -26,3 +26,44 @@
      (<= 97000 code 98200) "Activities of households as employers"
      (<= 99000 code 99999) "Activities of extraterritorial organisations and bodies")
     ))
+
+;; Functions are used instead of plain defs of data to aid DCE in cljs
+
+(defn mk-l3-nontoxic->description []
+  {"digi_tech" "Digital Technologies"
+   "lifesci_health" "Life Sciences & Healthcare"
+   "pub_broad" "Publishing & Broadcasting"
+   "other_scitechmanf" "Other scientific/technological manufacture"
+   "other_scitech_serv" "Other scientific/technological services"})
+
+(defn l3-nontoxic-tags []
+  (into [] (map (fn [[v l]] {:value v :label l}))
+        (mk-l3-nontoxic->description)))
+
+(defn mk-l4-nontoxic->description []
+  {"aud_vis_broad" "Audio-visual broadcasting"
+   "arch_eng_surv" "Architecture engineering & quantity surveying"
+   "manf_rep_air_space" "Manufacture and repair of air and spacecraft"
+   "pub_mktg_graph_des" "Publishing Marketing & Graphic Design"
+   "dig_comp_serv" "Digital & Computer services"
+   "comp_elec_manf" "Computer & Electronic manufacture"
+   "aero_transp" "Aerospace transport"
+   "telecomm_serv" "Telecommunication services"
+   "humanitities_randd" "Scientific research & development"
+   "biotech_randd" "Biotechnology research and development"
+   "healthcare_serv" "Healthcare services including veterinary"
+   "chem_manf" "Chemical Product manufacturing"
+   "non_elec_mach_manf" "Non-electrical machinery manufacture"
+   "pharm_manf" "Pharmaceutical manufacture"
+   "def_tech" "Defence technologies"
+   "precision_eng" "Precision engineering"
+   "med_opt_equip_manf" "Medical & optical equipment manufacture"
+   "higher_ed" "Higher education"
+   "elec_mach_manf" "Electrical Machinery manufacture"
+   "auto_manf" "Automotive manufacture"
+   "comm_equip_manf" "Communication Equipment manufacture"})
+
+
+(defn l4-nontoxic-tags []
+  (into [] (map (fn [[v l]] {:value v :label l}))
+        (mk-l4-nontoxic->description)))
