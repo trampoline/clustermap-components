@@ -3,7 +3,7 @@
 
 (defn chrome-canary? []
   (if-let [v (last (re-find #"Chrom(e|ium)/([0-9]+)\." js/navigator.userAgent))]
-    (<= 48 (int v))
+    (<= 47 (int v))
     false))
 
 (devtools/install!)
