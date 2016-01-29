@@ -28,10 +28,9 @@
         records (->> (merge-with concat tags-by-tag tag-aggs-by-tag)
                      vals
                      (map (fn [rs] (apply merge-with merge rs)))
-                     (sort-by :description))
+                     (sort-by (juxt :description :tag) ))
 
-
-        x-labels (->> records (map :description))
+        x-labels (map #(or (:description %) (:tag %) :blog) records)
 
         metrics (make-sequential metrics)
 
