@@ -17,4 +17,7 @@
                  [com.andrewmcveigh/cljs-time "0.3.14"]
                  [jayq "2.5.4"]] ;; let's get rid of this soon
 
+  :profiles {:dev {:dependencies [[expectations "2.1.4"]]}}
+
+  :plugins [[lein-expectations "0.0.7"]]
   :source-paths ["src"])
