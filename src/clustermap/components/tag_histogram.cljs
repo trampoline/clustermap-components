@@ -4,18 +4,53 @@
    [cljs.core.async :refer [<!]]
    [om.core :as om :include-macros true]
    [om-tools.core :refer-macros [defcomponent]]
+   [schema.core :as s]
+   [plumbing.core :refer-macros [defnk]]
    [domina.events :as events]
    [sablono.core :as html :refer-macros [html]]
    [clustermap.api :as api]
-   [clustermap.util :refer [get-node]]
+   [clustermap.util :refer [get-node make-sequential]]
    [clustermap.formats.number :as num]
    [clustermap.formats.money :as money]))
 
-(defn make-sequential
-  [x]
-  (cond (nil? x) nil
-        (sequential? x) x
-        :else [x]))
+(defnk make-highchart
+  "Create a highchart at node with params"
+  [node x-labels ys
+   chart-height
+   {bar-color nil}
+   {point-formatter nil}
+   {xlabel-formatter nil}
+   {chart-type "bar"}
+   {bar-width 10}]
+  (js/Highcharts.Chart.
+   (clj->js
+    {:chart {:type chart-type
+             :width nil
+             :height chart-height
+             :renderTo node}
+     :title {:text nil}
+
+     :xAxis {:categories x-labels
+             :labels {:formatter xlabel-formatter}
+             ;;:labels {:rotation 270}
+             }
+
+     :yAxis (for [{:keys [title label-formatter]} ys]
+              {:title title
+               :labels {:formatter label-formatter}})
+
+     :tooltip {:valueDecimals 0
+               :formatter point-formatter}
+
+     :series (for [[y i] (map vector ys (iterate inc 0))]
+               {:name (:title y)
+                :yAxis i
+                :color bar-color
+                :pointWidth bar-width
+                :data (if (= "pie" chart-type)
+                        (for [[name v] (zipmap x-labels (:records y))]
+                          {:name name :y v})
+                        (:records y))})})))
 
 (defn create-chart
   [node {:keys [query metrics bar-width chart-height point-formatter bar-color
@@ -50,37 +85,7 @@
     ;; (.log js/console (clj->js ["CHART" {:metrics metrics
     ;;                                     :x-labels x-labels
     ;;                                     :ys ys}]))
-
-    (js/Highcharts.Chart.
-     (clj->js
-      {:chart {:type (or (:chart-type params) "bar")
-               :width nil
-               :height chart-height
-               :renderTo node}
-       :title {:text nil}
-
-       :xAxis {:categories x-labels
-               :labels {:formatter (:xlabel-formatter params)}
-               ;;:labels {:rotation 270}
-               }
-
-       :yAxis (for [{:keys [title label-formatter]} ys]
-                {:title title
-                 :labels {:formatter label-formatter}})
-
-       :tooltip {:valueDecimals 0
-                 :formatter point-formatter}
-
-       :series (for [[y i] (map vector ys (iterate inc 0))]
-                 {:name (:title y)
-                  :yAxis i
-                  :color bar-color
-                  :pointWidth (or bar-width 10)
-                  :data (if (= "pie" (:chart-type params))
-                          (for [[name v] (zipmap x-labels (:records y))]
-                            {:name name :y v})
-                          (:records y))})}))
-    ))
+    (make-highchart (merge params {:node node :x-labels x-labels :ys ys}))))
 
 (defcomponent tag-histogram
   [{{query :query

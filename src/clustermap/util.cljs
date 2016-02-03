@@ -1,4 +1,5 @@
 (ns clustermap.util
+  "Keep this small and promote members to meaningful modules"
   (:require [devtools.core :as devtools]))
 
 (defn chrome-canary? []
@@ -34,3 +35,9 @@
   ([owner name]
    {:pre [(string? name)]}
    (some-> (.-refs owner) (aget name))))
+
+(defn make-sequential
+  [x]
+  (cond (nil? x) nil
+        (sequential? x) x
+        :else [x]))
