@@ -114,6 +114,11 @@
   (POST (str "/api/" api-prefix "/nested-agg")
       q))
 
+(def-lastcall-method-factory filters-aggregation-factory
+  [{:keys [index-name index-type filter-spec nested-filter stats-attr] :as q}]
+  (POST (str "/api/" api-prefix "/filters-agg")
+      q))
+
 ;; summary stats
 (def-lastcall-method-factory summary-stats-factory
   [index type statsattrs filter bounds & [type-ids]]
