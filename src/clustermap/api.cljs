@@ -212,5 +212,6 @@
   (GET (str "/api/" api-prefix "/geotags/" tag-type)))
 
 (def-lastcall-method company-search
-  [query]
-  (GET (str "/api/" api-prefix "/companies/v2/name-id-search?q=" query)))
+  [query & [{:keys [search-fields]}]] ;;TODO: use an ajax todo params properly
+  (GET (str "/api/" api-prefix "/companies/v2/name-id-search?q=" (str/trim query)
+            "&search_fields=" (str/join "," search-fields))))
