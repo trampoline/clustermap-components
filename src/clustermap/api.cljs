@@ -9,32 +9,35 @@
    [goog.net.XhrIo :as xhr]
    [clustermap.lastcall-method]))
 
+;;TODO: use cljs-http or similar
 (defn AJAX [url & {:keys [raw method content send-error] :as opts}]
-  "send a GET request, returning a channel with a single result value.
+  "send a request, returning a channel with a single result value.
   If send-error is truthy will put an exception on the chan if there
   is an error."
-  (let [comm (async/promise-chan)]
+  (let [comm (async/promise-chan (map (fn [event]
+                                        (js/console.log event)
+                                        (let [target (.-target event)
+                                              error-code (.getLastErrorCode target)
+                                              response-text (.getResponseText target)
+                                              response (if (= error-code 0)
+                                                         (-> response-text
+                                                             js/JSON.parse
+                                                             (aget "data")
+                                                             ((fn [d]
+                                                                (if raw
+                                                                  d
+                                                                  (js->clj d :keywordize-keys true)))))
+                                                         (if send-error
+                                                           (ex-info "Ajax error" {:error-code error-code
+                                                                                  :response-text response-text
+                                                                                  :status (.getStatus target)})
+                                                           (js/console.warn "Unhandled XHR error, use :send-error to handle:" url)))]
+                                          response)
+                                        ;(close! comm)
+                                        ))
+                                 (fn [e] (js/console.warn " error " e) e))]
     (xhr/send url
-              (fn [event]
-                (let [target (.-target event)
-                      error-code (.getLastErrorCode target)
-                      response-text (.getResponseText target)
-                      response (if (= error-code 0)
-                                 (-> response-text
-                                     js/JSON.parse
-                                     (aget "data")
-                                     ((fn [d]
-                                        (if raw
-                                          d
-                                          (js->clj d :keywordize-keys true)))))
-                                 (if send-error
-                                   (ex-info "Ajax error" {:error-code error-code
-                                                          :response-text response-text
-                                                          :status (.getStatus target)})
-                                   (js/console.warn "Unhandled XHR error, use :send-error to handle:" url)))]
-                  (when response
-                    (put! comm response)))
-                (close! comm))
+              (partial put! comm)
               (or (some-> method name str/upper-case) "GET")
               (when content (js/JSON.stringify (clj->js content)))
               (when content (clj->js {"Content-Type" "application/json"})))
