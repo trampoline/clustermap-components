@@ -16,17 +16,27 @@
             [clustermap.formats.money :as money]
             [clustermap.formats.time :as time]))
 
+;;TODO: infer from db
 (def hub->boundaryline-id
   {"London" "nuts_1__UKI"
    "Paris" "nuts_1__FR1"
    "Manchester" "nuts_2__UKD3"
    "Helsinki" "nuts_2__FI1B"
    "Stockholm" "nuts_2__SE11"
+   "Malmo" "nuts_2__SE22"
    "Brussels" "nuts_1__BE1"
    "Bucuresti" "nuts_2__RO32"
    "Madrid" "nuts_1__ES3"
    "Berlin" "nuts_1__DE3"
-   "Munich" "nuts_3__DE212"})
+   "Munich" "nuts_3__DE212"
+   "Rome" "nuts_3__ITE43"
+   "Tallinn" "nuts_3__EE001"
+   "Oslo" "nuts_3__NO011"
+   "Dublin" "nuts_3__IE021"
+   "Amsterdam" "nuts_3__NL326"
+   "Athens" "nuts_3__EL303"
+   "Warsaw" "nuts_3__PL127"
+   })
 
 (def boundaryline-id->hub
   (clojure.set/map-invert hub->boundaryline-id))
