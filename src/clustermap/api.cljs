@@ -216,5 +216,5 @@
 
 (def-lastcall-method company-search
   [query & [{:keys [search-fields]}]] ;;TODO: use an ajax todo params properly
-  (GET (str "/api/" api-prefix "/companies/v2/name-id-search?q=" (str/trim query)
+  (GET (str "/api/" api-prefix "/companies/v2/name-id-search?q=" (some-> query str/trim)
             "&search_fields=" (str/join "," search-fields))))
