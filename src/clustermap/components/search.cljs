@@ -79,6 +79,7 @@
   [[:data [:search [:controls search-fn col-headers render-fn click-fn]
            query
            results
+           {placeholder "Company search"}
            :as search]]
    state
    owner
@@ -89,7 +90,7 @@
           :on-blur #(swap! state assoc :open false)}
     [:input {:type "text"
              :value query
-             :placeholder "Company search"
+             :placeholder placeholder
              :on-key-down (fn [e]
                             (key-down (merge m {:e e}))
                             nil)
@@ -119,6 +120,7 @@
               :render-fn s/Any ;; function of result record to render
               :click-fn s/Any} ;; function of result record clicked
    :query (s/maybe s/Str)
+   (s/optional-key :placeholder) s/Str
    :results (s/maybe [{s/Keyword s/Any}])})
 
 (defcomponentk search-component

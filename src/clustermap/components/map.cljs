@@ -13,6 +13,7 @@
    [clustermap.api :as api]
    [clustermap.formats.number :as num :refer [div! *! -! +!]]
    [clustermap.boundarylines :as bl]
+   [clustermap.util :refer [get-node]]
    [clustermap.data.colorchooser :as colorchooser]))
 
 (def ^:private event-handler-keys (atom 0))
@@ -159,9 +160,9 @@
 
 (defn remove-marker-event-handlers
   [{:keys [click-handler-key click-handler-keys] :as marker}]
-    (remove-event-handler click-handler-key)
-    (doseq [chk click-handler-keys]
-      (remove-event-handler chk)))
+  (remove-event-handler click-handler-key)
+  (doseq [chk click-handler-keys]
+    (remove-event-handler chk)))
 
 (defn update-marker
   [path-fn
@@ -189,9 +190,11 @@
   "remove a marker from a cluster group or directly from the map"
   [leaflet-map leaflet-marker-cluster-group {:keys [leaflet-marker click-handler-key click-handler-keys] :as marker}]
   (remove-marker-event-handlers marker)
-  (if leaflet-marker-cluster-group
-    (.removeLayer leaflet-marker-cluster-group leaflet-marker)
-    (.removeLayer leaflet-map leaflet-marker))
+  (if (nil? leaflet-marker)
+    (js/console.warn "leaflet-marker is nil!!!")
+    (if leaflet-marker-cluster-group
+      (.removeLayer leaflet-marker-cluster-group leaflet-marker)
+      (.removeLayer leaflet-map leaflet-marker)))
   nil)
 
 (defn update-markers
@@ -418,7 +421,7 @@
     (reset! geohash-markers-atom (merge updated-markers new-markers))
     ))
 
-;; path-utilities
+;; path-utiilties
 
 (defn postgis-envelope->latlngbounds
   "turns a PostGIS envelope into leaflet bounds"
@@ -453,7 +456,9 @@
         popup-content (boundary-marker-popup-content nil js-boundaryline)]
     (style-leaflet-path leaflet-path path-attrs opts)
     (.addTo leaflet-path leaflet-map)
-    (.bindPopup leaflet-path popup-content)
+    ;; camb don't want this marker. Quick fix here for now
+    (when-not (= "cambridge_ahead" (aget js-boundaryline "source"))
+      (.bindPopup leaflet-path popup-content))
 
     (.on leaflet-path "dblclick" (fn [e]
                                    (.fitBounds leaflet-map (.getBounds leaflet-path))
@@ -609,19 +614,21 @@
              threshold-colors
              geotag-aggs
              geohash-aggs] :as controls} :controls :as cursor} :map-state
-     filter-spec :filter-spec
-     filter :filter
-     :as cursor-data}
+    filter-spec :filter-spec
+    filter :filter
+    :as cursor-data}
    owner]
 
   (reify
     om/IRender
     (render [this]
+      (js/console.debug (pr-str data))
+
       (html [:div.map {:ref "map"}]))
 
     om/IDidMount
     (did-mount [this]
-      (let [node (om/get-node owner)
+      (let [node (get-node owner)
             {:keys [leaflet-map markers path] :as map} (create-map node controls)
             {:keys [comm fetch-boundarylines-fn point-in-boundarylines-fn
                     path-marker-click-fn]} (om/get-shared owner)
@@ -897,7 +904,7 @@
 
     om/IWillUnmount
     (will-unmount [this]
-      (let [node (om/get-node owner)]
+      (let [node (get-node owner)]
         (-> node $ .off)
         (events/unlisten! node)
         (events/unlisten! "clustermap-change-view")
@@ -905,3 +912,159 @@
         (let [{{:keys [leaflet-map markers paths path-selections]} :map} (om/get-state owner)]
           (.remove leaflet-map))))
     ))
+
+(defn minimap-component
+  "Just show 1 supplied marker on the map
+  put the leaflet map as state in the om component"
+  [{{data :data
+     point-data :point-data
+     boundaryline-collections :boundaryline-collections
+     {:keys [initial-bounds
+             map-options
+             link-render-fn
+             link-click-fn
+             bounds zoom show-points
+             location
+             geohash-aggs] :as controls} :controls :as cursor} :map-state
+    filter-spec :filter-spec
+    filter :filter
+    :as cursor-data}
+   owner]
+
+  (reify
+    om/IRender
+    (render [this]
+      (js/console.debug (pr-str data))
+
+      (html [:div.map {:ref "map"}]))
+
+    om/IDidMount
+    (did-mount [this]
+      (let [node (get-node owner)
+            {:keys [leaflet-map markers path] :as map} (create-map node controls)
+            {:keys [comm fetch-boundarylines-fn point-in-boundarylines-fn
+                    path-marker-click-fn]} (om/get-shared owner)
+            last-dims (atom nil)
+            w (.-offsetWidth node)
+            h (.-offsetHeight node)]
+        ;; only set last-dims if we are initialised on-screen... later
+        ;; when map shows, if last-dims is nil, we locate-map again
+        (when (and (> w 0) (> h 0))
+          (reset! last-dims [w h]))
+
+        ;; reflect bounds and zoom in controls immediately
+        (om/update! cursor [:controls :zoom] (.getZoom leaflet-map))
+        (om/update! cursor [:controls :bounds] (bounds-array (.getBounds leaflet-map)))
+
+        (om/set-state! owner :map map)
+        (om/set-state! owner :path-highlights #{})
+
+        ;; if there is a window size change when the map isn't visible, invalidate the map size
+        (events/listen! "clustermap-change-view" (fn [e]
+                                                   (let [w (.-offsetWidth node)
+                                                         h (.-offsetHeight node)
+                                                         current-dims [w h]
+                                                         props (om/get-props owner)
+                                                         use-bounds (get-in props [:map-state :controls :initial-bounds])]
+                                                     (when (and (> w 0)
+                                                                (> h 0)
+                                                                (not= @last-dims current-dims))
+                                                       (.log js/console "window size changed !")
+                                                       (.invalidateSize leaflet-map)
+                                                       (when-not @last-dims
+                                                         (.log js/console "first map show !")
+                                                         (when use-bounds (locate-map leaflet-map use-bounds)))
+                                                       (reset! last-dims current-dims)))))
+        ;; are these needed/good for minimap?
+        #_(.on leaflet-map "moveend" (fn [e]
+                                       (.log js/console "moveend")
+                                       (om/update! cursor [:controls :zoom] (.getZoom leaflet-map))
+                                       (om/update! cursor [:controls :bounds] (bounds-array (.getBounds leaflet-map)))))
+
+        ;; discard mousemoves on open popups...
+        #_(.on leaflet-map "popupopen" (fn [e]
+                                         (let [popup-el (-> e .-popup .-_container)
+                                               marker-popup-location-list-cnt (-> popup-el $ (.find ".map-marker-popup-location-list") .-length)]
+                                           (if (> marker-popup-location-list-cnt 0)
+                                             (om/set-state! owner :popup-selected true))
+                                           (-> popup-el
+                                               $
+                                               (.on "mousemove" (fn [e] (.preventDefault e) false))))))
+
+        #_(.on leaflet-map "popupclose" (fn [e] (om/set-state! owner :popup-selected nil)))
+
+        (when path-marker-click-fn
+          ;; click off of a path resets boundary selection
+          (.on leaflet-map "click" (fn [e] (path-marker-click-fn nil)))
+          (-> node $ (.on "click" "a.boundaryline-popup-link"
+                          (fn [e]
+                            (.preventDefault e)
+                            (some-> e
+                                    .-target
+                                    (domina/attr "data-boundaryline-id")
+                                    path-marker-click-fn)))))
+
+        ;; find a generic handler function, presumably with om data wrapped in a closure
+        (-> node $ (.on "click" "[data-onclick-id]"
+                        (fn [e]
+                          (.preventDefault e)
+                          (let [current-target (.-currentTarget e)
+                                handler-id (domina/attr current-target "data-onclick-id")
+                                handler (find-event-handler handler-id)]
+                            (when handler
+                              (handler e))))))))
+
+    om/IWillUpdate
+    (will-update [this
+                  {{next-point-data :point-data
+                    {next-zoom :zoom
+                     next-bounds :bounds
+                     next-show-points :show-points
+                     next-location :location
+                     next-boundaryline-fill-opacity :boundaryline-fill-opacity} :controls
+                    :as next-cursor} :map-state
+                   :as next-cursor-data}
+                  {{next-markers :markers
+                    next-paths :paths
+                    next-path-selections :path-selections} :map}]
+
+      (let [{{:keys [leaflet-map leaflet-marker-cluster-group markers paths path-selections]} :map
+             pan-pending :pan-pending
+             path-highlights :path-highlights} (om/get-state owner)
+
+            zoom-changed (not= next-zoom zoom)]
+
+        ;; apply any requested but not-yet-applied zoom
+        (js/console.debug :getzoom (.getZoom leaflet-map) :nextzoom next-zoom)
+        (.setZoom leaflet-map (.getZoom leaflet-map)) ;;hack
+        (when (and leaflet-map next-zoom (not= next-zoom zoom) (not= next-zoom (.getZoom leaflet-map)))
+          (.setZoom leaflet-map next-zoom))
+
+        ;; apply requested but not-yet-applied bounds changes
+        (when (and leaflet-map next-bounds (not= next-bounds bounds) (not= next-bounds (bounds-array (.getBounds leaflet-map))))
+          (.fitBounds leaflet-map (clj->js next-bounds))
+          (om/update! cursor [:controls :bounds] (bounds-array (.getBounds leaflet-map))))
+
+        (when (or (not= next-show-points show-points)
+                  (not= next-point-data point-data)
+                  (not= next-location location))
+          (update-markers link-render-fn
+                          leaflet-map
+                          (when (:cluster next-location) leaflet-marker-cluster-group)
+                          next-markers
+                          next-show-points
+                          (:records next-point-data)
+                          {:location next-location})
+          ;; center on the marker
+          (when-let [[a b] (-> next-point-data :records first second :location)]
+            (.setView leaflet-map #js [b a] 14)))))
+
+    om/IWillUnmount
+    (will-unmount [this]
+      (let [node (get-node owner)]
+        (-> node $ .off)
+        (events/unlisten! node)
+        (events/unlisten! "clustermap-change-view")
+
+        (let [{{:keys [leaflet-map markers paths path-selections]} :map} (om/get-state owner)]
+          (when leaflet-map (.remove leaflet-map)))))))
