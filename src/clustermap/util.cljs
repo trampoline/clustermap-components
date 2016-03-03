@@ -9,7 +9,7 @@
 
 (devtools/install!)
 (def pp
-  (if (and (chrome-canary?) (#'devtools/installed?))
+  (if (and (chrome-canary?) #_(#'devtools/installed?))
     identity
     cljs.core/clj->js))
 
@@ -31,7 +31,7 @@
   node extract the DOM ref specified by name. Modded from Om for to
   stop warnings in react 0.14"
   ([owner]
-   owner)
+   (ReactDOM.findDOMNode owner))
   ([owner name]
    {:pre [(string? name)]}
    (some-> (.-refs owner) (aget name))))
