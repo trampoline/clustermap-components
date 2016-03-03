@@ -16,7 +16,7 @@
 (defnk make-highchart
   "Create a highchart at node with params"
   [node x-labels ys
-   chart-height
+   {chart-height nil}
    {bar-color nil}
    {point-formatter nil}
    {xlabel-formatter nil}
