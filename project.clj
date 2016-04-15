@@ -1,4 +1,4 @@
-(defproject clustermap-components "0.1.0-SNAPSHOT"
+(defproject clustermap-components "0.1.0"
   :description "om components"
   :url "https://github.com/trampoline/clustermap-components"
 
