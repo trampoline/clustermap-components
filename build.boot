@@ -15,7 +15,7 @@
                  [org.clojure/core.async "0.2.374"]
                  [org.clojure/tools.macro "0.1.5"]
                  ;;[com.taoensso/timbre "4.3.0-RC1"]
-                 [org.omcljs/om "1.0.0-alpha30"]
+                 [org.omcljs/om "1.0.0-alpha32"]
                  [prismatic/om-tools "0.4.0" :exclusions [org.clojure/clojure prismatic/schema]]
                  [binaryage/devtools "0.5.2"]
 
@@ -40,7 +40,7 @@
 
 (task-options!
  pom {:project 'clustermap-components
-      :version "0.1.0-SNAPSHOT"
+      :version "0.2.0-SNAPSHOT"
       :description "om components"}
  jar {:main 'clustermap.app})
 

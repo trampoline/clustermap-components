@@ -13,7 +13,6 @@
    [clustermap.api :as api]
    [clustermap.formats.number :as num :refer [div! *! -! +!]]
    [clustermap.boundarylines :as bl]
-   [clustermap.util :refer [get-node]]
    [clustermap.data.colorchooser :as colorchooser]))
 
 (def ^:private event-handler-keys (atom 0))
@@ -628,7 +627,7 @@
 
     om/IDidMount
     (did-mount [this]
-      (let [node (get-node owner)
+      (let [node (om/get-node owner)
             {:keys [leaflet-map markers path] :as map} (create-map node controls)
             {:keys [comm fetch-boundarylines-fn point-in-boundarylines-fn
                     path-marker-click-fn]} (om/get-shared owner)
@@ -904,7 +903,7 @@
 
     om/IWillUnmount
     (will-unmount [this]
-      (let [node (get-node owner)]
+      (let [node (om/get-node owner)]
         (-> node $ .off)
         (events/unlisten! node)
         (events/unlisten! "clustermap-change-view")
@@ -940,7 +939,7 @@
 
     om/IDidMount
     (did-mount [this]
-      (let [node (get-node owner)
+      (let [node (om/get-node owner)
             {:keys [leaflet-map markers path] :as map} (create-map node controls)
             {:keys [comm fetch-boundarylines-fn point-in-boundarylines-fn
                     path-marker-click-fn]} (om/get-shared owner)
@@ -1061,7 +1060,7 @@
 
     om/IWillUnmount
     (will-unmount [this]
-      (let [node (get-node owner)]
+      (let [node (om/get-node owner)]
         (-> node $ .off)
         (events/unlisten! node)
         (events/unlisten! "clustermap-change-view")

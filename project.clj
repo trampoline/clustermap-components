@@ -1,4 +1,4 @@
-(defproject clustermap-components "0.1.0"
+(defproject clustermap-components "0.2.0-SNAPSHOT"
   :description "om components"
   :url "https://github.com/trampoline/clustermap-components"
 
@@ -6,14 +6,14 @@
                  [org.clojure/tools.macro "0.1.5"]
                  [org.clojure/clojurescript "1.7.228" :scope "provided"]
                  [org.clojure/core.async "0.2.374" :scope "provided"]
-                 [org.omcljs/om "1.0.0-alpha30"]
+                 [org.omcljs/om "1.0.0-alpha32"]
                  [prismatic/om-tools "0.4.0" :exclusions [org.clojure/clojure prismatic/schema]]
                  [prismatic/schema "1.0.5"]
                  [domina "1.0.3"]
                  [sablono "0.6.2"]
                  [hiccups "0.3.0"]
                  [secretary "1.2.3"]
-                 [binaryage/devtools "0.5.2"]
+                 [binaryage/devtools "0.5.4"]
                  [com.andrewmcveigh/cljs-time "0.4.0"]
                  [jayq "2.5.4"]] ;; let's get rid of this soon
 

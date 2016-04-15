@@ -1,6 +1,7 @@
 (ns clustermap.util
   "Keep this small and promote members to meaningful modules"
-  (:require [devtools.core :as devtools]))
+  (:require [devtools.core :as devtools]
+            [om.core :as om]))
 
 (defn chrome-canary? []
   (if-let [v (last (re-find #"Chrom(e|ium)/([0-9]+)\." js/navigator.userAgent))]
@@ -28,13 +29,11 @@
 
 (defn get-node
   "A helper function to get at React DOM refs. Given a owning pure
-  node extract the DOM ref specified by name. Modded from Om for to
-  stop warnings in react 0.14"
-  ([owner]
-   (ReactDOM.findDOMNode owner))
-  ([owner name]
-   {:pre [(string? name)]}
-   (some-> (.-refs owner) (aget name) (ReactDOM.findDOMNode owner))))
+  node extract the DOM ref specified by name.
+ DEPRECATED: use original om.core/get-node"
+  [& args]
+  (js/console.warn "DEPRECATED: use om.core/get-node again")
+  (apply om/get-node args))
 
 (defn make-sequential
   [x]

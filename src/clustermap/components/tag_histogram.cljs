@@ -9,7 +9,7 @@
    [domina.events :as events]
    [sablono.core :as html :refer-macros [html]]
    [clustermap.api :as api]
-   [clustermap.util :refer [get-node make-sequential]]
+   [clustermap.util :refer [make-sequential pp]]
    [clustermap.formats.number :as num]
    [clustermap.formats.money :as money]))
 
@@ -94,80 +94,77 @@
      tag-data :tag-data
      tag-agg-data :tag-agg-data
      :as tag-histogram} :tag-histogram
-     filter-spec :filter-spec}
+    filter-spec :filter-spec}
    owner
    {:keys [id] :as opts}]
 
-  (render
-   [_]
-   (html [:div.tag-histogram {:id id :ref "chart"}]))
+  (render [_]
+    (html [:div.tag-histogram {:id id :ref "chart"}]))
 
-  (did-mount
-   [_]
-   (let [node (get-node owner)
-         last-dims (atom nil)
-         w (.-offsetWidth node)
-         h (.-offsetHeight node)]
+  (did-mount [_]
+    (let [node (om/get-node owner)
+          last-dims (atom nil)
+          w (.-offsetWidth node)
+          h (.-offsetHeight node)]
 
-     ;; only set last-dims if we are initialised on-screen... later
-     ;; when chart shows, if last-dims is nil, we reflow again
-     (when (and (> w 0) (> h 0))
-       (reset! last-dims [w h]))
+      ;; only set last-dims if we are initialised on-screen... later
+      ;; when chart shows, if last-dims is nil, we reflow again
+      (when (and (> w 0) (> h 0))
+        (reset! last-dims [w h]))
 
-     (om/set-state! owner :fetch-tag-data-fn (api/tags-of-type-factory))
-     (om/set-state! owner :fetch-tag-agg-data-fn (api/nested-aggregation-factory))
+      (om/set-state! owner :fetch-tag-data-fn (api/tags-of-type-factory))
+      (om/set-state! owner :fetch-tag-agg-data-fn (api/nested-aggregation-factory))
 
-     (events/listen! "clustermap-change-view" (fn [e]
-                                                ;; only reflow charts when they are visible
-                                                ;; they disappear otherwise
-                                                (let [w (.-offsetWidth node)
-                                                      h (.-offsetHeight node)]
+      (events/listen! "clustermap-change-view" (fn [e]
+                                                 ;; only reflow charts when they are visible
+                                                 ;; they disappear otherwise
+                                                 (let [w (.-offsetWidth node)
+                                                       h (.-offsetHeight node)]
 
-                                                  (when (and (> w 0)
-                                                             (> h 0)
-                                                             (not= @last-dims [w h]))
+                                                   (when (and (> w 0)
+                                                              (> h 0)
+                                                              (not= @last-dims [w h]))
 
-                                                    (some-> (om/get-state owner :chart)
-                                                            .reflow)))))))
+                                                     (some-> (om/get-state owner :chart)
+                                                             .reflow)))))))
   (will-update
-   [_
-    {{next-query :query
-      next-metrics :metrics
-      next-tag-type :tag-type
-      next-tag-data :tag-data
-      next-tag-agg-data :tag-agg-data} :tag-histogram
-      next-filter-spec :filter-spec}
-    {fetch-tag-data-fn :fetch-tag-data-fn
-     fetch-tag-agg-data-fn :fetch-tag-agg-data-fn}]
+      [_
+       {{next-query :query
+         next-metrics :metrics
+         next-tag-type :tag-type
+         next-tag-data :tag-data
+         next-tag-agg-data :tag-agg-data} :tag-histogram
+        next-filter-spec :filter-spec}
+       {fetch-tag-data-fn :fetch-tag-data-fn
+        fetch-tag-agg-data-fn :fetch-tag-agg-data-fn}]
 
-   (when (or (not next-tag-data)
-             (not= next-tag-type tag-type))
+    (when (or (not next-tag-data)
+              (not= next-tag-type tag-type))
 
-     (go
-       (when-let [tag-data (<! (fetch-tag-data-fn next-tag-type))]
-         (.log js/console (clj->js ["HISTOGRAM TAGS: " tag-data]))
-         (om/update! tag-histogram [:tag-data] tag-data))))
+      (go
+        (when-let [tag-data (<! (fetch-tag-data-fn next-tag-type))]
+          (.log js/console (pp ["HISTOGRAM TAGS: " tag-data]))
+          (om/update! tag-histogram [:tag-data] tag-data))))
 
-   (when (or (not next-tag-agg-data)
-             (not= next-query query)
-             (not= next-metrics metrics)
-             (not= next-filter-spec filter-spec))
+    (when (or (not next-tag-agg-data)
+              (not= next-query query)
+              (not= next-metrics metrics)
+              (not= next-filter-spec filter-spec))
 
-     (go
-       (when-let [tag-agg-data (<! (fetch-tag-agg-data-fn
-                                   (merge next-query {:filter-spec next-filter-spec})))]
-         (.log js/console (clj->js ["HISTOGRAM TAG AGGS: " tag-agg-data]))
-         (om/update! tag-histogram [:tag-agg-data] (:records tag-agg-data))))))
+      (go
+        (when-let [tag-agg-data (<! (fetch-tag-agg-data-fn
+                                     (merge next-query {:filter-spec next-filter-spec})))]
+          (.log js/console (pp ["HISTOGRAM TAG AGGS: " tag-agg-data]))
+          (om/update! tag-histogram [:tag-agg-data] (:records tag-agg-data))))))
 
-  (did-update
-   [_
-    {{prev-query :query
-      prev-metrics :metrics
-      prev-tag-data :tag-data
-      prev-tag-agg-data :tag-agg-data} :tag-histogram
-      prev-filter-spec :filter-spec}
-    _]
-   (when (or (not= prev-metrics metrics)
-             (not= prev-tag-data tag-data)
-             (not= prev-tag-agg-data tag-agg-data))
-     (om/set-state! owner :chart (create-chart (get-node owner "chart") tag-histogram opts)))))
+  (did-update [_
+               {{prev-query :query
+                 prev-metrics :metrics
+                 prev-tag-data :tag-data
+                 prev-tag-agg-data :tag-agg-data} :tag-histogram
+                prev-filter-spec :filter-spec}
+               _]
+    (when (or (not= prev-metrics metrics)
+              (not= prev-tag-data tag-data)
+              (not= prev-tag-agg-data tag-agg-data))
+      (om/set-state! owner :chart (create-chart (om/get-node owner "chart") tag-histogram opts)))))

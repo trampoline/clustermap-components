@@ -6,11 +6,10 @@
    [om.core :as om :include-macros true]
    [om-tools.core :refer-macros [defcomponent]]
    [domina.events :as events]
-   [jayq.core :refer [$]]
    [sablono.core :as html :refer-macros [html]]
    [clustermap.api :as api]
-   [clustermap.util :refer [get-node]]
    [clustermap.formats.html :as htmlf]
+   [clustermap.util :refer [pp]]
    [clustermap.components.table-common :as tc]))
 
 (defn create-chart
@@ -64,13 +63,13 @@
      query :query
      view :view
      :as table-state} :table-state
-     filter-spec :filter-spec
-     :as props}
+    filter-spec :filter-spec
+    :as props}
    owner]
 
   (did-mount [_]
     (om/set-state! owner :fetch-data-fn (api/ranges-factory))
-    (let [node (get-node owner)
+    (let [node (om/get-node owner)
           last-dims (atom nil)
           w (.-offsetWidth node)
           h (.-offsetHeight node)]
@@ -99,30 +98,31 @@
     (html [:div {:ref "ranges-chart"}]))
 
   (will-update
-    [_
-     {{next-table-data :table-data
-       next-query :query
-       next-view :view
-       :as next-table-state} :table-state
-       next-filter-spec :filter-spec
-       :as next-props}
-     {fetch-data-fn :fetch-data-fn}]
+      [_
+       {{next-table-data :table-data
+         next-query :query
+         next-view :view
+         :as next-table-state} :table-state
+        next-filter-spec :filter-spec
+        :as next-props}
+       {fetch-data-fn :fetch-data-fn}]
 
     (when (or (not next-table-data)
               (not= next-query query)
               (not= next-filter-spec filter-spec))
 
       (go
+        (js/console.log fetch-data-fn)
         (when-let [ranges (<! (fetch-data-fn (merge next-query {:filter-spec next-filter-spec})))]
-          (.log js/console (clj->js ["RANGES-TABLE-DATA" ranges]))
+          (.log js/console (pp ["RANGES-TABLE-DATA" ranges]))
           (om/update! table-state [:table-data] ranges)))))
 
   (did-update
-    [_
-     {{prev-view :view
-       prev-table-data :table-data} :table-state :as prev-props}
-     _]
+      [_
+       {{prev-view :view
+         prev-table-data :table-data} :table-state :as prev-props}
+       _]
 
     (when (or (not= prev-table-data table-data)
               (not= prev-view view))
-      (om/set-state! owner :chart (create-chart (get-node owner "ranges-chart") table-state)))))
+      (om/set-state! owner :chart (create-chart (om/get-node owner "ranges-chart") table-state)))))

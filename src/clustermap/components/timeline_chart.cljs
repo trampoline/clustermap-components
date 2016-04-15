@@ -8,7 +8,6 @@
    [cljs.core.async :refer [<!]]
    [sablono.core :as html :refer-macros [html]]
    [clustermap.api :as api]
-   [clustermap.util :refer [get-node]]
    [clustermap.formats.number :as num]
    [clustermap.formats.money :as money]))
 
@@ -75,7 +74,7 @@
 
   (did-mount
    [_]
-   (let [node (get-node owner)
+   (let [node (om/get-node owner)
          last-dims (atom nil)
          w (.-offsetWidth node)
          h (.-offsetHeight node)]
@@ -125,4 +124,4 @@
     _]
    (when (or (not= prev-timeline-data timeline-data)
              (not= prev-query query))
-     (om/set-state! owner :chart (create-chart (get-node owner "chart") timeline-chart opts)))))
+     (om/set-state! owner :chart (create-chart (om/get-node owner "chart") timeline-chart opts)))))
