@@ -34,7 +34,7 @@
    (ReactDOM.findDOMNode owner))
   ([owner name]
    {:pre [(string? name)]}
-   (some-> (.-refs owner) (aget name))))
+   (some-> (.-refs owner) (aget name) (ReactDOM.findDOMNode owner))))
 
 (defn make-sequential
   [x]
