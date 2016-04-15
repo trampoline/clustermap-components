@@ -65,7 +65,7 @@
                      (map (fn [rs] (apply merge-with merge rs)))
                      (sort-by (juxt :description :tag) ))
 
-        x-labels (map #(or (:description %) (:tag %) :blog) records)
+        x-labels (map #(or (:description %) (:tag %)) records)
 
         metrics (make-sequential metrics)
 
