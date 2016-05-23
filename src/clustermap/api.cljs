@@ -218,3 +218,8 @@
   [query & [{:keys [search-fields]}]] ;;TODO: use an ajax todo params properly
   (GET (str "/api/" api-prefix "/companies/v2/name-id-search?q=" (some-> query str/trim)
             "&search_fields=" (str/join "," search-fields))))
+
+(defnk-lastcall-method-factory company-links-factory
+  [filter-spec]
+  (POST (str "/api/" api-prefix "/companylinks")
+      {:filter filter-spec} :send-error true))

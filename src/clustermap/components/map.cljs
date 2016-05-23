@@ -9,8 +9,10 @@
    [om.core :as om :include-macros true]
    [jayq.core :refer [$]]
    [sablono.core :as html :refer-macros [html]]
+   [schema.core :as s :refer-macros [defschema]]
    [hiccups.runtime :as hiccupsrt]
    [clustermap.api :as api]
+   [clustermap.util :as util :refer-macros [inspect <?]]
    [clustermap.formats.number :as num :refer [div! *! -! +!]]
    [clustermap.boundarylines :as bl]
    [clustermap.data.colorchooser :as colorchooser]))
@@ -565,6 +567,38 @@
     notifychan
     ))
 
+
+(s/defschema LongLat
+  [(s/one s/Num "longitude") (s/one s/Num "latitude")])
+
+(defschema Line
+  [(s/one LongLat "from") (s/one LongLat "to")])
+
+(s/defschema MultiPolyline
+  (s/pred #(fn? (.-addTo %)) "MultiPolyline"))
+
+(s/defschema LeafletMap
+  (s/pred #(fn? (.-addLayer %)) "LeafletMap"))
+
+(s/defn update-links
+  "Given a vector of [[long lat] [long lat]] pairs, a an existing
+  multipolyline obj or null and a leaflet map, add the line pairs to
+  the multipolyline, add to map if needed and return the
+  multipolyline."
+  ([links-data multipolyline leaflet-map]
+   (update-links links-data multipolyline leaflet-map #js {:color "#008b45" :weight 1 :opacity 0.1}))
+  ([links-data :- [Line]
+    multipolyline :- (s/maybe MultiPolyline)
+    leaflet-map :- LeafletMap
+    line-opts]
+   (let [lines     (for [[[longa lata] [longb latb]] links-data]
+                     #js [(js/L.latLng lata longa) (js/L.latLng latb longb)])
+         multi     (or multipolyline (js/L.multiPolyline #js [] line-opts))]
+     (.setLatLngs multi (clj->js lines))
+     (when-not multipolyline
+       (.addTo multi leaflet-map))
+     multi)))
+
 ;; (defn pan-to-selection
 ;;   [owner leaflet-map paths-atom path-selections-atom]
 ;;   (let [paths @paths-atom
@@ -601,12 +635,14 @@
   [{{data :data
      point-data :point-data
      boundaryline-collections :boundaryline-collections
+     links-data :links-data
      {:keys [initial-bounds
              map-options
              link-render-fn
              link-click-fn
              bounds zoom show-points
              location
+             show-links
              boundaryline-collection
              colorchooser
              boundaryline-agg
@@ -708,6 +744,7 @@
         (om/set-state! owner :fetch-geotag-data-fn (api/geotags-of-type-factory))
         (om/set-state! owner :fetch-geotag-agg-data-fn (api/nested-aggregation-factory))
         (om/set-state! owner :fetch-geohash-agg-data-fn (api/geohash-grid-factory))
+        (om/set-state! owner :fetch-company-links-data-fn (api/company-links-factory))
 
         ))
 
@@ -718,9 +755,11 @@
                   {{next-data :data
                     next-point-data :point-data
                     next-boundaryline-collections :boundaryline-collections
+                    next-links-data :links-data
                     {next-zoom :zoom
                      next-bounds :bounds
                      next-show-points :show-points
+                     next-show-links :show-links
                      next-location :location
                      next-boundaryline-collection :boundaryline-collection
                      next-colorchooser :colorchooser
@@ -731,28 +770,30 @@
                      next-geohash-aggs :geohash-aggs} :controls
                     :as next-cursor
                     } :map-state
-                      next-filter :filter
-                      next-filter-spec :filter-spec
-                      :as next-cursor-data}
+                   next-filter :filter
+                   next-filter-spec :filter-spec
+                   :as next-cursor-data}
                   {{next-markers :markers
                     next-geotag-markers :geotag-markers
                     next-geohash-markers :geohash-markers
                     next-paths :paths
+                    next-links-multipolyline :links-multipolyline
                     next-path-selections :path-selections} :map
-                    next-path-highlights :path-highlights
-                    fetch-aggregation-data-fn :fetch-aggregation-data-fn
-                    fetch-point-data-fn :fetch-point-data-fn
-                    fetch-geotag-data-fn :fetch-geotag-data-fn
-                    fetch-geotag-agg-data-fn :fetch-geotag-agg-data-fn
-                    fetch-geohash-agg-data-fn :fetch-geohash-agg-data-fn
-                    }]
+                   next-path-highlights :path-highlights
+                   fetch-aggregation-data-fn :fetch-aggregation-data-fn
+                   fetch-point-data-fn :fetch-point-data-fn
+                   fetch-geotag-data-fn :fetch-geotag-data-fn
+                   fetch-geotag-agg-data-fn :fetch-geotag-agg-data-fn
+                   fetch-geohash-agg-data-fn :fetch-geohash-agg-data-fn
+                   fetch-company-links-data-fn :fetch-company-links-data-fn
+                   }]
 
       (let [{:keys [comm fetch-boundarylines-fn point-in-boundarylines-fn path-marker-click-fn]} (om/get-shared owner)
             {{:keys [leaflet-map leaflet-marker-cluster-group markers paths path-selections]} :map
              pan-pending :pan-pending
              path-highlights :path-highlights} (om/get-state owner)
 
-             zoom-changed (not= next-zoom zoom)]
+            zoom-changed (not= next-zoom zoom)]
 
         ;; apply any requested but not-yet-applied zoom
         (when (and leaflet-map next-zoom (not= next-zoom zoom) (not= next-zoom (.getZoom leaflet-map)))
@@ -833,6 +874,14 @@
                                                      :precision ((:precision-fn next-geohash-aggs) next-zoom)})))]
               (om/update! cursor [:controls :geohash-aggs :geohash-agg-data] (:records geohash-agg-data)))))
 
+        (when (and next-show-links
+                   (or (empty? next-links-data)
+                       (not= next-filter filter)
+                       (not= next-links-data links-data)))
+          (go (let [links-data (<? (fetch-company-links-data-fn {:filter-spec (om/-value next-filter)}))]
+                (om/update! cursor [:links-data] links-data)
+                (inspect (count links-data)))))
+
         (when (and next-colorchooser
                    next-data
                    (or (not= next-data data)
@@ -899,6 +948,9 @@
                                   next-geohash-aggs
                                   (not-empty (:records next-point-data))))
 
+        (when (not= next-links-data links-data)
+          (om/set-state! owner [:map :links-multipolyline]
+                         (update-links next-links-data next-links-multipolyline leaflet-map)))
         ))
 
     om/IWillUnmount
