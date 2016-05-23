@@ -569,10 +569,10 @@
 
 
 (s/defschema LongLat
-  [(s/one s/Num "longitude") (s/one s/Num "latitude")])
+  (s/pair s/Num "longitude" s/Num "latitude"))
 
 (defschema Line
-  [(s/one LongLat "from") (s/one LongLat "to")])
+  (s/pair LongLat "from" LongLat "to"))
 
 (s/defschema MultiPolyline
   (s/pred #(fn? (.-addTo %)) "MultiPolyline"))
@@ -657,7 +657,7 @@
   (reify
     om/IRender
     (render [this]
-      (js/console.debug (pr-str data))
+      ;;(js/console.debug (pr-str data))
 
       (html [:div.map {:ref "map"}]))
 
