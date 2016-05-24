@@ -575,7 +575,7 @@
   (s/pair LongLat "from" LongLat "to"))
 
 (s/defschema MultiPolyline
-  (s/pred #(fn? (.-addTo %)) "MultiPolyline"))
+  (s/pred #(fn? (.-setLatLngs %)) "MultiPolyline"))
 
 (s/defschema LeafletMap
   (s/pred #(fn? (.-addLayer %)) "LeafletMap"))
@@ -591,9 +591,9 @@
     multipolyline :- (s/maybe MultiPolyline)
     leaflet-map :- LeafletMap
     line-opts]
-   (let [lines     (for [[[longa lata] [longb latb]] links-data]
-                     #js [(js/L.latLng lata longa) (js/L.latLng latb longb)])
-         multi     (or multipolyline (js/L.multiPolyline #js [] line-opts))]
+   (let [lines (for [[[longa lata] [longb latb]] links-data]
+                 #js [(js/L.latLng lata longa) (js/L.latLng latb longb)])
+         multi (or multipolyline (js/L.multiPolyline #js [] line-opts))]
      (.setLatLngs multi (clj->js lines))
      (when-not multipolyline
        (.addTo multi leaflet-map))
