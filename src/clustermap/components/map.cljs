@@ -642,7 +642,7 @@
              link-click-fn
              bounds zoom show-points
              location
-             show-links
+             display-company-links
              boundaryline-collection
              colorchooser
              boundaryline-agg
@@ -759,7 +759,7 @@
                     {next-zoom :zoom
                      next-bounds :bounds
                      next-show-points :show-points
-                     next-show-links :show-links
+                     next-display-company-links :display-company-links
                      next-location :location
                      next-boundaryline-collection :boundaryline-collection
                      next-colorchooser :colorchooser
@@ -874,13 +874,16 @@
                                                      :precision ((:precision-fn next-geohash-aggs) next-zoom)})))]
               (om/update! cursor [:controls :geohash-aggs :geohash-agg-data] (:records geohash-agg-data)))))
 
-        (when (and next-show-links
-                   (or (empty? next-links-data)
-                       (not= next-filter filter)
-                       (not= next-links-data links-data)))
+        (if (and next-display-company-links
+                 (or (empty? next-links-data)
+                     (not= next-filter filter)
+                     (not= next-links-data links-data)))
           (go (let [links-data (<? (fetch-company-links-data-fn {:filter-spec (om/-value next-filter)}))]
                 (om/update! cursor [:links-data] links-data)
-                (inspect (count links-data)))))
+                (inspect (count links-data))))
+          (when (and (not next-display-company-links)
+                     (not-empty next-links-data))
+            (om/update! cursor [:links-data] nil)))
 
         (when (and next-colorchooser
                    next-data
