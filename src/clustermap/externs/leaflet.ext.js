@@ -705,7 +705,10 @@ var L = {
   "polygon": function () {},
   "MultiPolyline": function () {},
   "MultiPolygon": function () {},
-  "multiPolyline": function () {},
+  "multiPolyline": {
+    "addTo": function () {},
+    "setLatLngs": function () {}
+    },
   "multiPolygon": function () {},
   "Rectangle": function () {},
   "rectangle": function () {},
