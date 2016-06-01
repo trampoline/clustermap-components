@@ -3,7 +3,7 @@
  :resource-paths  #{"resources" "src"}
  :dependencies '[[adzerk/boot-cljs          "1.7.228-1"   :scope "test"]
                  [adzerk/boot-cljs-repl     "0.3.0"      :scope "test"]
-                 [adzerk/boot-reload        "0.4.5"      :scope "test"]
+                 [adzerk/boot-reload        "0.4.8"      :scope "test"]
                  [pandeiro/boot-http        "0.7.3"      :scope "test"]
                  [crisptrutski/boot-cljs-test "0.2.1" :scope "test"]
                  [com.cemerick/piggieback "0.2.1" :scope "test"]
