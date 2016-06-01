@@ -9,9 +9,9 @@
                  [com.cemerick/piggieback "0.2.1" :scope "test"]
                  [org.clojure/tools.nrepl "0.2.12" :scope "test"]
                  [weasel "0.7.0" :scope "test"]
-                 [seancorfield/boot-expectations "1.0.5" :scope "test"]
+                 [seancorfield/boot-expectations "1.0.9" :scope "test"]
 
-                 [org.clojure/clojurescript "1.7.228"]
+                 [org.clojure/clojurescript "1.8.51"]
                  [org.clojure/core.async "0.2.374"]
                  [org.clojure/tools.macro "0.1.5"]
                  ;;[com.taoensso/timbre "4.3.0-RC1"]
@@ -19,15 +19,15 @@
                  [prismatic/om-tools "0.4.0" :exclusions [org.clojure/clojure prismatic/schema]]
                  [binaryage/devtools "0.5.2"]
 
-                 [cljsjs/react "0.14.3-0"]
-                 [cljsjs/react-dom "0.14.3-1"]
+                 [cljsjs/react "15.1.0-0"]
+                 [cljsjs/react-dom "15.1.0-0"]
                  [domina "1.0.3"]
                  [jayq "2.5.4"]
-                 [prismatic/schema "1.0.5"]
-                 [sablono "0.6.2"]
+                 [prismatic/schema "1.1.1"]
+                 [sablono "0.7.2"]
                  [hiccups "0.3.0"]
                  [secretary "1.2.3"]
-                 [cljsjs/bootstrap "3.3.5-0"]
+                 [cljsjs/bootstrap "3.3.6-1"]
                  [com.andrewmcveigh/cljs-time "0.4.0"]])
 
 (require
