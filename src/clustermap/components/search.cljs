@@ -1,12 +1,12 @@
 (ns clustermap.components.search
   (:require-macros
    [plumbing.core :refer [defnk]]
-   [cljs.core.async.macros :refer [go]])
+   [cljs.core.async.macros :refer [go go-loop]])
   (:require [om.core :as om :include-macros true]
             [om-tools.core :refer-macros [defcomponentk]]
             [schema.core :as s]
             [sablono.core :as html :refer-macros [html]]
-            [cljs.core.async :refer [<!]]))
+            [cljs.core.async :as async :refer [<!]]))
 
 (def ESCAPE_KEY 27)
 (def ENTER_KEY 13)
@@ -124,11 +124,19 @@
    :results (s/maybe [{s/Keyword s/Any}])})
 
 (defcomponentk search-component
-  [[:data search :- SearchComponentSchema]
+  [[:data [:search [:controls search-fn] :as search] :- SearchComponentSchema]
    state
    owner
    :as m]
 
+  (will-mount [_]
+    (when-let [search-chan (om/get-shared owner :search-chan)]
+      (go-loop []
+        (when-some [op (<! search-chan)]
+          (case op
+            :clear (search-for state search search-fn nil)
+            (js/console.debug "Unknown op " op))
+          (recur)))))
   (render
-   [_]
-   (render* m)))
+      [_]
+    (render* m)))

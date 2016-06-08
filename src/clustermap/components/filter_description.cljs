@@ -5,6 +5,7 @@
             [om.core :as om :include-macros true]
             [om-tools.core :refer-macros [defcomponentk]]
             [schema.core :as s]
+            [cljs.core.async :as async]
             [sablono.core :as html :refer-macros [html]]
             [clustermap.filters :as filters]))
 
@@ -27,32 +28,36 @@
   [[:data
     components
     filter-spec] :- FilterDescriptionSchema
-    state
-    owner]
+   state
+   owner]
 
   (render
-   [_]
-   (html
-    [:div.filter-settings
+      [_]
+    (html
+     [:div.filter-settings
 
-     [:div.filter-buttons
-      [:button.btn.btn-primary#filter-toggle {:type "button"
-                                              :on-click (fn [e]
-                                                          (let [new-open (not (:open filter-spec))]
-                                                            (om/update! filter-spec [:open] (not (:open filter-spec)))
-                                                            ;; (if new-open
-                                                            ;;   (css/add-class! (css/sel "#data-container") "show-filters")
-                                                            ;;   (css/remove-class! (css/sel "#data-container") "show-filters"))
-                                                            ))}
-       (if (:open filter-spec)
-         "Close filter"
-         "Open filter")]
-      [:button.btn.btn-default#filter-reset {:type "button"
-                                             :on-click (fn [e]
-                                                         (om/update! filter-spec (filters/reset-filter filter-spec)))}
-       "Clear filter"]]
+      [:div.filter-buttons
+       [:button.btn.btn-primary#filter-toggle {:type "button"
+                                               :on-click (fn [e]
+                                                           (let [new-open (not (:open filter-spec))]
+                                                             (om/update! filter-spec [:open] (not (:open filter-spec)))
+                                                             ;; (if new-open
+                                                             ;;   (css/add-class! (css/sel "#data-container") "show-filters")
+                                                             ;;   (css/remove-class! (css/sel "#data-container") "show-filters"))
+                                                             ))}
+        (if (:open filter-spec)
+          "Close filter"
+          "Open filter")]
 
-     (into  [:ul.filter-selected-items]
+       [:button.btn.btn-default#filter-reset
+        {:type "button"
+         :on-click (fn [e]
+                     (when-let [search-chan (om/get-shared owner :search-chan)]
+                       (async/put! search-chan :clear))
+                     (om/update! filter-spec (filters/reset-filter filter-spec)))}
+        "Clear filter"]]
+
+      (into [:ul.filter-selected-items]
             (some->> components
                      (map #(render-filter-component filter-spec %))
                      (filter identity)))])))
