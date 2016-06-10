@@ -2,6 +2,7 @@
   (:require-macros [hiccups.core :as hiccups])
   (:require [clojure.string :as str]
             goog.object
+            [hiccups.runtime :as hiccupsrt]
             [clustermap.formats.number :as num]))
 
 (defn mk-tooltip-point-formatter

@@ -29,12 +29,12 @@
    "Madrid" "nuts_1__ES3"
    "Berlin" "nuts_1__DE3"
    "Munich" "nuts_3__DE212"
-   "Rome" "nuts_3__ITE43"
+   "Rome" "nuts_3__ITI43"
    "Tallinn" "nuts_3__EE001"
    "Oslo" "nuts_3__NO011"
    "Dublin" "nuts_3__IE021"
    "Amsterdam" "nuts_3__NL326"
-   "Athens" "nuts_3__EL303"
+   "Athens" "nuts_3__EL300"
    "Warsaw" "nuts_3__PL127"
    })
 
