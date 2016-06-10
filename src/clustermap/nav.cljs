@@ -45,6 +45,18 @@
 ;;                       (when v
 ;;                         (nav-fn v))))))
 
+(defn zero-company-info
+  "Workaround to stop flash-of-old-data in company info page.
+  Set the company-info record to nil unless selection-filter-spec is
+  for the same natural_id that is already loaded."
+  [app-state]
+  (let [state @app-state]
+    (when (not= (str (get-in state
+                             [:selection-filter-spec :components
+                              :natural-id :term "?natural_id"]))
+                (str (get-in state [:company-info :record :natural_id])))
+      (swap! app-state assoc-in [:company-info :record] nil))))
+
 (defn set-route
   [history view]
   (let [token (.getToken history)
@@ -56,6 +68,8 @@
 (defn set-view
   [app-state path view]
   (.log js/console (clj->js ["change-view" view]))
+  (when (= view "company")
+    (zero-company-info app-state))
   (swap! app-state assoc-in path view)
   (change-view view))
 
