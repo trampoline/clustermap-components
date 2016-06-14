@@ -94,7 +94,7 @@
           "Clear"]])
       [:ul.filter-items
        (for [{:keys [value label filter]} options]
-         [:li
+         [:li {:key value}
           [:label
            [:div
             [:span.label

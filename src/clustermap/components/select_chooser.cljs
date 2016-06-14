@@ -23,4 +23,4 @@
                               (read-update-fn cursor (get value-labels-by-val val))))
                 :value current-value}
        (for [{:keys [value label]} value-labels]
-         [:option {:value (name value)} label])]))))
+         [:option {:value (name value) :key value} label])]))))

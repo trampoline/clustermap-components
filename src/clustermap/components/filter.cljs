@@ -68,7 +68,8 @@
    {:keys [id label skip-label visible] :as component-spec}
    component-filter-rq-chan]
 
-  [:div.filter-group {:class (str/join " " [(name id) (when visible "active")])}
+  [:div.filter-group {:class (str/join " " [(name id) (when visible "active")])
+                      :key (name id)}
    [:div.filter-header
     [:i.icon-toggle-filter {:on-click (fn [e] (om/update! component-spec [:visible] (not visible)))}]
     (when-not skip-label [:span label])]

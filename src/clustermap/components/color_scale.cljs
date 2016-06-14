@@ -20,7 +20,7 @@
        [:tbody
         [:tr
          (for [[threshold color] threshold-colors]
-           [:td {:style {:padding 0}}
+           [:td {:style {:padding 0} :key (str threshold color)}
             [:div {:style {:position "relative"}}
              [:div {:style {:position "absolute"
                             :top 0
