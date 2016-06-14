@@ -20,11 +20,11 @@
        [:tbody
         [:tr
          (for [[threshold color] threshold-colors]
-           [:td {:style {:padding "0"}}
+           [:td {:style {:padding 0}}
             [:div {:style {:position "relative"}}
              [:div {:style {:position "absolute"
-                            :top "0"
-                            :left "0"
+                            :top 0
+                            :left 0
                             :width "100%"
                             :height "100%"
                             :background-color color
