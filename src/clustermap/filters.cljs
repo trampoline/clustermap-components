@@ -62,7 +62,7 @@
 (s/defn update-filter-component :- FilterSchema
   "update the filter component k with filter f, description d, and url component u"
   [filters :- FilterSchema
-   k :- s/Str
+   k :- s/Keyword
    f :- s/Any
    d :- s/Str
    u :- s/Str]

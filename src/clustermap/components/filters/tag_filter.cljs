@@ -45,7 +45,7 @@
    value]
   (let [f (filter-for-value component-spec value)
         d (get-tag-description component-spec value)]
-    (.log js/console (clj->js ["TAG-FILTER" id val f d]))
+    (.log js/console ["TAG-FILTER" id val f d])
     (filters/update-filter-component filter-spec id f d value)))
 
 (defn sort-tags
@@ -84,6 +84,7 @@
                     :label s/Str
                     (s/optional-key :visible) s/Bool
                     (s/optional-key :sorted) s/Bool
+                    (s/optional-key :default) s/Str
                     :tag-type s/Str
                     :tags [{:value s/Str
                             :label s/Str
@@ -95,16 +96,18 @@
    [:opts component-filter-rq-chan] :- {:component-filter-rq-chan ManyToManyChannel}
    owner]
 
-  (did-mount
-   [_]
-   (go
-     (while (when-let [[component-id rq] (<! component-filter-rq-chan)]
-              (let [{:keys [component-spec filter-spec]} (om/get-props owner)]
+  (did-mount [_]
+    (when-let [default (:default component-spec)]
+      (let [{:keys [component-spec filter-spec]} (om/get-props owner)]
+        (om/update! filter-spec
+                    (set-filters-for-value @filter-spec @component-spec default))))
+    (go
+      (while (when-let [[component-id rq] (<! component-filter-rq-chan)]
+               (let [{:keys [component-spec filter-spec]} (om/get-props owner)]
 
-                (.log js/console (clj->js ["TAG-FILTER-RQ" id rq]))
-                (om/update! filter-spec
-                            (set-filters-for-value @filter-spec @component-spec rq))
-                true)))))
-  (render
-   [_]
-   (render* data)))
+                 (.log js/console (clj->js ["TAG-FILTER-RQ" id rq]))
+                 (om/update! filter-spec
+                             (set-filters-for-value @filter-spec @component-spec rq))
+                 true)))))
+  (render [_]
+    (render* data)))
