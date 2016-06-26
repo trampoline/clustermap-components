@@ -9,7 +9,7 @@
    [domina.events :as events]
    [sablono.core :as html :refer-macros [html]]
    [clustermap.api :as api]
-   [clustermap.util :refer [make-sequential pp]]
+   [clustermap.util :as util :refer [make-sequential pp]]
    [clustermap.formats.number :as num]
    [clustermap.formats.money :as money]))
 
@@ -99,7 +99,12 @@
    {:keys [id] :as opts}]
 
   (render [_]
-    (html [:div.tag-histogram {:id id :ref "chart"}]))
+    (if-let [data-available-fn (om/get-shared owner :data-available-fn)]
+      (let [show (data-available-fn filter-spec)]  ;; cambridge only
+        (html [:span
+               [:div.tag-histogram {:id id :ref "chart" :style (util/display show)}]
+               [:div {:style (util/display (not show))} "Data not available"]]))
+      (html [:div.tag-histogram {:id id :ref "chart"}])))
 
   (did-mount [_]
     (let [node (om/get-node owner)

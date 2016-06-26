@@ -9,7 +9,7 @@
    [sablono.core :as html :refer-macros [html]]
    [clustermap.api :as api]
    [clustermap.formats.html :as htmlf]
-   [clustermap.util :refer [pp]]
+   [clustermap.util :as util :refer [pp]]
    [clustermap.components.table-common :as tc]))
 
 (defn create-chart
@@ -95,7 +95,12 @@
     )
 
   (render [_]
-    (html [:div {:ref "ranges-chart"}]))
+    (if-let [data-available-fn (om/get-shared owner :data-available-fn)]
+      (let [show (data-available-fn filter-spec)]  ;; cambridge only
+        (html [:span
+               [:div {:ref "ranges-chart" :style (util/display show)}]
+               [:div {:style (util/display (not show))} "Data not available"]]))
+      (html [:div {:ref "ranges-chart"}])))
 
   (will-update
       [_

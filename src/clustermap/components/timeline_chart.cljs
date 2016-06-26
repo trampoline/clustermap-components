@@ -8,6 +8,7 @@
    [cljs.core.async :refer [<!]]
    [sablono.core :as html :refer-macros [html]]
    [clustermap.api :as api]
+   [clustermap.util :as util]
    [clustermap.formats.number :as num]
    [clustermap.formats.money :as money]))
 
@@ -68,9 +69,13 @@
    owner
    {:keys [id] :as opts}]
 
-  (render
-   [_]
-   (html [:div.timeline-chart {:id id :ref "chart"}]))
+  (render [_]
+    (if-let [data-available-fn (om/get-shared owner :data-available-fn)]
+      (let [show (data-available-fn filter-spec)]  ;; cambridge only
+        (html [:span
+               [:div.timeline-chart {:id id :ref "chart" :style (util/display show)}]
+               [:div {:style (util/display (not show))} "Data not available"]]))
+      (html [:div.timeline-chart {:id id :ref "chart"}])))
 
   (did-mount
    [_]
