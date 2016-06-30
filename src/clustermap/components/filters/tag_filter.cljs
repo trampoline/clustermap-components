@@ -59,25 +59,41 @@
 
 (defnk ^:private render*
   [[:filter-spec components :as filter-spec]
-   [:component-spec id label {sorted nil} tag-type tags :as component-spec]]
+   [:component-spec id label {sorted nil} tag-type tags {chooser-type :select}
+    :as component-spec]]
   (let [tags (if sorted (sort-tags tags) tags)
-        select-value (get-current-value components id)]
+        select-value (get-current-value components id)
+        on-event (fn [e]
+                   (let [val (-> e .-target .-value)]
+                     (om/update! filter-spec
+                                 (set-filters-for-value filter-spec component-spec val))))]
     (html
      [:div.filter-body
       [:ul.filter-items
-       [:li
-        [:select {:value select-value
-                  :style {:width "100%"}
-                  :onChange (fn [e]
-                              (let [val (-> e .-target .-value)]
+       (case chooser-type
+         :radio [:div
+                 (for [{:keys [value label]} tags]
+                   [:li {:key value}
+                    [:label
+                     [:div
+                      [:span.label
+                       [:input {:type "radio"
+                                :name id
+                                :value value
+                                :checked (= value select-value)
+                                :on-click on-event}]]
+                      label]]])]
+         :select [:li
+                  [:select {:value select-value
+                            :style {:width "100%"}
+                            :onChange on-event}
+                   (for [{:keys [value label]} tags]
+                     [:option {:value value}
+                      label])]])]])))
 
-                                (om/update! filter-spec
-                                            (set-filters-for-value filter-spec component-spec val))))}
-         (for [{:keys [value label]} tags]
-           [:option {:value value}
-            label])]]]])))
-
-(def TagFilterComponentSchema
+(s/def TagFilterComponentSchema
+  "Choose between different tags using a select drop down or list of
+  radio buttons"
   {:filter-spec filters/FilterSchema
    :component-spec {:id s/Keyword
                     :type (s/eq :tag)
@@ -85,6 +101,7 @@
                     (s/optional-key :visible) s/Bool
                     (s/optional-key :sorted) s/Bool
                     (s/optional-key :default) s/Str
+                    (s/optional-key :chooser-type) (s/enum :radio :select)
                     :tag-type s/Str
                     :tags [{:value s/Str
                             :label s/Str
