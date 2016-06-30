@@ -457,14 +457,17 @@
         popup-content (boundary-marker-popup-content nil js-boundaryline)]
     (style-leaflet-path leaflet-path path-attrs opts)
     (.addTo leaflet-path leaflet-map)
-    ;; camb don't want this marker. Quick fix here for now
-    (when-not (= "cambridge_ahead" (aget js-boundaryline "source"))
-      (.bindPopup leaflet-path popup-content))
 
-    (.on leaflet-path "dblclick" (fn [e]
-                                   (.fitBounds leaflet-map (.getBounds leaflet-path))
-                                   (when path-marker-click-fn
-                                     (path-marker-click-fn boundaryline-id))))
+    ;; camb don't want this marker and want double click zoom
+    ;; everywhere. Quick fix here for now
+    (if-not (= "cambridge_ahead" (aget js-boundaryline "source"))
+      (do
+        (.bindPopup leaflet-path popup-content)
+        (.on leaflet-path "dblclick" (fn [e]
+                                       (.fitBounds leaflet-map (.getBounds leaflet-path))
+                                       (when path-marker-click-fn
+                                         (path-marker-click-fn boundaryline-id)))))
+      (.on leaflet-path "dblclick" (fn [e] (.zoomIn leaflet-map))))
 
     {:id boundaryline-id
      :tolerance tolerance
