@@ -96,7 +96,8 @@
 
   (render [_]
     (if-let [data-available-fn (om/get-shared owner :data-available-fn)]
-      (let [show (data-available-fn filter-spec)]  ;; cambridge only
+      (let [agg-field (get-in table-state [:query :col-aggs :col :range :field])
+            show (data-available-fn filter-spec agg-field)]  ;; cambridge only
         (html [:span
                [:div {:ref "ranges-chart" :style (util/display show)}]
                [:div {:style (util/display (not show))} "Data not available"]]))

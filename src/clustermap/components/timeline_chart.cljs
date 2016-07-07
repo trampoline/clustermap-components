@@ -65,13 +65,14 @@
   [{{query :query
      timeline-data :timeline-data
      :as timeline-chart} :timeline-chart
-     filter-spec :filter-spec}
+    filter-spec :filter-spec}
    owner
    {:keys [id] :as opts}]
 
   (render [_]
     (if-let [data-available-fn (om/get-shared owner :data-available-fn)]
-      (let [show (data-available-fn filter-spec)]  ;; cambridge only
+      (let [field-type (get-in timeline-chart [:query :metrics :variable])
+            show (data-available-fn filter-spec field-type)]  ;; cambridge only
         (html [:span
                [:div.timeline-chart {:id id :ref "chart" :style (util/display show)}]
                [:div {:style (util/display (not show))} "Data not available"]]))
