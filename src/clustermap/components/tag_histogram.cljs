@@ -31,7 +31,8 @@
      :title {:text nil}
 
      :xAxis {:categories x-labels
-             :labels {:formatter xlabel-formatter}
+             :labels {:formatter xlabel-formatter
+                      :step 1}
              ;;:labels {:rotation 270}
              }
 
