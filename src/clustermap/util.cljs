@@ -1,6 +1,7 @@
 (ns clustermap.util
   "Keep this small and promote members to meaningful modules"
-  (:require [devtools.core :as devtools]
+  (:require #_[devtools.core :as devtools]
+            ;; [devtools.custom-formatters]
             [om.core :as om]))
 
 (defn chrome-canary? []
@@ -8,9 +9,8 @@
     (<= 47 (int v))
     false))
 
-(devtools/install!)
 (def pp
-  (if (and (chrome-canary?) #_(#'devtools/installed?))
+  (if ^boolean js/goog.DEBUG
     identity
     cljs.core/clj->js))
 
