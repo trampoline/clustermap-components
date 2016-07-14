@@ -101,11 +101,11 @@
 
   (render [_]
     (if-let [data-available-fn (om/get-shared owner :data-available-fn)]
-      (let [field-type (:stats-attr query)
+      (let [field-type (str (:stats-attr query) "|" tag-type)
             show (data-available-fn filter-spec field-type)]  ;; cambridge only
         (html [:span
                [:div.tag-histogram {:id id :ref "chart" :style (util/display show)}]
-               [:div {:style (util/display (not show))} "Data not available"]]))
+               [:div {:style (util/display (not show))} "Not applicable"]]))
       (html [:div.tag-histogram {:id id :ref "chart"}])))
 
   (did-mount [_]
