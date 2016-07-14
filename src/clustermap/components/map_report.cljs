@@ -5,18 +5,21 @@
             [sablono.core :as html :refer-macros [html]]
             [cljs.core.async :refer [<!]]
             [clustermap.api :as api]
+            [clustermap.util :refer [pp]]
             [clustermap.formats.number :as nf :refer [fnum]]
             [clustermap.formats.money :as mf :refer [fmoney]]
             [clustermap.formats.string :as sf :refer [pluralize]]))
 
 (defn summary-stats-report
   [{{{variables :variables
-       :as summary-stats} :summary-stats
-      :as controls} :controls}
+      :as summary-stats} :summary-stats
+     :as controls} :controls}
    comm
-   {data :data}]
-  (.log js/console (clj->js ["SUMMARY-STATS-VARIABLES" variables]))
-  (.log js/console (clj->js ["SUMMARY-STATS-DATA" data]))
+   {data :data}
+   filt]
+  (.log js/console (pp ["SUMMARY-STATS-VARIABLES" variables]))
+  (.log js/console (pp ["SUMMARY-STATS-DATA" data]))
+
   (let [belongs-to-vars (->> variables (filter :belongs-to) (group-by :belongs-to))]
     (html (into [:div.row.headline-stats]
                 (for [row-variables (partition-all 2 (filter (complement :belongs-to) variables))]

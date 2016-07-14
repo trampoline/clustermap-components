@@ -15,6 +15,7 @@
    [clustermap.util :as util :refer-macros [inspect <?]]
    [clustermap.formats.number :as num :refer [div! *! -! +!]]
    [clustermap.boundarylines :as bl]
+   [clustermap.util :as util :refer [pp]]
    [clustermap.data.colorchooser :as colorchooser]))
 
 (def ^:private event-handler-keys (atom 0))
@@ -517,7 +518,7 @@
         delete-path-keys (set/difference path-keys live-path-keys)
         update-path-keys (set/intersection path-keys live-path-keys)
 
-        _ (.log js/console (clj->js {:create create-path-keys :delete delete-path-keys :update update-path-keys}))
+        _ (.log js/console (pp {:create create-path-keys :delete delete-path-keys :update update-path-keys}))
 
         [tolerance-paths notifychan] (fetch-boundarylines-fn (bounds-array (.getBounds leaflet-map)) (.getZoom leaflet-map) :boundaryline-ids live-path-keys)
 
@@ -812,7 +813,7 @@
         (when (and leaflet-map boundaryline-collections
                    (not= next-boundaryline-collection
                          (choose-boundaryline-collection next-boundaryline-collections (.getZoom leaflet-map))))
-          (.log js/console (clj->js ["change-collection" (choose-boundaryline-collection next-boundaryline-collections (.getZoom leaflet-map))]))
+          (.log js/console (pp ["change-collection" (choose-boundaryline-collection next-boundaryline-collections (.getZoom leaflet-map))]))
           (om/update! cursor [:controls :boundaryline-collection] (choose-boundaryline-collection next-boundaryline-collections (.getZoom leaflet-map))))
 
         (when (and next-boundaryline-collection

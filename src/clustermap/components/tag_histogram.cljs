@@ -56,8 +56,8 @@
   [node {:keys [query metrics bar-width chart-height point-formatter bar-color
                 tag-data tag-agg-data] :as params}
    {:keys [y0-title y1-title] :as opts}]
-  (.log js/console (clj->js ["TAG-HISTOGRAM-TAG-DATA: " tag-data]))
-  (.log js/console (clj->js ["TAG-HISTOGRAM-TAG-AGG-DATA: " tag-agg-data]))
+  (.log js/console (pp ["TAG-HISTOGRAM-TAG-DATA: " tag-data]))
+  (.log js/console (pp ["TAG-HISTOGRAM-TAG-AGG-DATA: " tag-agg-data]))
   (let [tags-by-tag (group-by :tag tag-data)
         tag-aggs-by-tag (group-by :nested_attr tag-agg-data)
         records (->> (merge-with concat tags-by-tag tag-aggs-by-tag)
@@ -75,12 +75,12 @@
                       (get-in record [(keyword metric) ]))))
         ]
 
-    (.log js/console (clj->js ["TAGS-BY-TAG" tags-by-tag]))
-    (.log js/console (clj->js ["TAG-AGGS-BY-TAG" tag-aggs-by-tag]))
-    (.log js/console (clj->js ["RECORDS" records]))
-    (.log js/console (clj->js ["METRICS" metrics]))
-    (.log js/console (clj->js ["x-labels" x-labels]))
-    (.log js/console (clj->js ["ys" ys]))
+    (.log js/console (pp ["TAGS-BY-TAG" tags-by-tag]))
+    (.log js/console (pp ["TAG-AGGS-BY-TAG" tag-aggs-by-tag]))
+    (.log js/console (pp ["RECORDS" records]))
+    (.log js/console (pp ["METRICS" metrics]))
+    (.log js/console (pp ["x-labels" x-labels]))
+    (.log js/console (pp ["ys" ys]))
 
     ;; (.log js/console (clj->js ["CHART" {:metrics metrics
     ;;                                     :x-labels x-labels

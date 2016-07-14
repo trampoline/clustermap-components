@@ -52,7 +52,7 @@
                           :data (get x-series-by-y (:key ya))})
                }]
 
-    (js/console.log (clj->js ["RANGES-CHART" chart]))
+    (js/console.log (pp ["RANGES-CHART" chart]))
 
 
     (js/Highcharts.Chart.

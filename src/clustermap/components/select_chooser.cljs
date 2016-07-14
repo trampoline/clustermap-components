@@ -1,5 +1,6 @@
 (ns clustermap.components.select-chooser
   (:require [om.core :as om :include-macros true]
+            [clustermap.util :as util :refer [pp]]
             [sablono.core :as html :refer-macros [html]]))
 
 (defn select-chooser-component
@@ -15,7 +16,7 @@
                               (fn [m {:keys [value label] :as value-label}] (assoc m (name value) value-label))
                               {}
                               value-labels)]
-     (js/console.log (clj->js ["SELECT-CHOOSER" value-labels-by-val]))
+     (js/console.log (pp ["SELECT-CHOOSER" value-labels-by-val]))
      (html
       [:select {:onChange (fn [e]
                             (let [val (-> e .-target .-value not-empty)]
