@@ -155,14 +155,13 @@
                      next-size :size
                      :as next-controls} :controls
                     :as next-table-state} :table-state
-                    next-filter-spec :filter-spec
+                   next-filter-spec :filter-spec
                    :as next-props}
                   {fetch-table-data-fn :fetch-table-data-fn}]
 
       (when (or (not next-table-data)
                 (not= next-controls controls)
                 (not= next-filter-spec filter-spec))
-
         (go
           (when-let [table-data (<! (fetch-table-data-fn next-index
                                                          next-index-type
@@ -171,5 +170,5 @@
                                                          next-sort-spec
                                                          next-from
                                                          next-size))]
-            (om/update! table-state [:table-data] table-data))))
+            (om/update! next-table-state [:table-data] table-data))))
       )))
