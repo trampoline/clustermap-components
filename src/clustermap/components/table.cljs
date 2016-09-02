@@ -115,12 +115,12 @@
              (for [col columns]
                (order-col controls table-data col)))]
       [:tbody
-        (om/build-all render-table-row (:data table-data) {:key :key :fn (fn [r] {:columns columns
-                                                                                  :record r
-                                                                                  :key (:?natural_id r )})})
-        ]]]
+       (om/build-all render-table-row (:data table-data) {:key :key :fn (fn [r] {:columns columns
+                                                                                 :record r
+                                                                                 :key (str (:?natural_id r ) (:?postcode r))})})
+       ]]]
     (om/build paginate {:controls controls :table-data table-data})
-     ])
+    ])
   )
 
 (defn table-component
@@ -172,3 +172,23 @@
                                                          next-size))]
             (om/update! next-table-state [:table-data] table-data))))
       )))
+
+
+(defn multi-table-component
+  "One component which can render one table of a number of tables at
+  once"
+  [{{table-data    :table-data
+     tables        :tables
+     current-table :current-table
+     :as           table-state} :table-state
+
+    filter-spec :filter-spec
+    :as         props}
+   owner]
+  (inspect tables)
+
+  (reify
+    om/IRender
+    (render [_]
+      (om/build table-component
+                {:table-state (tables current-table) :filter-spec filter-spec}))))
