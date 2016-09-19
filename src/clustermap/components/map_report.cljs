@@ -1,11 +1,12 @@
 (ns clustermap.components.map-report
   (:require-macros
-   [cljs.core.async.macros :refer [go]])
+   [cljs.core.async.macros :refer [go go-loop]])
   (:require [om.core :as om :include-macros true]
             [sablono.core :as html :refer-macros [html]]
             [cljs.core.async :refer [<!]]
             [clustermap.api :as api]
             [clustermap.util :refer [pp]]
+            [clustermap.filters :as filters]
             [clustermap.formats.number :as nf :refer [fnum]]
             [clustermap.formats.money :as mf :refer [fmoney]]
             [clustermap.formats.string :as sf :refer [pluralize]]))
@@ -42,13 +43,24 @@
   [{filt :filter
     {{{:keys [index index-type variables]
        :as summary-stats} :summary-stats
-       :as controls} :controls
-       summary-stats-data :summary-stats-data
-       :as map-report} :map-report
+      :as controls} :controls
+     summary-stats-data :summary-stats-data
+     :as map-report} :map-report
     :as data}
    owner]
 
   (reify
+
+    om/IWillMount
+    (will-mount [_]
+      ;;TODO: use subscription instead?
+      (when-let [stats-chan (om/get-shared owner :stats-chan)]
+        (go-loop []
+          (when-some [op (<! stats-chan)]
+            (case op
+              :clear (om/update! controls :current-mode nil)
+              (js/console.debug "Unknown op " op))
+            (recur)))))
 
     om/IDidMount
     (did-mount [_]
@@ -77,6 +89,10 @@
       (when (or (not next-summary-stats-data)
                 (not= next-controls controls)
                 (not= next-filt filt))
-        (go
-          (when-let [stats (<! (fetch-data-fn next-index next-index-type (map :key next-variables) next-filt nil))]
-            (om/update! map-report [:summary-stats-data] stats)))))))
+        (let [next-filt (case (:current-mode next-controls)
+                          :investor (filters/munge-filter-for-investments next-filt)
+                          :constituency (filters/munge-filter-for-constituencies next-filt)
+                          next-filt)]
+          (go
+            (when-let [stats (<! (fetch-data-fn next-index next-index-type (map :key next-variables) next-filt nil))]
+              (om/update! map-report [:summary-stats-data] stats))))))))

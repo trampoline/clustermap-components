@@ -1,5 +1,6 @@
 (ns clustermap.filters
-  (:require [schema.core :as s :include-macros true]))
+  (:require [schema.core :as s :include-macros true]
+            [clustermap.util :as util :refer-macros [inspect]]))
 
 (def FilterSchema
   {:id s/Keyword
@@ -98,3 +99,27 @@
   (some-> v
           js/JSON.parse
           (js->clj :keywordize-keys true)))
+
+
+(defn term-to-nested-query
+  "Convert a flat term query to a nested query. Only works if is first item"
+  [filter-spec term path nested-term]
+  (if-let [value (get-in filter-spec [:bool :must 0 :term term])]
+    (assoc-in filter-spec [:bool :must 0]
+              {:bool {:should {:nested {:path path
+                                        :filter {:bool {:must {:term {nested-term value}}}}}}}})
+    filter-spec))
+
+(defn munge-filter-for-investments
+  "Hack to convert a query to work on indexes with nested investor companies"
+  [filter-spec]
+  (term-to-nested-query filter-spec
+                        "?investor_company_uid"
+                        "?investor_companies" "investor_company_uid"))
+
+(defn munge-filter-for-constituencies
+  "Hack to convert a query to work on indexes with nested boundarylines"
+  [filter-spec]
+  (term-to-nested-query filter-spec
+                        "?boundaryline_id"
+                        "?boundarylines" "boundaryline_id"))

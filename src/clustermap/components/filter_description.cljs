@@ -7,6 +7,7 @@
             [schema.core :as s]
             [cljs.core.async :as async]
             [sablono.core :as html :refer-macros [html]]
+            [clustermap.util :refer-macros [inspect]]
             [clustermap.filters :as filters]))
 
 (def FilterDescriptionSchema
@@ -51,9 +52,14 @@
 
        [:button.btn.btn-default#filter-reset
         {:type "button"
-         :on-click (fn [e]
+         :on-click (fn [e] ;;TODO use subscriptions
                      (when-let [search-chan (om/get-shared owner :search-chan)]
                        (async/put! search-chan :clear))
+                     (when-let [search-chan (om/get-shared owner :table-chan)]
+                       (async/put! search-chan :clear))
+                     (when-let [search-chan (om/get-shared owner :stats-chan)]
+                       (async/put! search-chan :clear))
+                     ;; (inspect filter-spec)
                      (om/update! filter-spec (filters/reset-filter filter-spec)))}
         "Clear filter"]]
 

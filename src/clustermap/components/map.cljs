@@ -15,6 +15,7 @@
    [clustermap.util :as util :refer-macros [inspect <?]]
    [clustermap.formats.number :as num :refer [div! *! -! +!]]
    [clustermap.boundarylines :as bl]
+   [clustermap.filters :as filters]
    [clustermap.util :as util :refer [pp]]
    [clustermap.data.colorchooser :as colorchooser]))
 
@@ -836,7 +837,10 @@
           (go
             (when-let [point-data (<! (fetch-point-data-fn {:index-name (:index next-boundaryline-agg)
                                                             :index-type (:index-type next-boundaryline-agg)
-                                                            :filter-spec (om/-value next-filter)
+                                                            :filter-spec (let [filt (om/-value next-filter)]
+                                                                           (if-not (= "company-sites" (:index next-boundaryline-agg))
+                                                                             filt
+                                                                             (filters/munge-filter-for-investments filt)))
                                                             :bounds (bounds-array (.getBounds leaflet-map))
                                                             :location-attr (or (:location-attr next-location) "!location")
                                                             :attrs (or (:attrs next-location)
