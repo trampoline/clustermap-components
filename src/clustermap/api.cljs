@@ -14,28 +14,37 @@
   "send a request, returning a channel with a single result value.
   If send-error is truthy will put an exception on the chan if there
   is an error."
-  (let [comm (async/promise-chan (map (fn [event]
-                                        (js/console.log event)
-                                        (let [target (.-target event)
-                                              error-code (.getLastErrorCode target)
-                                              response-text (.getResponseText target)
-                                              response (if (= error-code 0)
-                                                         (-> response-text
-                                                             js/JSON.parse
-                                                             (aget "data")
-                                                             ((fn [d]
-                                                                (if raw
-                                                                  d
-                                                                  (js->clj d :keywordize-keys true)))))
-                                                         (if send-error
-                                                           (ex-info "Ajax error" {:error-code error-code
-                                                                                  :response-text response-text
-                                                                                  :status (.getStatus target)})
-                                                           (js/console.warn "Unhandled XHR error, use :send-error to handle:" url)))]
-                                          response)
+  (let [comm (async/promise-chan
+              (map (fn [event]
+                     (js/console.log event)
+                     (let [target (.-target event)
+                           error-code (.getLastErrorCode target)
+                           response-text (.getResponseText target)
+                           response (if (= error-code 0)
+                                      (-> response-text
+                                          js/JSON.parse
+                                          (aget "data")
+                                          ((fn [d]
+                                             (if raw
+                                               d
+                                               (js->clj d :keywordize-keys true)))))
+                                      ;; else
+                                      (do (if send-error
+                                            (ex-info "Ajax error" {:error-code error-code
+                                                                   :response-text response-text
+                                                                   :status (.getStatus target)})
+                                            (js/console.warn "Unhandled XHR error, use :send-error to handle:" url))
+                                          (when (and (exists? js/Raven) (js/Raven.isSetup))
+                                            (js/Raven.captureMessage
+                                             (str "Ajax error " url)
+                                             #js {:extra #js {:error-code error-code
+                                                              :response-text response-text
+                                                              :status (.getStatus target)}}))
+                                          response-text))]
+                       response)
                                         ;(close! comm)
-                                        ))
-                                 (fn [e] (js/console.warn " error " e) e))]
+                     ))
+              (fn [e] (js/console.warn " error " e) e))]
     (xhr/send url
               (partial put! comm)
               (or (some-> method name str/upper-case) "GET")
