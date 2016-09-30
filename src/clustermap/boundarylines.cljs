@@ -3,6 +3,7 @@
    [cljs.core.async.macros :refer [go]])
   (:require
    [cljs.core.async :as async :refer [<! chan close! put! sliding-buffer to-chan]]
+   [clustermap.util :refer-macros [inspect] :refer [pp]]
    [clustermap.api :as api]))
 
 (def ^:private min-tolerance 0.01)

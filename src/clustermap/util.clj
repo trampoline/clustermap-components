@@ -10,9 +10,9 @@
 
 (defn- inspect-2 [expr]
   `(let [result# ~expr]
-     (js/console.info (pp (symbol (pr-str '~expr)))
-                      (pp (symbol "=>"))
-                      (pp result#))
+     (js/console.debug (pp (symbol (pr-str '~expr)))
+                       (pp (symbol "=>"))
+                       (pp result#))
      result#))
 
 (defmacro inspect [& exprs]
