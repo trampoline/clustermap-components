@@ -94,8 +94,9 @@
              :on-key-down (fn [e]
                             (key-down (merge m {:e e}))
                             nil)
-             :on-change (fn [e] (let [v (.. e -target -value)]
-                                  (search-for state search search-fn v)))}]
+             ;; TODO: back to on-change in react 16 which fixes IE 11 bug
+             :on-input (fn [e] (let [v (.. e -target -value)]
+                                 (search-for state search search-fn v)))}]
 
     (when (and (:open @state)
                (not-empty results))
