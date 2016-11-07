@@ -10,3 +10,6 @@ RTree.prototype = {
     "setTree": function (newTree, where){},
     "geoJSON": function (prelim){}
 }
+
+// linkendin
+var IN = {};

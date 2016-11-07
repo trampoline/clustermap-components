@@ -615,6 +615,7 @@ var L = {
     "setView": function () {},
     "setZoom": function () {},
     "setZoomIn": function () {},
+    "zoomIn": function () {},
     "setZoomOut": function () {},
     "setZoomAround": function () {},
     "fitBounds": function () {},
