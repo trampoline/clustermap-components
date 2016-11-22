@@ -9,12 +9,14 @@
    [clustermap.formats.number :as num]))
 
 (defn order-col
-  "generate a table-ordering link for table-headers"
+  "generate a table-ordering link for table-headers.
+   Uses key or sort-key if provided"
   [controls
    {current-sort-spec :sort-spec :as table-data}
-   {:keys [key sortable label render-fn] :as col}]
+   {:keys [key sortable sort-key label render-fn] :as col}]
 
-  (let [current-sort-spec (if (sequential? current-sort-spec) (first current-sort-spec) current-sort-spec)
+  (let [key (or sort-key key)
+        current-sort-spec (if (sequential? current-sort-spec) (first current-sort-spec) current-sort-spec)
         current-sort-key (some-> current-sort-spec keys first)
         current-sort-dir (some-> current-sort-spec current-sort-key :order)
 
