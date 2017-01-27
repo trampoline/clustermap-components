@@ -9,9 +9,18 @@
    [domina.events :as events]
    [sablono.core :as html :refer-macros [html]]
    [clustermap.api :as api]
-   [clustermap.util :as util :refer [make-sequential pp]]
+   [clustermap.util :as util :include-macros true :refer [make-sequential pp]]
    [clustermap.formats.number :as num]
    [clustermap.formats.money :as money]))
+
+(def val-chart
+  (s/validator
+   {(s/optional-key :point-formatter) (s/maybe (s/pred fn?))
+    (s/optional-key :xlabel-formatter) (s/maybe (s/pred fn?))
+    (s/optional-key :yaxis-type) (s/enum "linear" "logarithmic" "datetime")
+    (s/optional-key :chart-height) s/Num
+    (s/optional-key :chart-type) (s/enum "bar" "pie")
+    s/Any s/Any}))
 
 (defnk make-highchart
   "Create a highchart at node with params"
@@ -20,8 +29,13 @@
    {bar-color nil}
    {point-formatter nil}
    {xlabel-formatter nil}
+   {yaxis-type "linear"}
    {chart-type "bar"}
-   {bar-width 10}]
+   {bar-width 10} :as params]
+
+  (when ^boolean js/goog.DEBUG
+    (val-chart params))
+
   (js/Highcharts.Chart.
    (clj->js
     {:chart {:type chart-type
