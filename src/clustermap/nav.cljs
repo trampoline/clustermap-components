@@ -6,6 +6,7 @@
             [secretary.core :as secretary :include-macros true]
             [jayq.core :as jayq :refer [$]]
             [cljs.core.async :refer [put! chan <!]]
+            [clustermap.util :refer-macros [inspect] :refer [pp]]
             [clustermap.formats.url :as url]
             [clustermap.filters :as filters]))
 
@@ -67,7 +68,7 @@
 
 (defn set-view
   [app-state path view]
-  (.log js/console (clj->js ["change-view" view]))
+  (.log js/console (pp ["change-view" view path]))
   (when (= view "company")
     (zero-company-info app-state))
   (swap! app-state assoc-in path view)
@@ -90,6 +91,10 @@
   (secretary/defroute "/" [query-params]
     (set-view app-state path "main")
     (send-filter-rqs filter-rq query-params))
+
+  (secretary/defroute "/company/:id" [id]
+    (set-view app-state path "company")
+    (events/dispatch! :clustermap-company-selection {:company-id id}))
 
   (secretary/defroute "/:view" [view query-params]
     (set-view app-state path view)
