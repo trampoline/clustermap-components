@@ -14,12 +14,11 @@
 (defcomponentk action-link-component
   [[:data [:action-link content action {class nil} {id nil}]] :- ActionLinkSchema
    [:shared app]
-    owner]
-  (render
-   [_]
-   (html
-    [:a (-> {:href "#"}
-            (assoc-when :onClick (fn [e] (.preventDefault e) (action)))
-            (assoc-when :class class)
-            (assoc-when :id id))
-     (content)])))
+   owner]
+  (render [_]
+    (html
+     [:a (-> {:href "#"}
+             (assoc-when :onClick (fn [e] (.preventDefault e) (action app)))
+             (assoc-when :class class)
+             (assoc-when :id id))
+      (content)])))
