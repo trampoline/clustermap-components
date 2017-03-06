@@ -18,7 +18,7 @@
   (render [_]
     (html
      [:a (-> {:href "#"}
-             (assoc-when :onClick (fn [e] (.preventDefault e) (action app)))
+             (assoc-when :onClick (fn [e] (.preventDefault e) (action app owner)))
              (assoc-when :class class)
              (assoc-when :id id))
       (content)])))
