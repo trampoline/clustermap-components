@@ -45,9 +45,9 @@
         records (->> (merge-with concat tags-by-tag tag-aggs-by-tag)
                      vals
                      (map (fn [rs] (apply merge-with merge rs)))
-                     (sort-by (juxt :description :tag)))
+                     (sort-by (juxt :description :tag :in_nested)))
 
-        x-labels (map #(or (:description %) (:tag %)) records)
+        x-labels (map #(or (:description %) (:tag %) (:in_nested %)) records)
 
         metrics (make-sequential metrics)
 
