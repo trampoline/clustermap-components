@@ -19,8 +19,11 @@
                      (js/console.log event)
                      (let [target (.-target event)
                            error-code (.getLastErrorCode target)
+                           error-text (.getLastError target)
                            response-text (.getResponseText target)
-                           response (if (= error-code 0)
+                           status (.getStatus target)
+                           response (cond
+                                      (= error-code 0)
                                       (-> response-text
                                           js/JSON.parse
                                           (aget "data")
@@ -28,19 +31,25 @@
                                              (if raw
                                                d
                                                (js->clj d :keywordize-keys true)))))
-                                      ;; else
-                                      (do (if send-error
-                                            (ex-info "Ajax error" {:error-code error-code
-                                                                   :response-text response-text
-                                                                   :status (.getStatus target)})
-                                            (js/console.warn "Unhandled XHR error, use :send-error to handle:" url))
-                                          (when (and (exists? js/Raven) (js/Raven.isSetup))
-                                            (js/Raven.captureMessage
-                                             (str "Ajax error " url)
-                                             #js {:extra #js {:error-code error-code
-                                                              :response-text response-text
-                                                              :status (.getStatus target)}}))
-                                          response-text))]
+
+                                      (= 401 status)
+                                      (set! js/location "/")
+
+                                      :else
+                                      (do
+                                        (when (and (exists? js/Raven) (js/Raven.isSetup))
+                                          (js/Raven.captureMessage
+                                           (str "Ajax error " status ": " url)
+                                           #js {:extra #js {:error-code error-code
+                                                            :error-text error-text
+                                                            :response-text response-text
+                                                            :status status}}))
+                                        (if send-error
+                                          (ex-info "Ajax error" {:error-code error-code
+                                                                 :error-text error-text
+                                                                 :response-text response-text
+                                                                 :status status})
+                                          (js/console.warn "Unhandled XHR error, use :send-error to handle:" url))))]
                        response)
                                         ;(close! comm)
                      ))
