@@ -9,6 +9,14 @@
    [goog.net.XhrIo :as xhr]
    [clustermap.lastcall-method]))
 
+(def ^:private rel-help-regex #"<(.+)>; rel=help")
+
+(defn- check-prone-err [result]
+  (when-let [url (some->> result
+                          (re-find rel-help-regex)
+                          second)]
+    (set! js/location url)))
+
 ;;TODO: use cljs-http or similar
 (defn AJAX [url & {:keys [raw method content send-error] :as opts}]
   "send a request, returning a channel with a single result value.
@@ -37,6 +45,8 @@
 
                                       :else
                                       (do
+                                        (when ^boolean js/goog.DEBUG
+                                          (check-prone-err (.getResponseHeader target "Link")))
                                         (when (and (exists? js/Raven) (js/Raven.isSetup))
                                           (js/Raven.captureMessage
                                            (str "Ajax error " status ": " url)
