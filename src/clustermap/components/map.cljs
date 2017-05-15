@@ -901,13 +901,17 @@
           ;; (.log js/console (clj->js ["next-data" next-data]))
           ;; (.log js/console (clj->js ["threshold-colors" new-threshold-colors]))
           ;; (.log js/console (clj->js ["selection-path-colors" selection-path-colours]))
-
-          (let [[new-threshold-colors selection-path-colours] (colorchooser/choose
-                                                               (:scheme next-colorchooser)
-                                                               (keyword (:scale next-colorchooser))
-                                                               :boundaryline_id
-                                                               (keyword (:variable next-colorchooser))
-                                                               (:records next-data))
+          (let [[new-threshold-colors
+                 selection-path-colours] (colorchooser/choose
+                                          (:scheme next-colorchooser)
+                                          (keyword (:scale next-colorchooser))
+                                          :boundaryline_id
+                                          ;; bound-agg !count only
+                                          ;; makes sense if var is doc count
+                                          (if (= "!count" (:variable next-boundaryline-agg))
+                                            :boundaryline_id_doc_count
+                                            (keyword (:variable next-colorchooser)))
+                                          (:records next-data))
 
                 update-paths-invocation (fn [] (update-paths comm
                                                              (partial fetch-boundarylines-fn next-boundaryline-collection)
