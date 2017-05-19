@@ -5,6 +5,7 @@
   (:require [om.core :as om :include-macros true]
             [om-tools.core :refer-macros [defcomponentk]]
             [schema.core :as s]
+            [clustermap.util :refer-macros [inspect] :refer [pp]]
             [sablono.core :as html :refer-macros [html]]
             [cljs.core.async :as async :refer [<!]]))
 
@@ -23,14 +24,15 @@
 
 (defn search-for
   [state search-cursor search-fn query]
-  (om/update! search-cursor :query query)
-  (when (= 0 (count query))
-    (swap! state assoc :active nil))
-  (go
-    (let [r (<! (if (> (count query) 1)
-                  (search-fn query)
-                  (search-fn)))]
-      (om/update! search-cursor :results r))))
+  (let [query (or query "")]
+    (om/update! search-cursor :query query)
+    (when (= 0 (count query))
+      (swap! state assoc :active nil))
+    (go
+      (let [r (<! (if (> (count query) 1)
+                    (search-fn query)
+                    (search-fn)))]
+        (om/update! search-cursor :results r)))))
 
 (defn partition-around
   [val seq]
@@ -57,7 +59,7 @@
    state]
   (let [cr (:active @state)]
     (when-let [r (some #{cr} results)]
-      (js/console.log (clj->js r))
+      (js/console.log (pp r))
       (when click-fn
         (swap! state assoc :open false)
         (click-fn r)))))
@@ -84,12 +86,11 @@
    state
    owner
    :as m]
-
   (html
    [:div {:on-focus #(swap! state assoc :open true)
           :on-blur #(swap! state assoc :open false)}
     [:input {:type "text"
-             :value query
+             :value (or query "")
              :placeholder placeholder
              :on-key-down (fn [e]
                             (key-down (merge m {:e e}))
