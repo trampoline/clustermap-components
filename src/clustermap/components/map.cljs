@@ -710,6 +710,8 @@
         ;; reflect bounds and zoom in controls immediately
         (om/update! cursor [:controls :zoom] (.getZoom leaflet-map))
         (om/update! cursor [:controls :bounds] (bounds-array (.getBounds leaflet-map)))
+        (om/update! cursor [:controls :map] leaflet-map)
+        (om/update! cursor [:controls :markers] markers)
 
         (om/set-state! owner :map map)
         (om/set-state! owner :path-highlights #{})
@@ -790,6 +792,7 @@
                     {next-zoom :zoom
                      next-bounds :bounds
                      next-show-points :show-points
+                     points-max-count ::points-max-count
                      next-display-company-links :display-company-links
                      next-location :location
                      next-boundaryline-collection :boundaryline-collection
@@ -798,7 +801,7 @@
                      next-boundaryline-agg :boundaryline-agg
                      next-threshold-colors :threshold-colors
                      next-geotag-aggs :geotag-aggs
-                     next-geohash-aggs :geohash-aggs} :controls
+                     next-geohash-aggs :geohash-aggs :as controls} :controls
                     :as next-cursor
                     } :map-state
                    next-filter :filter
@@ -854,7 +857,7 @@
                                                                        (:index-type next-boundaryline-agg)
                                                                        (choose-boundaryline-collection next-boundaryline-collections (.getZoom leaflet-map))
                                                                        (:variable next-boundaryline-agg)
-                                                                       (om/-value next-filter)
+                                                                       (om/-value ((:filter-munge-fn next-boundaryline-agg identity) next-filter))
                                                                        (bounds-array (.getBounds leaflet-map))
                                                                        (:scale-attr next-boundaryline-agg)
                                                                        (:post-scale-factor next-boundaryline-agg)))]
@@ -863,6 +866,7 @@
           (go
             (when-let [point-data (<! (fetch-point-data-fn {:index-name (:index next-boundaryline-agg)
                                                             :index-type (:index-type next-boundaryline-agg)
+                                                            ;;TODO filter-munge-fn
                                                             :filter-spec (let [filt (om/-value next-filter)]
                                                                            (if-not (= "company-sites" (:index next-boundaryline-agg))
                                                                              filt
@@ -870,10 +874,10 @@
                                                             :bounds (bounds-array (.getBounds leaflet-map))
                                                             :location-attr (or (:location-attr next-location) "!location")
                                                             :attrs (or (:attrs next-location)
-                                                                       ["?natural_id" "!name" "!location" "!latest_employee_count" "!latest_turnover" "!total_funding"])
+                                                                       ["?natural_id" "!name" "!location" "!latest_employee_count" "!latest_turnover" "!total_funding" "!latest_turnover_is_estimate" "!latest_employee_count_is_estimate"])
                                                             :sort-spec (or (:sort-spec next-location)
                                                                            [{"!latest_turnvoer" {:order "desc"}}])
-                                                            :max-count 1000}))]
+                                                            :max-count (or points-max-count 1000)}))]
               (om/update! cursor [:point-data] point-data))))
 
         (when (and next-geotag-aggs
@@ -890,7 +894,8 @@
                        (not= next-bounds bounds)))
           (go
             (when-let [geotag-agg-data (<! (fetch-geotag-agg-data-fn
-                                            (merge (:query next-geotag-aggs) {:filter-spec next-filter})))]
+                                            (merge (:query next-geotag-aggs)
+                                                   {:filter-spec ((:filter-munge-fn next-geotag-aggs identity) next-filter)})))]
               (om/update! cursor [:controls :geotag-aggs :geotag-agg-data] (:records geotag-agg-data)))))
 
         (when (and next-bounds
