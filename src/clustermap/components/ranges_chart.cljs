@@ -17,12 +17,13 @@
    {{query :query
      results :results
      :as table-data} :table-data
-     {title :title
-      color :color
-      x-axis :cols
-      y-axis :rows
-      render-fn :render-fn
-      :as view} :view}]
+    {title :title
+     color :color
+     x-axis :cols
+     y-axis :rows
+     render-fn :render-fn
+     merge-yAxis? :merge-yAxis?
+     :as view} :view}]
 
   (let [y-keys (map :key y-axis)
         x-keys (map :key x-axis)
@@ -48,7 +49,7 @@
                :series (for [[ya i] (map vector  y-axis (iterate inc 0))]
                          {:name (:label ya)
                           :color color
-                          :yAxis i
+                          :yAxis (if merge-yAxis? 0 i)
                           :data (get x-series-by-y (:key ya))})
                }]
 
