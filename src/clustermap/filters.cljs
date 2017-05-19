@@ -123,3 +123,14 @@
   (term-to-nested-query filter-spec
                         "?boundaryline_id"
                         "?boundarylines" "boundaryline_id"))
+
+(defn nested-to-term-query
+  [filter-spec path nested-term term]
+  (if-not (= path (get-in filter-spec [:bool :must 0 :nested :path]))
+    filter-spec
+    (let [value (get-in filter-spec [:bool :must 0 :nested :filter :term nested-term])]
+      (assoc-in filter-spec [:bool :must 0] {:term {term value}}))))
+
+(defn add-to-must
+  [filter-spec query]
+  (update-in filter-spec [:bool :must] conj query))
