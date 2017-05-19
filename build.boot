@@ -27,6 +27,7 @@
                  [sablono "0.7.2"]
                  [hiccups "0.3.0"]
                  [secretary "1.2.3"]
+                 [better-cond "1.0.1"]
                  [cljsjs/bootstrap "3.3.6-1"]
                  [com.andrewmcveigh/cljs-time "0.4.0"]])
 

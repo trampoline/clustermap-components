@@ -1,5 +1,6 @@
 (ns clustermap.components.map
   (:require-macros [hiccups.core :as hiccups]
+                   [better-cond.core :as bc]
                    [cljs.core.async.macros :refer [go]])
   (:require
    [clojure.set :as set]
@@ -268,9 +269,20 @@
         click-handler-key (when click-fn (register-event-handler (partial click-fn geotag geotag-agg)))]
     ;; (.setContent popup (render-geotag-marker-popup-content click-handler-key (popup-render-fn geotag geotag-agg)))
     ;; (.bindPopup leaflet-marker popup)
+
+    (when (nil? (aget leaflet-marker "_latlng"))
+      (js/console.error "leaflet marker latlng is null"))
+    (try
+      (.addTo leaflet-marker leaflet-map)
+      (catch js/Error e
+        (when (and (exists? js/Raven) (js/Raven.isSetup))
+          (js/Raven.captureMessage
+           (str "Unexpected error on add to marker" e)
+           #js {:extra #js {:leaflet-marker leaflet-marker}}))
+        (js/console.error "Unexpected error on add to marker" e)
+        (js/console.error leaflet-marker)))
     (.on leaflet-marker "click" (fn [e]
                                   (.setView leaflet-map latlong (inc (.getZoom leaflet-map)))))
-    (.addTo leaflet-marker leaflet-map)
     {:leaflet-marker leaflet-marker
      :click-handler-key click-handler-key}))
 
@@ -320,11 +332,25 @@
         ;;                              :remove-marker-keys remove-marker-keys}))
 
         new-markers (->> new-marker-keys
-                         (map (fn [k] [k (create-geotag-marker leaflet-map geotag-agg-spec (get geotags-by-tag k) (get geotag-aggs-by-tag k))]))
+                         (map (fn [k]
+                                (bc/when-let [geotag     (get geotags-by-tag k)
+                                              geotag-agg (get geotag-aggs-by-tag k)]
+                                  [k (create-geotag-marker leaflet-map
+                                                           geotag-agg-spec
+                                                           geotag geotag-agg)])))
+                         (remove nil?)
                          (into {}))
 
         updated-markers (->> update-marker-keys
-                             (map (fn [k] [k (update-geotag-marker leaflet-map geotag-agg-spec (get markers k) (get geotags-by-tag k) (get geotag-aggs-by-tag k))]))
+                             (map (fn [k]
+                                    (bc/when-let [geotag     (get geotags-by-tag k)
+                                                  geotag-agg (get geotag-aggs-by-tag k)
+                                                  marker     (get markers k)]
+                                      [k (update-geotag-marker leaflet-map
+                                                               geotag-agg-spec
+                                                               marker
+                                                               geotag geotag-agg)])))
+                             (remove nil?)
                              (into {}))
 
         _ (doseq [k remove-marker-keys] (remove-marker leaflet-map nil (get markers k)))]
@@ -596,7 +622,7 @@
     multipolyline :- (s/maybe MultiPolyline)
     leaflet-map :- LeafletMap
     line-opts]
-   (let [lines (for [[[longa lata] [longb latb]] links-data]
+   (let [lines (for [[[longa lata] [longb latb]] links-data :when (and longa lata longb latb)]
                  #js [(js/L.latLng lata longa) (js/L.latLng latb longb)])
          multi (or multipolyline (js/L.multiPolyline #js [] line-opts))]
      (.setLatLngs multi (clj->js lines))
