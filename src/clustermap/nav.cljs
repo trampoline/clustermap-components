@@ -8,7 +8,9 @@
             [cljs.core.async :refer [put! chan <!]]
             [clustermap.util :refer-macros [inspect] :refer [pp]]
             [clustermap.formats.url :as url]
-            [clustermap.filters :as filters]))
+            [clustermap.filters :as filters]
+            [clustermap.api :as api]
+            [clojure.string :as str]))
 
 (defn- init-bootstrap-tooltips
   []
@@ -90,7 +92,16 @@
 
   (secretary/defroute "/" [query-params]
     (set-view app-state path "main")
-    (send-filter-rqs filter-rq query-params))
+    (cond ;; TODO: config via init params?
+      (and (str/starts-with? api/api-prefix "bvca")
+           (contains? query-params :coll)
+           (str/includes? (:coll query-params) "boundaryline"))
+      (let [coll (filters/parse-url-param-value (:coll query-params))]
+        (send-filter-rqs filter-rq query-params)
+        (events/dispatch! :clustermap-bvca-constituency
+                          {:boundaryline_id (:boundaryline coll)}))
+
+      :else  (send-filter-rqs filter-rq query-params)))
 
   (secretary/defroute "/company/:id" [id]
     (set-view app-state path "company")
