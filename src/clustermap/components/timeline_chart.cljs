@@ -59,8 +59,10 @@
                   :type (or (:type y) "line")
                   :color color
                   :yAxis 0
-                  :data (for [[name v] (zipmap x-labels (:records y))]
-                          {:name name :y v})})}))))
+                  :data (if (= "pie" (:type y))
+                          (for [[name v] (zipmap x-labels (:records y))]
+                            {:name name :y v})
+                          (:records y))})}))))
 
 (defcomponent timeline-chart
   [{{query :query
