@@ -78,9 +78,9 @@
                       next-index-type :index-type
                       next-variables :variables
                       :as next-summary-stats} :summary-stats
-                      :as next-controls} :controls
-                      next-summary-stats-data :summary-stats-data
-                      :as next-map-report} :map-report
+                     :as next-controls} :controls
+                    next-summary-stats-data :summary-stats-data
+                    :as next-map-report} :map-report
                    :as next-data}
                   {fetch-data-fn :fetch-data-fn}]
 
@@ -89,10 +89,10 @@
       (when (or (not next-summary-stats-data)
                 (not= next-controls controls)
                 (not= next-filt filt))
-        (let [next-filt (case (:current-mode next-controls)
-                          :investor (filters/munge-filter-for-investments next-filt)
-                          :constituency (filters/munge-filter-for-constituencies next-filt)
-                          next-filt)]
+        (let [[next-filt next-index next-index-type] (case (:current-mode next-controls)
+                                                       :investor [(filters/munge-filter-for-investments next-filt) "companies" "company"]
+                                                       :constituency [(filters/munge-filter-for-constituencies next-filt) "company-sites" "company_site"]
+                                                       [next-filt "companies" "company"])]
           (go
             (when-let [stats (<! (fetch-data-fn next-index next-index-type (map :key next-variables) next-filt nil))]
               (om/update! map-report [:summary-stats-data] stats))))))))
