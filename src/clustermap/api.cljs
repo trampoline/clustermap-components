@@ -175,10 +175,11 @@
 
 ;; tabular data
 (def-lastcall-method-factory simple-table-factory
-  [index type filter-spec bounds sort-spec from size & [type-ids]]
-  (POST (str "/api/" api-prefix "/simple-table/" index "/" type "?" (map-json-params type-ids))
+  [index type filter-spec bounds sort-spec from size fields]
+  (POST (str "/api/" api-prefix "/simple-table/" index "/" type "?")
       {:filter filter-spec
        :bounds bounds
+       :fields fields
        :sort sort-spec
        :from from
        :size size}))

@@ -1,12 +1,16 @@
 (ns clustermap.components.table
   (:require-macros
-   [cljs.core.async.macros :refer [go]])
+   [cljs.core.async.macros :refer [go go-loop]])
   (:require
    [cljs.core.async :refer [<!]]
-   [om.core :as om :include-macros true]
-   [sablono.core :as html :refer-macros [html]]
+   [clojure.spec :as s]
    [clustermap.api :as api]
-   [clustermap.formats.number :as num]))
+   [clustermap.filters :as filters]
+   [clustermap.formats.number :as num]
+   [clustermap.util :as util :refer [pp inspect] :include-macros true]
+   [om-tools.core :refer-macros [defcomponentk]]
+   [om.core :as om :include-macros true]
+   [sablono.core :as html :refer-macros [html]]))
 
 (defn order-col
   "generate a table-ordering link for table-headers.
@@ -106,7 +110,7 @@
     :as props}
    owner
    opts]
-  (.log js/console (clj->js ["COLUMNS" columns]))
+  (.log js/console (pp ["COLUMNS" columns]))
   (html
    [:div
     (om/build paginate {:controls controls :table-data table-data})
@@ -116,10 +120,10 @@
        (into [:tr]
              (for [col columns]
                (order-col controls table-data col)))]
-      [:tbody
+      [:tbody ;; TODO: take unique keys as vec
        (om/build-all render-table-row (:data table-data) {:key :key :fn (fn [r] {:columns columns
                                                                                  :record r
-                                                                                 :key (str (:?natural_id r ) (:?postcode r))})})
+                                                                                 :key (str (:?natural_id r ) (:?postcode r) (:!company_name r) (:?investment_uid r))})})
        ]]]
     (om/build paginate {:controls controls :table-data table-data})
     ])
@@ -132,9 +136,11 @@
       from :from
       size :size
       columns :columns
+      fields :fields
+      title :title
       :as controls} :controls
      :as table-state} :table-state
-     filter-spec :filter-spec
+    filter-spec :filter-spec
     :as props}
    owner]
 
@@ -145,7 +151,9 @@
 
     om/IRender
     (render [_]
-      (render-table {:table-data table-data :controls controls} owner {}))
+      (html [:div (when title
+                    [:header [:h3 title]])
+             (render-table {:table-data table-data :controls controls} owner {})]))
 
     om/IWillUpdate
     (will-update [_
@@ -155,6 +163,8 @@
                      next-sort-spec :sort-spec
                      next-from :from
                      next-size :size
+                     next-fields :fields
+                     next-title :title
                      :as next-controls} :controls
                     :as next-table-state} :table-state
                    next-filter-spec :filter-spec
@@ -165,32 +175,48 @@
                 (not= next-controls controls)
                 (not= next-filter-spec filter-spec))
         (go
-          (when-let [table-data (<! (fetch-table-data-fn next-index
-                                                         next-index-type
-                                                         next-filter-spec
-                                                         nil
-                                                         next-sort-spec
-                                                         next-from
-                                                         next-size))]
-            (om/update! next-table-state [:table-data] table-data))))
+          (when-let [table-data
+                     (<! (fetch-table-data-fn next-index
+                                              next-index-type
+                                              ((:filter-munge-fn next-controls identity) next-filter-spec)
+                                              nil
+                                              next-sort-spec
+                                              next-from
+                                              next-size
+                                              next-fields))]
+            (let [table-data ((:data-munge-fn next-controls identity) table-data)]
+              (om/update! next-table-state [:table-data] table-data)))))
       )))
 
+(s/def ::table (s/keys :req-un [::controls ::table-data] :opt-un [::type]))
+(s/def ::tables (s/and (s/map-of keyword? ::table)))
+(s/def ::table-state (s/and (s/keys :req-un [::tables ::current-table ::default-table])
+                            #(contains? (:tables %) (:default-table %))
+                            #(contains? (:tables %) (:current-table %))))
+
+(s/def ::tables-props (s/keys :req-un [::table-state ::filter-spec]))
 
 (defn multi-table-component
   "One component which can render one table of a number of tables at
   once"
-  [{{table-data    :table-data
-     tables        :tables
-     current-table :current-table
-     :as           table-state} :table-state
-
-    filter-spec :filter-spec
-    :as         props}
+  [{{:keys [table-data tables current-table default-table title?]
+     :as   table-state} :table-state
+    filter-spec         :filter-spec
+    :as                 props}
    owner]
-  (inspect tables)
-
   (reify
+    om/IWillMount
+    (will-mount [_]
+      (util/assert-spec ::tables-props props)
+      ;;TODO: use subscription instead?
+      (when-let [table-chan (om/get-shared owner :table-chan)]
+        (go-loop []
+          (when-some [op (<! table-chan)]
+            (case op
+              :clear (om/update! table-state :current-table default-table)
+              (js/console.debug "Unknown op " op))
+            (recur)))))
+
     om/IRender
     (render [_]
-      (om/build table-component
-                {:table-state (tables current-table) :filter-spec filter-spec}))))
+      (om/build table-component {:table-state (tables current-table) :filter-spec filter-spec}))))
