@@ -193,6 +193,7 @@
 (defn mixed
   "format a number with mixed format, showing decimal places below threshold and eng notation after
    :default - default result when (nil? n) or NaN
+   :zero-is-nil? - use :default if 0
 
    :plus? - use a plus prefix for +ve amounts
    :curr - optional currency symbol
@@ -202,12 +203,15 @@
 
    :sf - number of significant figures (above threshold)"
   ([n] (mixed n nil))
-  ([n {:keys [default plus? curr dec threshold sf] :or {default "" plus? false curr "" dec 0 threshold 1000000 sf 3} :as opts}]
+  ([n {:keys [default plus? curr dec threshold sf zero-is-nil?]
+       :or   {default "" plus? false curr "" dec 0 threshold 1000000 sf 3}
+       :as   opts}]
    (if (actually-really-number? n)
 
-     (if (< (js/Math.abs n) threshold)
-       (readable n opts)
-       (eng-readable n opts))
+     (cond
+       (and zero-is-nil? (zero? n))  default
+       (< (js/Math.abs n) threshold) (readable n opts)
+       :else                         (eng-readable n opts))
 
      default)))
 
