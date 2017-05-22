@@ -244,8 +244,18 @@
   (GET (str "/api/" api-prefix "/geotags/" tag-type)))
 
 (def-lastcall-method company-search
-  [query & [{:keys [search-fields]}]] ;;TODO: use an ajax todo params properly
+  [query & [{:keys [search-fields]}]] ;;TODO: use an ajax lib todo params properly
   (GET (str "/api/" api-prefix "/companies/v2/name-id-search?q=" (some-> query str/trim)
+            "&search_fields=" (str/join "," search-fields))))
+
+(def-lastcall-method constituency-search
+  [query {:keys [search-fields]}]
+  (GET (str "/api/" api-prefix "/companies/v2/constituency-search?q=" (some-> query str/trim)
+            "&search_fields=" (str/join "," search-fields))))
+
+(def-lastcall-method multi-search
+  [query & [{:keys [search-fields]}]] ;;TODO: use an ajax lib todo params properly
+  (GET (str "/api/" api-prefix "/companies/v2/multi-search?q=" (some-> query str/trim)
             "&search_fields=" (str/join "," search-fields))))
 
 (defnk-lastcall-method-factory company-links-factory
